@@ -50,7 +50,8 @@
       "resources/extension-host.bundle.js": "resources/extension-host.bundle.js",
       "resources/test-provider.bundle.js": "resources/test-provider.bundle.js",
       "../packages/bundled-extensions/chat/manifest.json": "bundled-extensions/chat/manifest.json",
-      "../packages/bundled-extensions/chat/dist": "bundled-extensions/chat/dist"
+      "../packages/bundled-extensions/chat/dist": "bundled-extensions/chat/dist",
+      "seed-books": "resources/seed-books"
     },
     "icon": [
       "icons/32x32.png",

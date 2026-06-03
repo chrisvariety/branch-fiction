@@ -40,6 +40,7 @@ tauri-plugin-fs = "2.5.1"
 tauri-plugin-notification = "2.3.3"
 tauri-plugin-updater = "2"
 zip = "8.6.0"
+flate2 = "1"
 htmd = "0.5"
 base64 = "0.22.1"
 uuid = { version = "1.23.1", features = ["v4", "v7"] }

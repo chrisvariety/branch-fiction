@@ -137,6 +137,11 @@ pub const MAIN_MIGRATIONS: &[MainMigration] = &[
         description: "extensions_signed",
         sql: include_str!("../migrations/0026_extensions_signed.sql"),
     },
+    MainMigration {
+        version: 27,
+        description: "book_seeds",
+        sql: include_str!("../migrations/0027_book_seeds.sql"),
+    },
 ];
 
 pub fn tauri_plugin_migrations() -> Vec<Migration> {

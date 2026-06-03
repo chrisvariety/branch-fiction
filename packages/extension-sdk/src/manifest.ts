@@ -106,6 +106,9 @@ export type ExtensionManifestV1 = {
   path?: ExtensionPath;
   providers?: ExtensionProviderRequirement[];
   config?: ExtensionConfigField[];
+  // SQLite file (relative to the extension root, optionally .gz) copied into the extension DB once.
+  // Tracked by path, so rename to re-seed. Bundled extensions only.
+  seed?: string;
   // Extra outbound hosts the worker is allowed to reach
   // (provider baseURLs do NOT belong here as those are reached through the local proxy)
   net?: string[];
@@ -190,6 +193,18 @@ export function validateManifest(m: ExtensionManifestV1): void {
   if (m.path) {
     if (!m.path.entry) {
       throw new Error(`Extension ${m.id}: path.entry is required`);
+    }
+  }
+
+  if (m.seed !== undefined) {
+    if (typeof m.seed !== 'string' || m.seed.length === 0) {
+      throw new Error(`Extension ${m.id}: "seed" must be a non-empty string`);
+    }
+    const parts = m.seed.split('/');
+    if (m.seed.startsWith('/') || m.seed.includes('\\') || parts.includes('..')) {
+      throw new Error(
+        `Extension ${m.id}: "seed" must be a relative path inside the extension (got ${JSON.stringify(m.seed)})`
+      );
     }
   }
 

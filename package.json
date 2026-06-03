@@ -17,6 +17,7 @@
     "build:worker:dev": "pnpm fetch:deno:dev && pnpm bundle:bundles",
     "build:bundled-extensions": "pnpm --filter \"./packages/bundled-extensions/*\" run build",
     "sign:extension": "node scripts/sign-extension.mjs",
+    "export:seed-book": "node scripts/export-seed-book.mjs",
     "preview": "vite preview",
     "tauri": "tauri",
     "typecheck": "tsc && tsc -p e2e/tsconfig.json",

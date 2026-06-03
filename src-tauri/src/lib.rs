@@ -1,4 +1,5 @@
 mod app_menu;
+mod book_seeds;
 mod bundled_extensions;
 mod cloud_link;
 mod cloud_state;
@@ -34,6 +35,7 @@ mod secret_key;
 mod test_provider;
 mod window_commands;
 
+use book_seeds::apply_book_seeds;
 use bundled_extensions::list_bundled_extension_dirs;
 use cloud_link::link_cloud_account;
 use cloud_state::CloudState;
@@ -152,6 +154,7 @@ pub fn run() {
             check_github_manifest,
             cleanup_extension_fetch,
             list_bundled_extension_dirs,
+            apply_book_seeds,
             mint_extension_session_token,
             revoke_extension_session_tokens,
             start_extension_task,
