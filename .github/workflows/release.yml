@@ -155,6 +155,27 @@ jobs:
           pnpm --filter ./packages/extension-sdk run build
           pnpm build:bundled-extensions
 
+      # Sign each bundled extension so copies installed from this branch verify as first-party.
+      - name: Sign bundled extensions
+        env:
+          EXTENSION_SIGNING_PRIVATE_KEY: ${{ secrets.EXTENSION_SIGNING_PRIVATE_KEY }}
+        run: |
+          umask 077
+          keyfile="$(mktemp)"
+          printf '%s\n' "$EXTENSION_SIGNING_PRIVATE_KEY" > "$keyfile"
+
+          baked="$(grep -o 'ssh-ed25519 [A-Za-z0-9+/]*' src-tauri/src/extension_signature.rs)"
+          derived="$(ssh-keygen -y -f "$keyfile" | grep -o 'ssh-ed25519 [A-Za-z0-9+/]*')"
+          if [ "$baked" != "$derived" ]; then
+            echo "signing key does not match FIRST_PARTY_PUBKEY in extension_signature.rs" >&2
+            exit 1
+          fi
+
+          for dir in packages/bundled-extensions/*/; do
+            node scripts/sign-extension.mjs "$dir" "$keyfile"
+          done
+          rm -f "$keyfile"
+
       - name: Commit dist and advance release branch
         env:
           TAG: ${{ github.ref_name }}
@@ -166,6 +187,6 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git checkout -B release
           git rm -r --quiet .github
-          git add -f packages/bundled-extensions/*/dist
+          git add -f packages/bundled-extensions/*/dist packages/bundled-extensions/*/extension.sig
           git commit -m "release: bundled extension dist for ${TAG}"
           git push --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" release

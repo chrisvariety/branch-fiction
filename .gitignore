@@ -1,6 +1,10 @@
 # First-party extension signing key — private half must never be committed.
 /id_ed25519
 
+# Signatures are produced in CI on the release branch; a stale sig on main
+# would fail verification after the next dist rebuild.
+extension.sig
+
 # Logs
 logs
 *.log
