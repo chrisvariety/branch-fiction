@@ -158,6 +158,9 @@ jobs:
       - name: Commit dist and advance release branch
         env:
           TAG: ${{ github.ref_name }}
+          # Checkout runs with persist-credentials: false, so authenticate this
+          # one push explicitly. GITHUB_TOKEN is auto-masked in logs.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
@@ -165,4 +168,4 @@ jobs:
           git rm -r --quiet .github
           git add -f packages/bundled-extensions/*/dist
           git commit -m "release: bundled extension dist for ${TAG}"
-          git push --force origin release
+          git push --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" release
