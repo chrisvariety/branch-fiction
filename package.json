@@ -12,6 +12,7 @@
     "bundle:extension-host": "pnpm --filter extension-host bundle",
     "bundle:test-provider": "pnpm --filter test-provider bundle",
     "bundle:bundles": "pnpm bundle:worker && pnpm bundle:extension-host && pnpm bundle:test-provider",
+    "build:sdk": "pnpm --filter @branch-fiction/extension-sdk build",
     "build:worker": "pnpm fetch:deno && pnpm bundle:bundles",
     "build:worker:dev": "pnpm fetch:deno:dev && pnpm bundle:bundles",
     "build:bundled-extensions": "pnpm --filter \"./packages/bundled-extensions/*\" run build",

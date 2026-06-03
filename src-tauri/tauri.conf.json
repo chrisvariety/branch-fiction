@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "identifier": "com.lexikon.branchfiction",
   "build": {
-    "beforeDevCommand": "pnpm build:worker:dev && pnpm build:bundled-extensions && pnpm dev",
+    "beforeDevCommand": "pnpm build:sdk && pnpm build:worker:dev && pnpm build:bundled-extensions && pnpm dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm build:worker && pnpm build:bundled-extensions && pnpm build",
+    "beforeBuildCommand": "pnpm build:sdk && pnpm build:worker && pnpm build:bundled-extensions && pnpm build",
     "frontendDist": "../dist"
   },
   "app": {
