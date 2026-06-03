@@ -185,44 +185,44 @@ export function ExtensionsPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className="sticky top-0 z-10 flex items-start justify-between gap-3 bg-background pb-4">
-        <div>
+      <div className="sticky top-0 z-10 bg-background pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-medium">Extensions</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Install extensions from a local folder or a GitHub URL.
-          </p>
-        </div>
-        <div className="flex shrink-0 gap-2">
-          {hasUpdatableExtensions && (
+          <div className="flex flex-wrap gap-2">
+            {hasUpdatableExtensions && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleCheckUpdates}
+                disabled={checkUpdates.isPending}
+                title="Check installed extensions for newer versions"
+              >
+                <IconRefresh
+                  className={`size-4 ${checkUpdates.isPending ? 'animate-spin' : ''}`}
+                />
+                {checkUpdates.isPending ? 'Checking…' : 'Check for updates'}
+              </Button>
+            )}
             <Button
               size="sm"
               variant="outline"
-              onClick={handleCheckUpdates}
-              disabled={checkUpdates.isPending}
-              title="Check installed extensions for newer versions"
+              onClick={() => {
+                setInstallError(null);
+                setUrlForm((cur) => (cur ? null : { url: '', fetching: false }));
+              }}
             >
-              <IconRefresh
-                className={`size-4 ${checkUpdates.isPending ? 'animate-spin' : ''}`}
-              />
-              {checkUpdates.isPending ? 'Checking…' : 'Check for updates'}
+              <IconBrandGithub className="size-4" />
+              Install from GitHub
             </Button>
-          )}
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              setInstallError(null);
-              setUrlForm((cur) => (cur ? null : { url: '', fetching: false }));
-            }}
-          >
-            <IconBrandGithub className="size-4" />
-            Install from GitHub
-          </Button>
-          <Button size="sm" onClick={() => void handlePick()}>
-            <IconPlus className="size-4" />
-            Install from folder
-          </Button>
+            <Button size="sm" onClick={() => void handlePick()}>
+              <IconPlus className="size-4" />
+              Install from folder
+            </Button>
+          </div>
         </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Install extensions from a local folder or a GitHub URL.
+        </p>
       </div>
 
       {urlForm && (
