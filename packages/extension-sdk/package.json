@@ -1,0 +1,78 @@
+{
+  "name": "@branch-fiction/extension-sdk",
+  "version": "0.1.0",
+  "bin": {
+    "branch-fiction-extension-dev": "./dist/dev-cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./manifest": {
+      "types": "./dist/manifest.d.ts",
+      "default": "./dist/manifest.js"
+    },
+    "./pi-handle": {
+      "types": "./dist/pi-handle.d.ts",
+      "default": "./dist/pi-handle.js"
+    },
+    "./sdk-source": {
+      "types": "./dist/sdk-source.d.ts",
+      "default": "./dist/sdk-source.js"
+    },
+    "./dev": {
+      "types": "./dist/dev.d.ts",
+      "default": "./dist/dev.js"
+    },
+    "./vite": {
+      "types": "./dist/vite.d.ts",
+      "default": "./dist/vite.js"
+    },
+    "./db": {
+      "types": "./dist/db/types.d.ts",
+      "default": "./dist/db/types.js"
+    },
+    "./db/iframe": {
+      "types": "./dist/db/iframe.d.ts",
+      "default": "./dist/db/iframe.js"
+    },
+    "./db/boolean-plugin": {
+      "types": "./dist/db/boolean-plugin.d.ts",
+      "default": "./dist/db/boolean-plugin.js"
+    }
+  },
+  "scripts": {
+    "build": "tsdown && pnpm vendor:bundle",
+    "vendor:bundle": "pnpm --filter extension-host bundle && node scripts/copy-bundle.mjs",
+    "typecheck": "tsc",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "ci": "concurrently \"pnpm lint --fix\" \"pnpm fmt\""
+  },
+  "dependencies": {
+    "@earendil-works/pi-ai": "catalog:",
+    "@hono/node-server": "^2.0.3",
+    "better-sqlite3": "catalog:",
+    "hono": "^4.12.19",
+    "kysely": "catalog:",
+    "kysely-plugin-serialize": "catalog:"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "catalog:",
+    "@types/node": "catalog:",
+    "concurrently": "catalog:",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:"
+  }
+}

@@ -1,0 +1,162 @@
+{
+  "manifestVersion": "v1",
+  "id": "@local/chat",
+  "name": "Chat",
+  "version": "0.1.0",
+  "author": "Chris McC",
+  "description": "Pick characters and a setting from your book and chat with them. Pick characters and a setting from your book and chat with them. Pick characters and a setting from your book and chat with them. Pick characters and a setting from your book and chat with them.",
+  "path": {
+    "phoneCompatible": true,
+    "entry": "dist/index.html",
+    "worker": "dist/worker.js",
+    "window": { "width": 1100, "height": 800 }
+  },
+  "providers": [
+    {
+      "key": "text",
+      "role": "Text analysis (LLM)",
+      "useSlot": "piText"
+    },
+    {
+      "key": "text_chat",
+      "role": "Chat text (LLM)",
+      "useSlot": "piText"
+    },
+    {
+      "key": "image_evaluation",
+      "role": "Image evaluation (vision LLM)",
+      "options": [
+        {
+          "baseURL": "https://generativelanguage.googleapis.com/v1beta",
+          "auth": { "kind": "header", "header": "x-goog-api-key" },
+          "model": "gemini-3-flash-preview",
+          "credentialHelp": "Get an API key from [Google AI Studio](https://aistudio.google.com)"
+        },
+        {
+          "baseURL": "https://api.openai.com/v1",
+          "auth": { "kind": "bearer" },
+          "model": "gpt-5.4-mini"
+        }
+      ]
+    },
+    {
+      "key": "image_generation_reference",
+      "role": "Reference image generation",
+      "options": [
+        {
+          "baseURL": "https://generativelanguage.googleapis.com/v1beta",
+          "auth": { "kind": "header", "header": "x-goog-api-key" },
+          "model": "gemini-3.1-flash-image-preview",
+          "credentialHelp": "Get an API key from [Google AI Studio](https://aistudio.google.com)"
+        },
+        {
+          "baseURL": "https://api.openai.com/v1",
+          "auth": { "kind": "bearer" },
+          "model": "gpt-image-2"
+        },
+        {
+          "baseURL": "https://api.x.ai/v1",
+          "auth": { "kind": "bearer" },
+          "model": "grok-imagine-image",
+          "credentialHelp": "Get an API key from [xAI](https://console.x.ai)"
+        },
+        {
+          "baseURL": "https://fal.run",
+          "auth": { "kind": "bearer", "headerPrefix": "Key" },
+          "model": "fal-ai/nano-banana-2",
+          "credentialHelp": "Get an API key from [Fal](https://fal.ai/dashboard/keys)"
+        }
+      ]
+    },
+    {
+      "key": "image_generation_interactive",
+      "role": "Interactive scene image generation",
+      "options": [
+        {
+          "baseURL": "https://generativelanguage.googleapis.com/v1beta",
+          "auth": { "kind": "header", "header": "x-goog-api-key" },
+          "model": "gemini-3-pro-image-preview",
+          "credentialHelp": "Get an API key from [Google AI Studio](https://aistudio.google.com)"
+        },
+        {
+          "baseURL": "https://api.openai.com/v1",
+          "auth": { "kind": "bearer" },
+          "model": "gpt-image-2"
+        }
+      ]
+    },
+    {
+      "key": "image_generation_chat",
+      "role": "Chat scene image generation",
+      "options": [
+        {
+          "baseURL": "https://generativelanguage.googleapis.com/v1beta",
+          "auth": { "kind": "header", "header": "x-goog-api-key" },
+          "model": "gemini-2.5-flash-image",
+          "credentialHelp": "Get an API key from [Google AI Studio](https://aistudio.google.com)"
+        },
+        {
+          "baseURL": "https://api.openai.com/v1",
+          "auth": { "kind": "bearer" },
+          "model": "gpt-image-2"
+        },
+        {
+          "baseURL": "https://api.x.ai/v1",
+          "auth": { "kind": "bearer" },
+          "model": "grok-imagine-image",
+          "credentialHelp": "Get an API key from [xAI](https://console.x.ai)"
+        },
+        {
+          "baseURL": "https://fal.run",
+          "auth": { "kind": "bearer", "headerPrefix": "Key" },
+          "model": "fal-ai/nano-banana-2",
+          "credentialHelp": "Get an API key from [Fal](https://fal.ai/dashboard/keys)"
+        }
+      ]
+    },
+    {
+      "key": "image_generation_chat_intimacy",
+      "role": "Chat scene image generation (intimacy)",
+      "optional": true,
+      "options": [
+        {
+          "baseURL": "https://generativelanguage.googleapis.com/v1beta",
+          "auth": { "kind": "header", "header": "x-goog-api-key" },
+          "model": "gemini-2.5-flash-image",
+          "credentialHelp": "Get an API key from [Google AI Studio](https://aistudio.google.com)"
+        },
+        {
+          "baseURL": "https://api.openai.com/v1",
+          "auth": { "kind": "bearer" },
+          "model": "gpt-image-2"
+        },
+        {
+          "baseURL": "https://api.x.ai/v1",
+          "auth": { "kind": "bearer" },
+          "model": "grok-imagine-image",
+          "credentialHelp": "Get an API key from [xAI](https://console.x.ai)"
+        },
+        {
+          "baseURL": "https://fal.run",
+          "auth": { "kind": "bearer", "headerPrefix": "Key" },
+          "model": "fal-ai/nano-banana-2",
+          "credentialHelp": "Get an API key from [Fal](https://fal.ai/dashboard/keys)"
+        }
+      ]
+    },
+    {
+      "key": "segmentation",
+      "role": "Image segmentation",
+      "options": [
+        {
+          "fullURL": "https://serverless.roboflow.com/your-workspace/workflows/sam-3",
+          "auth": { "kind": "body", "field": "api_key" },
+          "providerName": "Roboflow SAM 3",
+          "credentialHelp": "Use a workflow URL from [Roboflow](https://app.roboflow.com) or [a self-hosted SAM 3 server](https://github.com/chrisvariety/sam3.cpp-server)."
+        }
+      ]
+    }
+  ],
+  "config": [],
+  "net": []
+}

@@ -1,0 +1,1 @@
+ALTER TABLE book_imports RENAME COLUMN auto_confirm_calibration TO auto_confirm_projection;

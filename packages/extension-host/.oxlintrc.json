@@ -1,0 +1,13 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "plugins": ["import", "typescript"],
+  "categories": {},
+  "rules": {
+    "import/no-cycle": ["error", { "maxDepth": 3 }],
+    "typescript/no-unsafe-assignment": "off"
+  },
+  "env": {
+    "builtin": true
+  },
+  "globals": {}
+}

@@ -1,0 +1,1 @@
+ALTER TABLE plugins ADD COLUMN bundled integer NOT NULL DEFAULT 0;

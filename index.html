@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Books</title>
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('ui-theme') || 'system';
+          var dark =
+            t === 'dark' ||
+            (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var root = document.documentElement;
+          root.classList.add(dark ? 'dark' : 'light');
+          root.style.backgroundColor = dark ? '#1c1916' : '#fdfcfb';
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+
+  <body class="min-h-screen bg-background text-foreground">
+    <div id="root" class="flex min-h-screen flex-col"></div>
+    <script type="module" src="/src/main/index.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "imports": {
+    "@/app/": "../../src/",
+    "@/": "./src/"
+  },
+  "unstable": ["sloppy-imports"],
+  "lint": {
+    "rules": {
+      "exclude": ["no-sloppy-imports", "require-await", "no-inner-declarations"]
+    }
+  },
+  "tasks": {
+    "extract-entities-test": "deno run -A src/scripts/run-extract-entities.ts",
+    "compare-extractions": "deno run -A src/scripts/compare-extractions.ts"
+  }
+}

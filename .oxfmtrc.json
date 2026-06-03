@@ -1,0 +1,31 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "tabWidth": 2,
+  "semi": true,
+  "printWidth": 90,
+  "singleQuote": true,
+  "endOfLine": "lf",
+  "trailingComma": "none",
+  "sortImports": {},
+  "sortTailwindcss": {
+    "stylesheet": "./index.css",
+    "attributes": ["class", "className"],
+    "functions": ["clsx", "cn", "cva"]
+  },
+  "sortPackageJson": true,
+  "ignorePatterns": [
+    "pnpm-lock.yaml",
+    "package-lock.json",
+    "yarn.lock",
+    "pnpm-workspace.yaml",
+    "migrations/",
+    ".turbo",
+    ".cache",
+    "worker-configuration.d.ts",
+    ".vercel",
+    ".output",
+    ".wrangler",
+    ".netlify",
+    "dist"
+  ]
+}

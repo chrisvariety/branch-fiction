@@ -1,0 +1,67 @@
+[package]
+name = "branch-fiction"
+version = "0.1.0"
+description = "Branch Fiction turns books into interactive stories"
+authors = ["Chris McClelland"]
+edition = "2024"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "branch_fiction_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+tauri-plugin-shell = "2"
+tauri-plugin-sql = { version = "2", features = ["sqlite"] }
+sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite"] }
+# Pinned to the version sqlx-sqlite links so the `sqlite3` handle types unify.
+# Used to disable ATTACH on extension-facing connections.
+libsqlite3-sys = "0.30"
+tauri-plugin-dialog = "2"
+keepawake = "0.6"
+keyring-core = "1"
+getrandom = "0.4"
+local-ip-address = "0.6"
+axum = "0.8"
+tower-http = { version = "0.6", features = ["fs", "cors"] }
+tokio = { version = "1", features = ["net", "rt-multi-thread", "time"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri-plugin-fs = "2.5.1"
+tauri-plugin-notification = "2.3.3"
+zip = "8.6.0"
+htmd = "0.5"
+base64 = "0.22.1"
+uuid = { version = "1.23.1", features = ["v4", "v7"] }
+reqwest = { version = "0.13", default-features = false, features = [
+  "json",
+  "rustls",
+  "stream",
+  "gzip",
+  "brotli",
+  "deflate",
+  "zstd"
+] }
+aes-gcm = "0.11.0-rc.3"
+sha2 = "0.10"
+ssh-key = { version = "0.6", features = ["ed25519"] }
+futures-util = "0.3"
+jsonwebtoken = { version = "10", default-features = false, features = ["rust_crypto"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+apple-native-keyring-store = { version = "1", features = ["keychain"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows-native-keyring-store = "1"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+dbus-secret-service-keyring-store = { version = "1", features = ["crypto-rust"] }

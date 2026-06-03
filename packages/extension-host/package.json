@@ -1,0 +1,24 @@
+{
+  "name": "extension-host",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bundle": "tsdown -c tsdown.config.ts",
+    "typecheck": "tsc",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "ci": "concurrently \"pnpm lint --fix\" \"pnpm fmt\""
+  },
+  "devDependencies": {
+    "@types/deno": "catalog:",
+    "@types/node": "catalog:",
+    "concurrently": "catalog:",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "test-provider",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bundle": "tsdown -c tsdown.config.ts",
+    "typecheck": "tsc",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "ci": "concurrently \"pnpm lint --fix\" \"pnpm fmt\""
+  },
+  "dependencies": {
+    "@branch-fiction/extension-sdk": "workspace:*",
+    "@earendil-works/pi-ai": "catalog:"
+  },
+  "devDependencies": {
+    "@types/deno": "catalog:",
+    "concurrently": "catalog:",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:"
+  }
+}
