@@ -59,7 +59,7 @@ allowBuilds:
   '@google/genai': false
   better-sqlite3: true
   protobufjs: false
-nodeVersion: 22.22.3
+nodeVersion: 25.9.0
 engineStrict: true
 minimumReleaseAgeExclude:
   - '@earendil-works/pi-agent-core@0.75.3'
