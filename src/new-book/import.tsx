@@ -589,6 +589,7 @@ export function ImportPage() {
               index={chapterIndex}
               stepById={stepById}
               stalled={isStalled}
+              resuming={resuming}
               suppressCursor={suppressCursor}
               importComplete={isComplete}
               bookImportId={bookImportId ?? ''}
@@ -688,6 +689,7 @@ export function ImportPage() {
                   }
                   stepById={stepById}
                   stalled={isStalled}
+                  resuming={resuming}
                   suppressCursor={suppressCursor}
                   importComplete={isComplete}
                   bookImportId={bookImportId ?? ''}
@@ -1133,6 +1135,7 @@ function ChapterDetailPane({
   index,
   stepById,
   stalled,
+  resuming,
   suppressCursor,
   importComplete,
   bookImportId,
@@ -1147,6 +1150,7 @@ function ChapterDetailPane({
   index: number;
   stepById: Map<string, StepInfo>;
   stalled: boolean;
+  resuming: boolean;
   suppressCursor: boolean;
   importComplete: boolean;
   bookImportId: string;
@@ -1208,7 +1212,13 @@ function ChapterDetailPane({
             <BlankChapterPlaceholder />
           )
         ) : showBlankPlaceholder ? (
-          <BlankChapterPlaceholder />
+          resuming || !stalled ? (
+            <div className="font-serif text-sm leading-snug">
+              <TypingNarrative lines={[]} isActive suppressCursor={suppressCursor} />
+            </div>
+          ) : (
+            <BlankChapterPlaceholder />
+          )
         ) : (
           <div className="flex flex-1 flex-col gap-2 overflow-y-auto">
             {chapter.stepIds.map((id) => (
