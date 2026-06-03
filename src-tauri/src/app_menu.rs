@@ -1,5 +1,7 @@
 use tauri::AppHandle;
 use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
+use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
+use tauri_plugin_updater::UpdaterExt;
 
 use crate::window_commands::{
     focus_or_open_main_window, open_new_book_window_impl, open_settings_window_impl,
@@ -21,9 +23,15 @@ pub fn setup(app: &AppHandle) -> tauri::Result<()> {
         .accelerator("CmdOrCtrl+Shift+O")
         .build(app)?;
 
+    let check_updates_item = MenuItemBuilder::new("Check for Updates…")
+        .id("check-for-updates")
+        .build(app)?;
+
     let app_name = app.package_info().name.clone();
 
     let app_menu = SubmenuBuilder::new(app, app_name)
+        .item(&check_updates_item)
+        .separator()
         .item(&settings_item)
         .separator()
         .hide()
@@ -81,8 +89,67 @@ pub fn setup(app: &AppHandle) -> tauri::Result<()> {
                 eprintln!("menu: open new book failed: {e}");
             }
         }
+        "check-for-updates" => check_for_updates(app_handle),
         _ => {}
     });
 
     Ok(())
+}
+
+// Runs the updater off the main thread so the blocking dialogs don't deadlock it.
+fn check_for_updates(app: &AppHandle) {
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let update = match app.updater() {
+            Ok(updater) => updater.check().await,
+            Err(e) => {
+                eprintln!("menu: updater unavailable: {e}");
+                return;
+            }
+        };
+
+        match update {
+            Ok(Some(update)) => {
+                let install = app
+                    .dialog()
+                    .message(format!(
+                        "Branch Fiction {} is available. Install it and restart now?",
+                        update.version
+                    ))
+                    .title("Update Available")
+                    .kind(MessageDialogKind::Info)
+                    .buttons(MessageDialogButtons::OkCancelCustom(
+                        "Install and Restart".to_string(),
+                        "Later".to_string(),
+                    ))
+                    .blocking_show();
+
+                if !install {
+                    return;
+                }
+
+                if let Err(e) = update.download_and_install(|_, _| {}, || {}).await {
+                    show_update_error(&app, format!("Update failed: {e}"));
+                    return;
+                }
+
+                app.restart();
+            }
+            Ok(None) => {
+                app.dialog()
+                    .message("You're running the latest version.")
+                    .title("Check for Updates")
+                    .blocking_show();
+            }
+            Err(e) => show_update_error(&app, format!("Couldn't check for updates: {e}")),
+        }
+    });
+}
+
+fn show_update_error(app: &AppHandle, message: String) {
+    app.dialog()
+        .message(message)
+        .title("Check for Updates")
+        .kind(MessageDialogKind::Error)
+        .blocking_show();
 }

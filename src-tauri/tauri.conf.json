@@ -31,10 +31,17 @@
     },
     "sql": {
       "preload": ["sqlite:branch-fiction.db"]
+    },
+    "updater": {
+      "endpoints": [
+        "https://github.com/chrisvariety/branch-fiction/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ2RkNFNjA5NTIyQTUwNUIKUldSYlVDcFNDZWI4MXJRRkY3Q0M3c0F6UlA3aUJiaGhleDZIbHErWXFTS1ZpSFZ6VndtVzhYZTEK"
     }
   },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "targets": "all",
     "externalBin": ["binaries/deno"],
     "resources": {
