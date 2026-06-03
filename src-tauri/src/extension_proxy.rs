@@ -36,6 +36,42 @@ pub async fn proxy_handler(
     headers: HeaderMap,
     body: Body,
 ) -> Result<axum::response::Response, (StatusCode, String)> {
+    proxy_request(app, token, provider_key, rest, method, uri, headers, body).await
+}
+
+// `fullURL` provider options are hit at the bare proxy URL with no trailing path.
+pub async fn proxy_handler_no_rest(
+    State(app): State<AppHandle>,
+    AxumPath((token, provider_key)): AxumPath<(String, String)>,
+    method: Method,
+    uri: Uri,
+    headers: HeaderMap,
+    body: Body,
+) -> Result<axum::response::Response, (StatusCode, String)> {
+    proxy_request(
+        app,
+        token,
+        provider_key,
+        String::new(),
+        method,
+        uri,
+        headers,
+        body,
+    )
+    .await
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn proxy_request(
+    app: AppHandle,
+    token: String,
+    provider_key: String,
+    rest: String,
+    method: Method,
+    uri: Uri,
+    headers: HeaderMap,
+    body: Body,
+) -> Result<axum::response::Response, (StatusCode, String)> {
     let claims = verify_path_token(&app, &token)?;
 
     if !claims.allows_provider(&provider_key) {

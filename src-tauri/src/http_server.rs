@@ -22,7 +22,7 @@ use crate::extension_data_proxy::{
     public_asset_handler,
 };
 use crate::extension_dev::{pair_handler, prepare_db_handler};
-use crate::extension_proxy::proxy_handler;
+use crate::extension_proxy::{proxy_handler, proxy_handler_no_rest};
 use crate::extension_sdk::{ExtensionSdkState, sdk_handler};
 use crate::extension_task_sse::{cancel_task_handler, start_task_handler};
 use crate::phone_share::{PhoneShareState, phone_share_redirect_handler};
@@ -109,6 +109,10 @@ async fn run(
 
     // Routes reachable by phone clients (only while a share is live); unlisted routes are loopback-only by default.
     let extension_routes: Router = Router::new()
+        .route(
+            "/extension-providers/{token}/{provider_key}",
+            any(proxy_handler_no_rest),
+        )
         .route(
             "/extension-providers/{token}/{provider_key}/{*rest}",
             any(proxy_handler),
