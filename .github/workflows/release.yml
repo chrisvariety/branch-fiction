@@ -162,6 +162,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git checkout -B release
+          git rm -r --quiet .github
           git add -f packages/bundled-extensions/*/dist
           git commit -m "release: bundled extension dist for ${TAG}"
           git push --force origin release
