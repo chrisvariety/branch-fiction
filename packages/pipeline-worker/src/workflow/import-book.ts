@@ -569,6 +569,34 @@ const TENS_WORDS = [
   'ninety'
 ];
 
+const ROMAN_NUMERALS: Array<[number, string]> = [
+  [1000, 'm'],
+  [900, 'cm'],
+  [500, 'd'],
+  [400, 'cd'],
+  [100, 'c'],
+  [90, 'xc'],
+  [50, 'l'],
+  [40, 'xl'],
+  [10, 'x'],
+  [9, 'ix'],
+  [5, 'v'],
+  [4, 'iv'],
+  [1, 'i']
+];
+
+function numberToRoman(n: number): string | null {
+  if (n <= 0 || n >= 4000) return null;
+  let result = '';
+  for (const [value, symbol] of ROMAN_NUMERALS) {
+    while (n >= value) {
+      result += symbol;
+      n -= value;
+    }
+  }
+  return result;
+}
+
 function numberToWords(n: number): string | null {
   if (n < 0 || n >= 100) return null;
   if (n < 20) return NUMBER_WORDS_UNDER_20[n];
@@ -586,9 +614,12 @@ function normalizeChapterTitle(title: string): string {
 }
 
 function isFormulaicChapterTitle(title: string, idx: number): boolean {
+  const normalized = normalizeChapterTitle(title);
   const word = numberToWords(idx);
-  if (!word) return false;
-  return normalizeChapterTitle(title) === normalizeChapterTitle(`chapter ${word}`);
+  if (word && normalized === normalizeChapterTitle(`chapter ${word}`)) return true;
+  const roman = numberToRoman(idx);
+  if (roman && (normalized === roman || normalized === `chapter ${roman}`)) return true;
+  return false;
 }
 
 const excludeKeys = <T extends Record<string, unknown>, K extends keyof T>(
