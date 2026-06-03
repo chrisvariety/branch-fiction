@@ -76,6 +76,7 @@ jobs:
             patchelf \
             libxdo-dev \
             build-essential \
+            xdg-utils \
             curl wget file libssl-dev
 
       - name: Setup pnpm
