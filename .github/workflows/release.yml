@@ -118,3 +118,49 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+
+  # Advance the `release` branch to the tagged commit + built bundled-extensions
+  sync-release-branch:
+    name: Sync release branch
+    needs: publish-tauri
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write # pushes the `release` branch
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          fetch-depth: 0 # full history so the force-push isn't a shallow update
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093
+        with:
+          version: 11
+
+      - name: Setup Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: 25.9.0
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The SDK's dist is gitignored, and the bundled extensions import it as a workspace dependency,
+      # so it must be built first.
+      - name: Build bundled extensions
+        run: |
+          pnpm --filter ./packages/extension-sdk run build
+          pnpm build:bundled-extensions
+
+      - name: Commit dist and advance release branch
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -B release
+          git add -f packages/bundled-extensions/*/dist
+          git commit -m "release: bundled extension dist for ${TAG}"
+          git push --force origin release
