@@ -8,8 +8,9 @@ import photorealisticUrl from './photorealistic.png';
 type Choice = 'digital-illustration' | 'photorealistic' | 'custom';
 
 const PRESET_STYLES: Record<Exclude<Choice, 'custom'>, string> = {
-  'digital-illustration': 'Digital Illustration',
-  photorealistic: 'Photorealistic'
+  'digital-illustration':
+    'polished, semi-realistic digital illustration style (not photorealistic)',
+  photorealistic: 'Photorealistic style'
 };
 
 type Props = { onContinue: (artStyle: string) => Promise<void> | void };
