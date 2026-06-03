@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// PreToolUse hook: denies Edit/Write/MultiEdit when the content being written
-// contains multi-line comments, enforcing the project rule
+// PostToolUse hook: soft-flags multi-line comments in Edit/Write/MultiEdit content,
+// nudging toward the project rule
 // "Use comments sparingly... keep them brief and single line."
 //
 // Heuristics (lenient, to avoid noise):
@@ -8,7 +8,7 @@
 //  - ...unless the run starts with a lowercase letter (hand-written) or a lint directive
 //  - block comments (`/* */`, `/** */`) spanning 3+ lines are flagged
 // Scans only the new content, so pre-existing comments are never flagged.
-// Soft block: exits 0 with permissionDecision "deny" so Claude rewrites and retries.
+// Soft: exits 0 with additionalContext so Claude self-corrects; never blocks.
 
 import { readFileSync } from 'node:fs';
 
@@ -36,7 +36,7 @@ const ext = (p) => {
 const truncate = (s, n = 64) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 const stripSlashes = (line) => line.replace(/^\s*\/\/\/?!?/, '').trim();
 
-// Pull the text about to be written from any of Write/Edit/MultiEdit.
+// Pull the text that was written from any of Write/Edit/MultiEdit.
 function newContent(input) {
   if (typeof input?.content === 'string') return input.content;
   if (typeof input?.new_string === 'string') return input.new_string;
@@ -96,13 +96,12 @@ function findViolations(content) {
   return findings;
 }
 
-function deny(reason) {
+function flag(context) {
   process.stdout.write(
     JSON.stringify({
       hookSpecificOutput: {
-        hookEventName: 'PreToolUse',
-        permissionDecision: 'deny',
-        permissionDecisionReason: reason
+        hookEventName: 'PostToolUse',
+        additionalContext: context
       }
     })
   );
@@ -129,15 +128,15 @@ function main() {
   const extra = findings.length - shown.length;
   const rel = filePath.replace(`${process.env.CLAUDE_PROJECT_DIR ?? ''}/`, '');
 
-  deny(
+  flag(
     [
-      `Blocked: the content for ${rel} has multi-line comments, which violate the project rule`,
-      `"Use comments sparingly, let the code speak for itself. Keep them brief and single line."`,
+      `Comment-style check flagged ${findings.length} possible violation${findings.length === 1 ? '' : 's'} in ${rel}.`,
+      `Project rule: "Use comments sparingly, let the code speak for itself. Keep them brief and single line."`,
       ``,
       ...shown.map((f) => `  - ${f}`),
       extra > 0 ? `  - …and ${extra} more` : null,
       ``,
-      `Rewrite each as a single brief line, or drop it where the code is self-evident, then retry.`,
+      `Collapse each to a single brief line, or delete it where the code is self-evident.`,
       `Leave alone: comments that start lowercase (hand-written) and "potential improvement" notes.`
     ]
       .filter((l) => l !== null)
