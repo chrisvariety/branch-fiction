@@ -97,6 +97,7 @@ function usage() {
       '',
       'The source type is auto-detected:',
       '  book-import db  output is a name, e.g. pride-and-prejudice.db -> src-tauri/seed-books/<name>.gz',
+      '                  the book cover (books.image_url) is packed into _seed_assets unless --no-assets',
       '  extension db    output is a path, e.g. packages/bundled-extensions/chat/seed.db -> <path>.gz',
       '                  the sibling assets/ dir is packed into _seed_assets unless --no-assets'
     ].join('\n')
@@ -142,7 +143,7 @@ function tableSchema(db, table) {
   return row?.sql ?? null;
 }
 
-function copyTable(src, out, table, transformRow) {
+function copyTable(src, out, table, { transformRow, where, params = [] } = {}) {
   const schema = tableSchema(src, table);
   if (!schema) {
     console.warn(`warning: table ${table} not found in source, skipping`);
@@ -154,8 +155,10 @@ function copyTable(src, out, table, transformRow) {
     `INSERT INTO "${table}" (${cols.map((c) => `"${c}"`).join(', ')}) VALUES (${cols.map(() => '?').join(', ')})`
   );
   const rows = src
-    .prepare(`SELECT ${cols.map((c) => `"${c}"`).join(', ')} FROM "${table}"`)
-    .all();
+    .prepare(
+      `SELECT ${cols.map((c) => `"${c}"`).join(', ')} FROM "${table}"${where ? ` WHERE ${where}` : ''}`
+    )
+    .all(...params);
   out.transaction(() => {
     for (const row of rows) {
       if (transformRow) transformRow(row);
@@ -193,7 +196,34 @@ function finalize(out, dbPath, counts, detail) {
   console.log(`wrote ${gzPath} (${sizeMb} MB gzipped, ${detail})`);
 }
 
-function exportBookSeed(importDb, sourcePath, output, mainDbPath) {
+// Packs the cover referenced by books.image_url (file://<bucket>/<key>, under storage/ next to the main db).
+function packCoverAsset(out, mainDbPath, imageUrl) {
+  if (!imageUrl) return 0;
+  let bucket, key;
+  try {
+    const parsed = new URL(imageUrl);
+    if (parsed.protocol !== 'file:') return 0;
+    bucket = parsed.hostname;
+    key = parsed.pathname.slice(1);
+  } catch {
+    return 0;
+  }
+  const abs = join(dirname(mainDbPath), 'storage', bucket, key);
+  if (!existsSync(abs)) {
+    console.warn(`warning: cover not found, skipping: ${abs}`);
+    return 0;
+  }
+  out.exec(
+    'CREATE TABLE IF NOT EXISTS _seed_assets (path text PRIMARY KEY, data blob NOT NULL)'
+  );
+  out
+    .prepare('INSERT INTO _seed_assets (path, data) VALUES (?, ?)')
+    .run(`${bucket}/${key}`, readFileSync(abs));
+  console.log(`  cover: ${bucket}/${key}`);
+  return 1;
+}
+
+function exportBookSeed(importDb, sourcePath, output, mainDbPath, includeAssets) {
   if (!/^[a-z0-9][a-z0-9-]*\.db$/.test(output)) {
     fail(
       `book seed output must be a kebab-case name ending in .db, e.g. pride-and-prejudice.db (got: ${output})`
@@ -233,12 +263,20 @@ function exportBookSeed(importDb, sourcePath, output, mainDbPath) {
   const out = createOutput(dbPath);
 
   const counts = {};
-  counts.books = copyTable(mainDb, out, 'books', (row) => {
-    row.user_id = 'default';
+  counts.books = copyTable(mainDb, out, 'books', {
+    where: 'id = ?',
+    params: [bookId],
+    transformRow: (row) => {
+      row.user_id = 'default';
+    }
   });
   // Per-import DBs only ever hold one book, so whole-table copies are safe.
   for (const table of SEED_TABLES) {
     counts[table] = copyTable(importDb, out, table);
+  }
+
+  if (includeAssets) {
+    counts.assets = packCoverAsset(out, mainDbPath, bookRow.image_url);
   }
 
   writeSeedMeta(out, {
@@ -361,7 +399,7 @@ function main() {
   );
   const src = openReadonly(sourcePath, 'source db');
   if (tableSchema(src, '_import_migrations')) {
-    exportBookSeed(src, sourcePath, output, mainDbPath);
+    exportBookSeed(src, sourcePath, output, mainDbPath, includeAssets);
   } else if (tableSchema(src, 'book_migrations')) {
     exportExtensionSeed(src, sourcePath, output, includeAssets);
   } else {

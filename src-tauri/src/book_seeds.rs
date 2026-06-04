@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 
 use serde::Serialize;
 use sqlx::{Connection, Executor, SqliteConnection};
@@ -74,6 +74,11 @@ pub async fn apply_book_seeds(app: AppHandle) -> Result<Vec<AppliedSeed>, String
     }
 
     let current_version = MAIN_MIGRATIONS.last().map(|m| m.version).unwrap_or(0);
+    let storage_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("app_data_dir: {e}"))?
+        .join("storage");
     let mut applied = Vec::new();
     for path in files {
         let name = seed_name(&path);
@@ -92,7 +97,7 @@ pub async fn apply_book_seeds(app: AppHandle) -> Result<Vec<AppliedSeed>, String
                 continue;
             }
         };
-        let result = apply_seed(&mut conn, &db_file, &name, current_version).await;
+        let result = apply_seed(&mut conn, &db_file, &name, current_version, &storage_dir).await;
         if is_temp {
             let _ = std::fs::remove_file(&db_file);
         }
@@ -138,11 +143,58 @@ pub(crate) fn materialize_seed_db(path: &Path) -> Result<(PathBuf, bool), String
     Ok((tmp, true))
 }
 
+/// Writes `_seed_assets` blobs from the attached `seed` db into `dest_dir`; a failed write rolls the seed back for retry.
+pub(crate) async fn extract_seed_assets(
+    tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+    dest_dir: &Path,
+) -> Result<(), String> {
+    let exists: Option<(String,)> = sqlx::query_as(
+        "SELECT name FROM seed.sqlite_master WHERE type = 'table' AND name = '_seed_assets'",
+    )
+    .fetch_optional(&mut **tx)
+    .await
+    .map_err(|e| format!("check _seed_assets: {e}"))?;
+    if exists.is_none() {
+        return Ok(());
+    }
+
+    let paths: Vec<(String,)> = sqlx::query_as("SELECT path FROM seed._seed_assets")
+        .fetch_all(&mut **tx)
+        .await
+        .map_err(|e| format!("list seed assets: {e}"))?;
+
+    for (rel,) in paths {
+        let rel_path = Path::new(&rel);
+        let safe = rel_path.is_relative()
+            && rel_path
+                .components()
+                .all(|c| matches!(c, Component::Normal(_)));
+        if !safe {
+            eprintln!("skipping seed asset with unsafe path: {rel}");
+            continue;
+        }
+        // One blob in memory at a time.
+        let (data,): (Vec<u8>,) =
+            sqlx::query_as("SELECT data FROM seed._seed_assets WHERE path = ?1")
+                .bind(&rel)
+                .fetch_one(&mut **tx)
+                .await
+                .map_err(|e| format!("read seed asset {rel}: {e}"))?;
+        let dest = dest_dir.join(rel_path);
+        if let Some(parent) = dest.parent() {
+            std::fs::create_dir_all(parent).map_err(|e| format!("mkdir for asset {rel}: {e}"))?;
+        }
+        std::fs::write(&dest, data).map_err(|e| format!("write asset {rel}: {e}"))?;
+    }
+    Ok(())
+}
+
 async fn apply_seed(
     conn: &mut SqliteConnection,
     path: &Path,
     name: &str,
     current_version: i64,
+    storage_dir: &Path,
 ) -> Result<AppliedSeed, String> {
     let attach_sql = format!(
         "ATTACH DATABASE '{}' AS seed",
@@ -151,7 +203,7 @@ async fn apply_seed(
     conn.execute(attach_sql.as_str())
         .await
         .map_err(|e| format!("attach seed db: {e}"))?;
-    let result = apply_seed_inner(conn, name, current_version).await;
+    let result = apply_seed_inner(conn, name, current_version, storage_dir).await;
     let _ = conn.execute("DETACH DATABASE seed").await;
     result
 }
@@ -160,6 +212,7 @@ async fn apply_seed_inner(
     conn: &mut SqliteConnection,
     name: &str,
     current_version: i64,
+    storage_dir: &Path,
 ) -> Result<AppliedSeed, String> {
     let meta: HashMap<String, String> =
         sqlx::query_as::<_, (String, String)>("SELECT key, value FROM seed._seed_meta")
@@ -193,6 +246,7 @@ async fn apply_seed_inner(
     for table in SEED_CONTENT_TABLES {
         copy_content_table(&mut tx, table).await?;
     }
+    extract_seed_assets(&mut tx, storage_dir).await?;
     sqlx::query("INSERT INTO book_seeds (name, book_id, schema_version) VALUES (?1, ?2, ?3)")
         .bind(name)
         .bind(&book_id)

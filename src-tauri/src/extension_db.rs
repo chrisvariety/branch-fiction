@@ -288,7 +288,7 @@ async fn apply_manifest_seed_inner(
         }
     }
 
-    extract_seed_assets(&mut tx, assets_dir).await?;
+    crate::book_seeds::extract_seed_assets(&mut tx, assets_dir).await?;
 
     sqlx::query("INSERT INTO extension_seeds (name) VALUES (?1)")
         .bind(name)
@@ -296,52 +296,6 @@ async fn apply_manifest_seed_inner(
         .await
         .map_err(|e| format!("record seed: {e}"))?;
     tx.commit().await.map_err(|e| format!("commit seed tx: {e}"))?;
-    Ok(())
-}
-
-/// Writes `_seed_assets` blobs into the extension's assets dir; a failed write rolls the seed back for retry.
-async fn extract_seed_assets(
-    tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
-    assets_dir: &Path,
-) -> Result<(), String> {
-    let exists: Option<(String,)> = sqlx::query_as(
-        "SELECT name FROM seed.sqlite_master WHERE type = 'table' AND name = '_seed_assets'",
-    )
-    .fetch_optional(&mut **tx)
-    .await
-    .map_err(|e| format!("check _seed_assets: {e}"))?;
-    if exists.is_none() {
-        return Ok(());
-    }
-
-    let paths: Vec<(String,)> = sqlx::query_as("SELECT path FROM seed._seed_assets")
-        .fetch_all(&mut **tx)
-        .await
-        .map_err(|e| format!("list seed assets: {e}"))?;
-
-    for (rel,) in paths {
-        let rel_path = Path::new(&rel);
-        let safe = rel_path.is_relative()
-            && rel_path
-                .components()
-                .all(|c| matches!(c, Component::Normal(_)));
-        if !safe {
-            eprintln!("skipping seed asset with unsafe path: {rel}");
-            continue;
-        }
-        // One blob in memory at a time.
-        let (data,): (Vec<u8>,) =
-            sqlx::query_as("SELECT data FROM seed._seed_assets WHERE path = ?1")
-                .bind(&rel)
-                .fetch_one(&mut **tx)
-                .await
-                .map_err(|e| format!("read seed asset {rel}: {e}"))?;
-        let dest = assets_dir.join(rel_path);
-        if let Some(parent) = dest.parent() {
-            std::fs::create_dir_all(parent).map_err(|e| format!("mkdir for asset {rel}: {e}"))?;
-        }
-        std::fs::write(&dest, data).map_err(|e| format!("write asset {rel}: {e}"))?;
-    }
     Ok(())
 }
 
