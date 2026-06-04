@@ -6,6 +6,7 @@
   "author": "Chris McC",
   "description": "Pick characters and a setting from your book and chat with them. Pick characters and a setting from your book and chat with them. Pick characters and a setting from your book and chat with them. Pick characters and a setting from your book and chat with them.",
   "repository": "https://github.com/chrisvariety/branch-fiction/tree/release/packages/bundled-extensions/chat",
+  "seed": "seed.db.gz",
   "path": {
     "phoneCompatible": true,
     "entry": "dist/index.html",

@@ -136,7 +136,7 @@ async fn manifest_seed_source(app: &AppHandle, extension_id: &str) -> Option<(St
     let safe = rel_path.is_relative()
         && rel_path
             .components()
-            .all(|c| matches!(c, Component::Normal(_)));
+            .all(|c| matches!(c, Component::Normal(_) | Component::CurDir));
     if !safe {
         eprintln!("extension {extension_id}: invalid seed path {rel}");
         return None;

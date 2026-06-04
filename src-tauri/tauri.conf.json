@@ -51,6 +51,7 @@
       "resources/test-provider.bundle.js": "resources/test-provider.bundle.js",
       "../packages/bundled-extensions/chat/manifest.json": "bundled-extensions/chat/manifest.json",
       "../packages/bundled-extensions/chat/dist": "bundled-extensions/chat/dist",
+      "../packages/bundled-extensions/chat/seed.db.gz": "bundled-extensions/chat/seed.db.gz",
       "seed-books": "resources/seed-books"
     },
     "icon": [
