@@ -127,6 +127,8 @@ async function runDag(
 ): Promise<void> {
   await new Promise<void>((resolve) => {
     const inFlight = new Set<string>();
+    // each step gets one dispatch per run; retries beyond the workflow-level budget require a new resume
+    const dispatched = new Set<string>();
     let resolved = false;
 
     const finish = () => {
@@ -148,15 +150,16 @@ async function runDag(
         return;
       }
 
-      let dispatched = 0;
+      let dispatchedNow = 0;
       for (const stepId of state.readyIds) {
-        if (inFlight.has(stepId)) continue;
+        if (inFlight.has(stepId) || dispatched.has(stepId)) continue;
         inFlight.add(stepId);
-        dispatched++;
+        dispatched.add(stepId);
+        dispatchedNow++;
         void runStepAndChain(stepId);
       }
 
-      if (dispatched === 0 && inFlight.size === 0) {
+      if (dispatchedNow === 0 && inFlight.size === 0) {
         finish();
       }
     };

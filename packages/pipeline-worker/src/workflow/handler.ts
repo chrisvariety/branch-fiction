@@ -188,8 +188,19 @@ const RETRY_LIMITS: Record<string, number> = {
 };
 const DEFAULT_RETRY_LIMIT = 3;
 
+// identical consecutive errors signal a persistent failure (e.g. a safety refusal), not a transient one
+const IDENTICAL_ERROR_LIMIT = 3;
+const TRANSIENT_ERROR_PATTERN =
+  /rate.?limit|too many requests|timeout|timed out|overloaded|econn|fetch failed|socket|network|\b(?:429|5\d\d)\b/i;
+
 function getRetryLimit(err: Error): number {
   return RETRY_LIMITS[err.name] ?? DEFAULT_RETRY_LIMIT;
+}
+
+function isPersistentFailure(err: Error, identicalCount: number): boolean {
+  return (
+    identicalCount >= IDENTICAL_ERROR_LIMIT && !TRANSIENT_ERROR_PATTERN.test(err.message)
+  );
 }
 
 function backoffMs(attempt: number): number {
@@ -217,6 +228,8 @@ export function createWorkflowFunction<TData, TPayload = TData, TResult = unknow
     console.log(`[workflow] ${workflowName} (${executionId})`);
 
     let lastError: Error | undefined;
+    let lastErrorKey: string | undefined;
+    let identicalErrorCount = 0;
 
     for (let attempt = 0; ; attempt++) {
       let queue: Promise<void> = Promise.resolve();
@@ -289,6 +302,9 @@ export function createWorkflowFunction<TData, TPayload = TData, TResult = unknow
         tracer.fail(error);
         await drain();
         lastError = error instanceof Error ? error : new Error(String(error));
+        const errorKey = `${lastError.name}: ${lastError.message}`;
+        identicalErrorCount = errorKey === lastErrorKey ? identicalErrorCount + 1 : 1;
+        lastErrorKey = errorKey;
         const maxRetries = getRetryLimit(lastError);
 
         console.error(
@@ -297,6 +313,12 @@ export function createWorkflowFunction<TData, TPayload = TData, TResult = unknow
         );
 
         if (attempt >= maxRetries) break;
+        if (isPersistentFailure(lastError, identicalErrorCount)) {
+          console.error(
+            `[workflow] ${workflowName} failed with the same error ${identicalErrorCount} times in a row; giving up`
+          );
+          break;
+        }
 
         const delay = backoffMs(attempt);
         console.log(`[workflow] retrying in ${delay}ms`);
