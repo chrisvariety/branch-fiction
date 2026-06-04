@@ -1,3 +1,4 @@
+import { isTaskAlreadyRunningError } from '@branch-fiction/extension-sdk';
 import { IconAlertTriangle, IconLoader2 } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { Suspense, useEffect, useRef, useState } from 'react';
@@ -79,8 +80,15 @@ function FirstLaunchGate({ ctx }: { ctx: BookCtx }) {
           );
         }
         window.extensionSDK.worker
-          .spawn('runFirstLaunch', { characterIds, placeIds })
-          .catch((err: unknown) => window.extensionSDK.log('runFirstLaunch failed', err));
+          .spawn(
+            'runFirstLaunch',
+            { characterIds, placeIds },
+            { singletonKey: 'runFirstLaunch' }
+          )
+          .catch((err: unknown) => {
+            if (isTaskAlreadyRunningError(err)) return;
+            window.extensionSDK.log('runFirstLaunch failed', err);
+          });
       } catch (err) {
         setStartError(err instanceof Error ? err.message : String(err));
         startedRef.current = false;

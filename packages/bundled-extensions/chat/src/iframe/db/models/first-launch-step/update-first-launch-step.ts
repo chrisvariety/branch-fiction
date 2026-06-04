@@ -11,6 +11,7 @@ export async function resetErroredFirstLaunchSteps(
     .set({
       startedAt: null,
       completedAt: null,
+      lastError: null,
       updatedAt: sql`datetime('now')`
     })
     .where('bookId', '=', bookId)

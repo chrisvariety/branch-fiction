@@ -15,6 +15,8 @@ const SCHEMA = [
    )`,
   `CREATE INDEX IF NOT EXISTS first_launch_steps_book_id_step_id_idx
      ON first_launch_steps(book_id, step_id)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS first_launch_steps_unique_step_idx
+     ON first_launch_steps(book_id, step_id, COALESCE(fan_out_key, ''))`,
   `CREATE TABLE IF NOT EXISTS character_refs (
      character_id              TEXT NOT NULL,
      book_id                   TEXT NOT NULL,

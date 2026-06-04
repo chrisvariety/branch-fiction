@@ -12,7 +12,6 @@ export async function markFirstLaunchStepRunning(
     .updateTable('firstLaunchSteps')
     .set({
       startedAt: sql`datetime('now')`,
-      completedAt: null,
       lastError: null,
       attemptCount: sql`attempt_count + 1`,
       updatedAt: sql`datetime('now')`
@@ -44,7 +43,6 @@ export async function markFirstLaunchStepError(
   await (trx || getDb())
     .updateTable('firstLaunchSteps')
     .set({
-      completedAt: sql`datetime('now')`,
       lastError: message,
       updatedAt: sql`datetime('now')`
     })

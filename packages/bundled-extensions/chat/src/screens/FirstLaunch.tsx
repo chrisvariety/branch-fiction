@@ -1,3 +1,4 @@
+import { isTaskAlreadyRunningError } from '@branch-fiction/extension-sdk';
 import {
   IconAlertCircle,
   IconAlertTriangle,
@@ -84,10 +85,15 @@ export function FirstLaunch({ ctx, steps }: Props) {
         ctx.bookId
       );
       window.extensionSDK.worker
-        .spawn('runFirstLaunch', { characterIds: cIds, placeIds })
-        .catch((err: unknown) =>
-          window.extensionSDK.log('runFirstLaunch retry failed', err)
-        );
+        .spawn(
+          'runFirstLaunch',
+          { characterIds: cIds, placeIds },
+          { singletonKey: 'runFirstLaunch' }
+        )
+        .catch((err: unknown) => {
+          if (isTaskAlreadyRunningError(err)) return;
+          window.extensionSDK.log('runFirstLaunch retry failed', err);
+        });
     } finally {
       setRetrying(false);
     }

@@ -97,7 +97,24 @@ async function ensureSteps(
       fanOutKey: null
     }
   ];
-  return createFirstLaunchSteps(rows);
+  // insert-or-ignore + re-select so concurrent starters converge on one row set
+  await createFirstLaunchSteps(rows);
+  return getFirstLaunchStepsByBookId(bookId);
+}
+
+function throwIfAnyRejected(
+  label: string,
+  results: PromiseSettledResult<unknown>[]
+): void {
+  const failures = results.filter(
+    (r): r is PromiseRejectedResult => r.status === 'rejected'
+  );
+  if (failures.length === 0) return;
+  const first = failures[0].reason;
+  const message = first instanceof Error ? first.message : String(first);
+  throw new Error(
+    `${failures.length}/${results.length} ${label} steps failed. First: ${message}`
+  );
 }
 
 export async function runFirstLaunch(payload: RunFirstLaunchPayload): Promise<void> {
@@ -115,8 +132,9 @@ export async function runFirstLaunch(payload: RunFirstLaunchPayload): Promise<vo
     return found;
   };
 
+  // allSettled so one failure drains in-flight siblings instead of killing them mid-write
   const refSteps = steps.filter((s) => s.stepId === 'character_reference_image');
-  await Promise.all(
+  const refResults = await Promise.allSettled(
     refSteps.filter(needsRun).map((step) =>
       runStep(step, () =>
         generateCharacterReferenceImage({
@@ -126,8 +144,9 @@ export async function runFirstLaunch(payload: RunFirstLaunchPayload): Promise<vo
       )
     )
   );
+  throwIfAnyRejected('reference image', refResults);
 
-  await Promise.all([
+  const chainResults = await Promise.allSettled([
     runInteractiveChain({
       bookId,
       type: 'CHARACTER_VERTICAL', // TODO make actual part of bookSettings
@@ -145,6 +164,7 @@ export async function runFirstLaunch(payload: RunFirstLaunchPayload): Promise<vo
       finalize: finalizePlaceInteractive
     })
   ]);
+  throwIfAnyRejected('interactive', chainResults);
 }
 
 type InteractiveType = BookInteractive['type'];

@@ -10,6 +10,7 @@ export async function createFirstLaunchSteps(
   return (trx || getDb())
     .insertInto('firstLaunchSteps')
     .values(steps)
+    .onConflict((oc) => oc.doNothing())
     .returningAll()
     .execute();
 }
