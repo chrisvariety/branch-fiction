@@ -42,6 +42,7 @@ import {
   getProviderCatalog,
   getProviderEntry,
   getProviderEntryByOriginAndAuth,
+  providerMatchesOriginAndAuth,
   SLOT_LABELS
 } from '@/lib/llm/providers';
 
@@ -213,11 +214,18 @@ function textProviderDraftReady(draft: NewTextProviderDraft): boolean {
   return entry.authShape.kind === 'none' || draft.apiKey.length > 0;
 }
 
+type CreatedTextProvider = {
+  providerId: string;
+  providerType: string;
+  apiKey: string | null;
+  slotBindings: SlotBinding[];
+};
+
 // Test, create, and return slot bindings for a brand-new text provider.
 async function createTextProviderForSlots(
   reqs: SlotRequirement[],
   draft: NewTextProviderDraft
-): Promise<SlotBinding[]> {
+): Promise<CreatedTextProvider> {
   const entry = getProviderEntry(draft.providerType);
   if (!entry) throw new Error(`Unknown provider type: ${draft.providerType}`);
   const modelKey = draft.modelKey.trim();
@@ -249,7 +257,33 @@ async function createTextProviderForSlots(
     model: { modelKey, displayName, config: null, reasoning: null }
   });
 
-  return reqs.map((r) => ({ providerKey: r.requirement.key, providerId, modelKey }));
+  return {
+    providerId,
+    providerType: entry.type,
+    apiKey,
+    slotBindings: reqs.map((r) => ({
+      providerKey: r.requirement.key,
+      providerId,
+      modelKey
+    }))
+  };
+}
+
+// A credential entry duplicates the new text provider when it targets the same upstream with the same key.
+function credentialMatchesCreatedProvider(
+  option: ExtensionProviderOption,
+  cred: CredentialDraft,
+  created: CreatedTextProvider
+): boolean {
+  const entry = getProviderEntry(created.providerType);
+  if (!entry) return false;
+  if (created.apiKey === null || cred.secret !== created.apiKey) return false;
+  const baseUrl = cred.baseUrl.trim() || optionURL(option);
+  return providerMatchesOriginAndAuth(
+    { baseUrl: null, type: created.providerType, authShape: entry.authShape },
+    baseUrl,
+    option.auth
+  );
 }
 
 export function ConsentScreen({
@@ -282,7 +316,7 @@ export function ConsentScreen({
 
   const [textProviderDraft, setTextProviderDraft] = useState(defaultTextProviderDraft);
   // Reused across retries so a failed commit doesn't create duplicate providers.
-  const createdTextBindingsRef = useRef<SlotBinding[] | null>(null);
+  const createdTextProviderRef = useRef<CreatedTextProvider | null>(null);
 
   const [reqStates, setReqStates] = useState<Record<string, RequirementState>>(() =>
     Object.fromEntries(
@@ -484,6 +518,19 @@ export function ConsentScreen({
   async function handleSubmit() {
     setSubmitError(null);
     try {
+      if (emptySlotReqs.length > 0 && !createdTextProviderRef.current) {
+        setIsCreatingProvider(true);
+        try {
+          createdTextProviderRef.current = await createTextProviderForSlots(
+            emptySlotReqs,
+            textProviderDraft
+          );
+        } finally {
+          setIsCreatingProvider(false);
+        }
+      }
+      const createdTextProvider = createdTextProviderRef.current;
+
       const requirements: CommitInstallArgs['requirements'] = picks.map((p) => {
         const wantsModel = requirementHasModel(p.r.requirement);
         const stateModel = reqStates[p.r.requirement.key]!.modelKeys[p.optionIndex] ?? '';
@@ -499,6 +546,19 @@ export function ConsentScreen({
           };
         }
         const cred = credentialDrafts[credentialDedupeKey(p.option)]!;
+        // Same upstream + key as the new text provider: bind to it instead of creating a duplicate.
+        if (
+          createdTextProvider &&
+          credentialMatchesCreatedProvider(p.option, cred, createdTextProvider)
+        ) {
+          return {
+            kind: 'existing',
+            providerKey: p.r.requirement.key,
+            optionIndex: p.optionIndex,
+            providerId: createdTextProvider.providerId,
+            modelKey
+          };
+        }
         const baseUrl = cred.baseUrl.trim() || optionURL(p.option);
         if (p.resolved.kind === 'preset') {
           return {
@@ -535,19 +595,8 @@ export function ConsentScreen({
           }
         ];
       });
-      if (emptySlotReqs.length > 0) {
-        if (!createdTextBindingsRef.current) {
-          setIsCreatingProvider(true);
-          try {
-            createdTextBindingsRef.current = await createTextProviderForSlots(
-              emptySlotReqs,
-              textProviderDraft
-            );
-          } finally {
-            setIsCreatingProvider(false);
-          }
-        }
-        slotBindings.push(...createdTextBindingsRef.current);
+      if (createdTextProvider) {
+        slotBindings.push(...createdTextProvider.slotBindings);
       }
       commit.mutate(
         {
@@ -678,7 +727,7 @@ export function ConsentScreen({
             roles={emptySlotReqs.map((r) => r.requirement.role ?? r.requirement.key)}
             draft={textProviderDraft}
             onChange={(patch) => {
-              createdTextBindingsRef.current = null;
+              createdTextProviderRef.current = null;
               setTextProviderDraft((prev) => ({ ...prev, ...patch }));
             }}
           />
