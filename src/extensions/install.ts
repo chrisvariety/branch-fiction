@@ -95,7 +95,7 @@ async function buildCloudVirtualProviders(
     const { providers: cloudProviders } = await fetchCloudCatalog();
     return cloudProviders.map((cp) => ({
       ...cloudRow,
-      baseUrl: cp.origin,
+      baseUrl: cp.baseUrl,
       authShape: cp.auth,
       overrideBaseUrl: cp.proxyBaseUrl
     }));
@@ -700,7 +700,7 @@ async function planCloudAutoConfigure(
       const url = optionURL(opt);
       const cloud = cloudProviders.find((cp) =>
         providerMatchesOriginAndAuth(
-          { baseUrl: cp.origin, type: CLOUD_PROVIDER_TYPE, authShape: cp.auth },
+          { baseUrl: cp.baseUrl, type: CLOUD_PROVIDER_TYPE, authShape: cp.auth },
           url,
           opt.auth
         )

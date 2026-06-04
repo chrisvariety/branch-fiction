@@ -140,18 +140,18 @@ fn cloud_role<'a>(
     let provider = catalog
         .providers
         .iter()
-        .find(|p| p.origin == slot.origin)
+        .find(|p| p.base_url == slot.base_url)
         .ok_or_else(|| {
             format!(
-                "cloud catalog role {role:?} references unknown origin {:?}",
-                slot.origin
+                "cloud catalog role {role:?} references unknown baseUrl {:?}",
+                slot.base_url
             )
         })?;
     Ok((provider, slot))
 }
 
 fn cloud_provider_type(provider: &CloudProvider) -> String {
-    provider_type_for_origin_and_auth(&provider.origin, &provider.auth)
+    provider_type_for_origin_and_auth(&provider.base_url, &provider.auth)
         .map(str::to_string)
         .unwrap_or_else(|| CLOUD_FALLBACK_PROVIDER_TYPE.to_string())
 }
@@ -276,7 +276,7 @@ pub async fn resolve_options_meta(
             .ok_or_else(|| format!("cloud catalog has no provider for proxy {proxy:?}"))?;
         return Ok(OptionsMeta {
             provider_type: cloud_provider_type(provider),
-            base_url: provider.origin.clone(),
+            base_url: provider.base_url.clone(),
         });
     }
 

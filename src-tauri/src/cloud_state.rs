@@ -40,7 +40,8 @@ pub struct CloudCatalog {
 
 #[derive(Clone, Deserialize)]
 pub struct CloudProvider {
-    pub origin: String,
+    #[serde(rename = "baseUrl")]
+    pub base_url: String,
     #[serde(rename = "proxyBaseUrl")]
     pub proxy_base_url: String,
     pub auth: AuthShape,
@@ -48,7 +49,8 @@ pub struct CloudProvider {
 
 #[derive(Clone, Deserialize)]
 pub struct CloudSlot {
-    pub origin: String,
+    #[serde(rename = "baseUrl")]
+    pub base_url: String,
     #[serde(rename = "modelKey")]
     pub model_key: String,
     #[serde(default)]

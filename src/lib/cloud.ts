@@ -8,13 +8,13 @@ export const CLOUD_ESTIMATE = 'https://cloud.branchfiction.com/estimate';
 export const CLOUD_PROVIDER_TYPE = 'cloud';
 
 export type CloudProvider = {
-  origin: string;
+  baseUrl: string;
   proxyBaseUrl: string;
   auth: ProviderAuthShape;
 };
 
 export type CloudSlot = {
-  origin: string;
+  baseUrl: string;
   modelKey: string;
   reasoning?: ReasoningLevel;
 };
