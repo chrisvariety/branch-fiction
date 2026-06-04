@@ -28,5 +28,7 @@ export type {
   ExtensionHost,
   ExtensionProviderBinding,
   ExtensionSDK,
-  WorkerSpawnHandle
+  WorkerSpawnHandle,
+  WorkerSpawnOptions
 } from './sdk-source';
+export { isTaskAlreadyRunningError } from './sdk-source';

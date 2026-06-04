@@ -18,6 +18,8 @@ const RUN_TASK_REQUEST_ID: u64 = 2;
 #[derive(Default)]
 pub struct ExtensionRuntimeState {
     pub(crate) tasks: Mutex<HashMap<String, oneshot::Sender<()>>>,
+    /// Single-flight claims for singleton tasks: claim key -> owning task id.
+    pub(crate) singletons: Mutex<HashMap<String, String>>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -197,13 +199,34 @@ pub fn register_task(app: &AppHandle, task_id: &str, cancel_tx: oneshot::Sender<
     true
 }
 
+/// Claim a singleton key for a task; returns false if another task holds it.
+pub fn claim_singleton(app: &AppHandle, key: &str, task_id: &str) -> bool {
+    let state = app.state::<ExtensionRuntimeState>();
+    let mut map = match state.singletons.lock() {
+        Ok(m) => m,
+        Err(_) => return false,
+    };
+    if map.contains_key(key) {
+        return false;
+    }
+    map.insert(key.to_string(), task_id.to_string());
+    true
+}
+
+/// Release any singleton claims held by a task.
+pub fn release_singletons_for_task(app: &AppHandle, task_id: &str) {
+    let state = app.state::<ExtensionRuntimeState>();
+    if let Ok(mut map) = state.singletons.lock() {
+        map.retain(|_, owner| owner != task_id);
+    }
+}
+
 pub fn unregister_task(app: &AppHandle, task_id: &str) {
     let state = app.state::<ExtensionRuntimeState>();
-    let mut map = match state.tasks.lock() {
-        Ok(m) => m,
-        Err(_) => return,
-    };
-    map.remove(task_id);
+    if let Ok(mut map) = state.tasks.lock() {
+        map.remove(task_id);
+    }
+    release_singletons_for_task(app, task_id);
 }
 
 /// Run an extension worker, streaming events into `event_tx` until the worker exits.

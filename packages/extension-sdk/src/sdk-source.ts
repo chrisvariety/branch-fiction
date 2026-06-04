@@ -125,7 +125,13 @@ function extensionSdkClient() {
     cancel(): void;
   };
 
-  function spawnWorker<T>(task: string, payload?: unknown): WorkerSpawnHandle<T> {
+  type WorkerSpawnOptions = { singletonKey?: string };
+
+  function spawnWorker<T>(
+    task: string,
+    payload?: unknown,
+    opts?: WorkerSpawnOptions
+  ): WorkerSpawnHandle<T> {
     const ac = new AbortController();
     const logHandlers: Array<(args: unknown[]) => void> = [];
     let taskId: string | null = null;
@@ -135,13 +141,19 @@ function extensionSdkClient() {
       const r = await fetch(`${dataBase}/task/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
-        body: JSON.stringify({ task, payload: payload ?? null }),
+        body: JSON.stringify({
+          task,
+          payload: payload ?? null,
+          singletonKey: opts?.singletonKey ?? null
+        }),
         signal: ac.signal
       });
       if (!r.ok || !r.body) {
-        throw new Error(
+        const err = new Error(
           `worker.spawn failed: ${r.status} ${await r.text().catch(() => '')}`
         );
+        if (r.status === 409) err.name = 'TaskAlreadyRunningError';
+        throw err;
       }
       for await (const ev of parseSse(r.body)) {
         if (ev.event === 'started') {
@@ -229,8 +241,12 @@ function extensionSdkClient() {
       }
     },
     worker: {
-      spawn<T = unknown>(task: string, payload?: unknown): WorkerSpawnHandle<T> {
-        return spawnWorker<T>(task, payload);
+      spawn<T = unknown>(
+        task: string,
+        payload?: unknown,
+        opts?: WorkerSpawnOptions
+      ): WorkerSpawnHandle<T> {
+        return spawnWorker<T>(task, payload, opts);
       }
     },
     log(...args: unknown[]) {
@@ -285,6 +301,15 @@ export type WorkerSpawnHandle<T> = Promise<T> & {
   cancel(): void;
 };
 
+export type WorkerSpawnOptions = {
+  // single-flight per extension + book; duplicates reject with TaskAlreadyRunningError
+  singletonKey?: string;
+};
+
+export function isTaskAlreadyRunningError(err: unknown): boolean {
+  return err instanceof Error && err.name === 'TaskAlreadyRunningError';
+}
+
 export interface ExtensionSDK {
   // Populated after `onReady`. Empty string before then.
   extensionId: string;
@@ -303,7 +328,11 @@ export interface ExtensionSDK {
     list(relPath?: string): Promise<{ name: string; isDirectory: boolean }[]>;
   };
   worker: {
-    spawn<T = unknown>(task: string, payload?: unknown): WorkerSpawnHandle<T>;
+    spawn<T = unknown>(
+      task: string,
+      payload?: unknown,
+      opts?: WorkerSpawnOptions
+    ): WorkerSpawnHandle<T>;
   };
   log(...args: unknown[]): void;
 }

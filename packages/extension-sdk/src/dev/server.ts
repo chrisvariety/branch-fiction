@@ -41,6 +41,8 @@ export function createDevServer(opts: DevRuntimeOptions): DevServer {
   const dbPath = opts.dbPath;
   const assetsDir = opts.assetsDir;
   const taskControllers = new Map();
+  // singleton claim key -> owning task id, mirrors the Tauri host's gate
+  const singletonTasks = new Map<string, string>();
   const hostOrigin = `http://localhost:${opts.hostPort}`;
 
   function loadManifest(): ExtensionManifestV1 {
@@ -124,12 +126,23 @@ export function createDevServer(opts: DevRuntimeOptions): DevServer {
   app.post('/extension-data/:token/task/start', async (c) => {
     const token = c.req.param('token');
     if (!registry.isValidDataToken(token)) return c.text('unauthorized', 401);
-    const body = (await c.req.json()) as { task: string; payload?: unknown };
+    const body = (await c.req.json()) as {
+      task: string;
+      payload?: unknown;
+      singletonKey?: string | null;
+    };
     const manifest = loadManifest();
     const workerEntry = manifest.path?.worker;
     if (!workerEntry) return c.text('extension has no path.worker entry', 400);
     const config = readDevConfig(configPath);
     const providers = registry.buildProviders(manifest, config, hostOrigin);
+
+    const singletonKey = body.singletonKey
+      ? `${manifest.id}|${config.bookId ?? ''}|${body.singletonKey}`
+      : null;
+    if (singletonKey && singletonTasks.has(singletonKey)) {
+      return c.text(`task already running: ${body.singletonKey}`, 409);
+    }
 
     const handle = spawnWorker({
       extensionId: manifest.id,
@@ -149,6 +162,7 @@ export function createDevServer(opts: DevRuntimeOptions): DevServer {
       payload: body.payload ?? null,
       controllers: taskControllers
     });
+    if (singletonKey) singletonTasks.set(singletonKey, handle.taskId);
 
     return streamSSE(c, async (stream) => {
       await stream.writeSSE({
@@ -178,6 +192,9 @@ export function createDevServer(opts: DevRuntimeOptions): DevServer {
         }
       } finally {
         handle.cancel();
+        if (singletonKey && singletonTasks.get(singletonKey) === handle.taskId) {
+          singletonTasks.delete(singletonKey);
+        }
       }
     });
   });

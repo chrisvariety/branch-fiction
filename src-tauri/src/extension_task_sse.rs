@@ -19,8 +19,8 @@ use crate::db_path::open_main_db_ro;
 use crate::extension_auth::verify_path_token;
 use crate::extension_data_proxy::inject_proxy_base_urls;
 use crate::extension_runtime::{
-    ExtensionTaskEvent, RunExtensionTaskRequest, cancel_task_by_id, register_task,
-    run_extension_task_internal, unregister_task,
+    ExtensionTaskEvent, RunExtensionTaskRequest, cancel_task_by_id, claim_singleton,
+    register_task, release_singletons_for_task, run_extension_task_internal, unregister_task,
 };
 use crate::http_server::HttpPortState;
 
@@ -29,6 +29,9 @@ pub struct StartTaskBody {
     pub task: String,
     #[serde(default)]
     pub payload: Option<Value>,
+    /// When set, at most one task with this key (per extension + book) runs at a time.
+    #[serde(default, rename = "singletonKey")]
+    pub singleton_key: Option<String>,
 }
 
 pub async fn start_task_handler(
@@ -65,7 +68,32 @@ pub async fn start_task_handler(
     let (cancel_tx, cancel_rx) = oneshot::channel::<()>();
     let (event_tx, event_rx) = mpsc::channel::<ExtensionTaskEvent>(64);
 
+    let started = Event::default()
+        .event("started")
+        .json_data(json!({ "taskId": task_id }))
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("sse encode: {e}"),
+            )
+        })?;
+
+    if let Some(key) = &body.singleton_key {
+        let claim_key = format!(
+            "{}|{}|{key}",
+            claims.sub,
+            claims.book_id.as_deref().unwrap_or("")
+        );
+        if !claim_singleton(&app, &claim_key, &task_id) {
+            return Err((
+                StatusCode::CONFLICT,
+                format!("task already running: {key}"),
+            ));
+        }
+    }
+
     if !register_task(&app, &task_id, cancel_tx) {
+        release_singletons_for_task(&app, &task_id);
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             "task id collision".to_string(),
@@ -76,16 +104,6 @@ pub async fn start_task_handler(
     tauri::async_runtime::spawn(async move {
         run_extension_task_internal(app_for_run, req, event_tx, cancel_rx).await;
     });
-
-    let started = Event::default()
-        .event("started")
-        .json_data(json!({ "taskId": task_id }))
-        .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("sse encode: {e}"),
-            )
-        })?;
 
     let init_state = StreamState {
         rx: event_rx,
