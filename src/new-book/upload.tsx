@@ -20,6 +20,7 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { v7 as uuidv7 } from 'uuid';
 
+import { providerFormProps } from '@/components/provider/form-props';
 import { ProviderSetup } from '@/components/provider/setup';
 import {
   InputGroup,
@@ -36,23 +37,15 @@ import {
 } from '@/components/ui/select';
 import { booksQueryOptions } from '@/hooks/queries/books';
 import { modelProjectionQueryOptions } from '@/hooks/queries/model-projection';
-import { getProvidersForUI, providersQueryOptions } from '@/hooks/queries/settings';
+import { providersQueryOptions } from '@/hooks/queries/settings';
 import { useCoverPicker } from '@/hooks/use-cover-picker';
 import { useWindowTitle } from '@/hooks/use-window-title';
-import { DEFAULT_ORG_ID, DEFAULT_USER_ID } from '@/lib/auth';
+import { DEFAULT_USER_ID } from '@/lib/auth';
 import { CLOUD_PROVIDER_TYPE } from '@/lib/cloud';
 import { linkCloudAccount as linkCloudAccountModel } from '@/lib/cloud-link';
 import { broadcastInvalidate } from '@/lib/cross-window-invalidate';
 import { createBookImport } from '@/lib/db/models/book-import/create-book-import';
 import { setOrganizationTextModel } from '@/lib/db/models/organization-text-model/organization-text-model';
-import { upsertProviderModel } from '@/lib/db/models/provider-model/create-provider-model';
-import { deleteProviderModelById } from '@/lib/db/models/provider-model/delete-provider-model';
-import {
-  createProvider,
-  createProviderWithModel
-} from '@/lib/db/models/provider/create-provider';
-import { updateProviderById } from '@/lib/db/models/provider/update-provider';
-import type { NewProvider, NewProviderModel, ProviderUpdate } from '@/lib/db/types';
 import { isLcpProtected, parseEpub, type EpubEntries } from '@/lib/epub';
 import { parseBook } from '@/lib/lit';
 import {
@@ -64,7 +57,7 @@ import {
   estimateFromSample,
   type ImportEstimate
 } from '@/lib/llm/baseline-model';
-import { getProviderEntry, type TestProviderResult } from '@/lib/llm/providers';
+import { getProviderEntry } from '@/lib/llm/providers';
 import {
   defaultTextProvider,
   hasUsableTextProvider,
@@ -190,50 +183,6 @@ async function validateEpub(path: string): Promise<ValidateEpubResponse> {
   };
 }
 
-const formProps = {
-  listProviders: () => getProvidersForUI(),
-  testProviderConfig: (params: {
-    providerType: string;
-    apiKey: string | null;
-    apiKeyEnvVar: string | null;
-    baseUrl: string | null;
-    modelId: string;
-  }) => invoke<TestProviderResult>('test_provider_config', { params }),
-  upsertProvider: async (data: NewProvider | (ProviderUpdate & { id?: string })) => {
-    if ('id' in data && data.id) {
-      const { id, ...rest } = data;
-      return updateProviderById(id, rest);
-    }
-    return createProvider({
-      ...data,
-      id: uuidv7(),
-      organizationId: DEFAULT_ORG_ID
-    } as NewProvider);
-  },
-  upsertProviderModel: ({
-    providerId,
-    data
-  }: {
-    providerId: string;
-    data: Omit<NewProviderModel, 'providerId'>;
-  }) => upsertProviderModel({ ...data, providerId }),
-  removeProviderModel: async ({ id }: { id: string }) => {
-    await deleteProviderModelById(id);
-    return { ok: true } as const;
-  },
-  createProviderWithModel: ({
-    provider,
-    model
-  }: {
-    provider: Omit<NewProvider, 'id' | 'organizationId'>;
-    model: Omit<NewProviderModel, 'id' | 'providerId'>;
-  }) =>
-    createProviderWithModel({
-      provider: { ...provider, organizationId: DEFAULT_ORG_ID },
-      model
-    })
-};
-
 function useHasConfiguredSlots() {
   const providers = useQuery(providersQueryOptions);
 
@@ -265,7 +214,7 @@ export function UploadPage() {
       <BookFrame
         right={
           <ProviderSetup
-            {...formProps}
+            {...providerFormProps}
             linkCloudAccount={async ({ externalId }) => {
               await linkCloudAccountModel(externalId);
               return { ok: true } as const;

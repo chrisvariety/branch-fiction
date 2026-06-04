@@ -45,7 +45,7 @@ export function ProviderSetup({
       <CloudAccess
         onBack={() => setView('chooser')}
         onOpenExternal={onOpenExternal}
-        invalidationQueryKeys={[['providers']]}
+        invalidationQueryKeys={[['providers'], ['extensions'], ['extension-bindings']]}
         linkCloudAccount={(externalId) => linkCloudAccount({ externalId })}
       />
     );

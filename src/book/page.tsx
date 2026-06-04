@@ -1,6 +1,8 @@
 import {
+  IconCloud,
   IconDeviceMobile,
   IconDots,
+  IconKey,
   IconPencil,
   IconPhoto,
   IconPuzzle,
@@ -12,8 +14,11 @@ import { useParams } from '@tanstack/react-router';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { ask } from '@tauri-apps/plugin-dialog';
-import { useState } from 'react';
+import { openUrl } from '@tauri-apps/plugin-opener';
+import { useEffect, useRef, useState } from 'react';
 
+import { CloudAccess } from '@/components/cloud/access';
+import { ConsentScreen } from '@/components/extension/consent';
 import { PhoneShareDialog } from '@/components/phone-share-dialog';
 import { Titlebar } from '@/components/titlebar';
 import {
@@ -29,6 +34,7 @@ import {
   InputGroupButton,
   InputGroupInput
 } from '@/components/ui/input-group';
+import { stageExtensionConfigure } from '@/extensions/install';
 import { extensionNeedsSetup } from '@/extensions/needs-setup';
 import { openExtensionPath } from '@/extensions/open-path';
 import {
@@ -36,8 +42,10 @@ import {
   extensionsQueryOptions,
   type InstalledExtension
 } from '@/hooks/queries/extensions';
+import { providersQueryOptions } from '@/hooks/queries/settings';
 import { useCoverPicker } from '@/hooks/use-cover-picker';
 import { useWindowTitle } from '@/hooks/use-window-title';
+import { linkCloudAccount as linkCloudAccountModel } from '@/lib/cloud-link';
 import { broadcastInvalidate } from '@/lib/cross-window-invalidate';
 import { getBookImportByBookId } from '@/lib/db/models/book-import/get-book-import';
 import { updateBookImportById } from '@/lib/db/models/book-import/update-book-import';
@@ -57,21 +65,13 @@ function openSettingsToExtensions() {
   void invoke('open_settings_window', { route: '/extensions', dark: isDark() });
 }
 
-function launchableExtensions(
-  extensions: InstalledExtension[],
-  bindings: { extensionId: string; providerKey: string }[]
-): InstalledExtension[] {
-  return extensions.filter(
-    (p) =>
-      p.enabled &&
-      !!p.manifest.path?.entry &&
-      !extensionNeedsSetup(
-        p.manifest,
-        p.config,
-        bindings.filter((b) => b.extensionId === p.id)
-      )
-  );
-}
+type LaunchIntent = 'open' | 'phone';
+
+type PhoneTarget = {
+  extensionId: string;
+  extensionName: string;
+  entry: string;
+};
 
 export function BookPage() {
   const { bookId } = useParams({ strict: false }) as { bookId?: string };
@@ -86,10 +86,39 @@ export function BookPage() {
   const { data: bindings } = useSuspenseQuery(extensionBindingsQueryOptions);
 
   const [editing, setEditing] = useState(false);
+  const [setupTarget, setSetupTarget] = useState<{
+    extensionId: string;
+    intent: LaunchIntent;
+  } | null>(null);
+  const [phoneTarget, setPhoneTarget] = useState<PhoneTarget | null>(null);
 
   useWindowTitle(book?.title);
 
-  const tiles = launchableExtensions(extensions, bindings);
+  const tiles = extensions.filter((p) => p.enabled && !!p.manifest.path?.entry);
+
+  const launch = (extension: InstalledExtension, intent: LaunchIntent) => {
+    if (intent === 'phone') {
+      const entry = extension.manifest.path?.entry;
+      if (!entry) return;
+      setPhoneTarget({ extensionId: extension.id, extensionName: extension.name, entry });
+      return;
+    }
+    void openExtensionPath({ extensionId: extension.id, bookId: id });
+  };
+
+  const handleActivate = (extension: InstalledExtension, intent: LaunchIntent) => {
+    const needsConfig = extensionNeedsSetup(
+      extension.manifest,
+      extension.config,
+      bindings.filter((b) => b.extensionId === extension.id)
+    );
+    if (needsConfig) setSetupTarget({ extensionId: extension.id, intent });
+    else launch(extension, intent);
+  };
+
+  const setupExtension = setupTarget
+    ? (extensions.find((p) => p.id === setupTarget.extensionId) ?? null)
+    : null;
 
   const { data: canUpdateSelection = false } = useQuery({
     queryKey: ['import-updatable', id],
@@ -161,13 +190,245 @@ export function BookPage() {
       <section className="flex min-w-0 flex-1 flex-col p-6 md:p-8">
         {editing && book ? (
           <BookSettings book={book} onClose={() => setEditing(false)} />
+        ) : setupTarget && setupExtension ? (
+          <ExtensionSetupFlow
+            key={setupTarget.extensionId}
+            extension={setupExtension}
+            bindings={bindings.filter((b) => b.extensionId === setupExtension.id)}
+            onLaunch={() => launch(setupExtension, setupTarget.intent)}
+            onClose={() => setSetupTarget(null)}
+          />
         ) : tiles.length === 0 ? (
           <EmptyState />
         ) : (
-          <ExtensionGrid bookId={id} extensions={tiles} />
+          <ExtensionGrid extensions={tiles} onActivate={handleActivate} />
         )}
       </section>
+      {phoneTarget && (
+        <PhoneShareDialog
+          open={!!phoneTarget}
+          onOpenChange={(o) => !o && setPhoneTarget(null)}
+          extensionId={phoneTarget.extensionId}
+          extensionName={phoneTarget.extensionName}
+          entry={phoneTarget.entry}
+          bookId={id}
+        />
+      )}
     </>
+  );
+}
+
+function ExtensionSetupFlow({
+  extension,
+  bindings,
+  onLaunch,
+  onClose
+}: {
+  extension: InstalledExtension;
+  bindings: { providerKey: string }[];
+  onLaunch: () => void;
+  onClose: () => void;
+}) {
+  const providers = useQuery(providersQueryOptions);
+  const [view, setView] = useState<'chooser' | 'cloud' | 'byok'>('chooser');
+
+  const hasProviders = (providers.data?.length ?? 0) > 0;
+  const needsConfig = extensionNeedsSetup(extension.manifest, extension.config, bindings);
+
+  const launchedRef = useRef(false);
+  const launchAndClose = () => {
+    if (launchedRef.current) return;
+    launchedRef.current = true;
+    onLaunch();
+    onClose();
+  };
+
+  // Cloud auto-configure can finish setup on its own; launch as soon as nothing is missing.
+  const ready = !!providers.data && hasProviders && !needsConfig;
+  useEffect(() => {
+    if (ready) launchAndClose();
+  }, [ready]);
+
+  if (!providers.data) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <p className="text-xs text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  if (!hasProviders) {
+    if (view === 'cloud') {
+      return (
+        <div className="mx-auto w-full max-w-md">
+          <CloudAccess
+            onBack={() => setView('chooser')}
+            onOpenExternal={(url) => {
+              void openUrl(url);
+            }}
+            invalidationQueryKeys={[
+              ['providers'],
+              ['extensions'],
+              ['extension-bindings']
+            ]}
+            linkCloudAccount={async (externalId) => {
+              await linkCloudAccountModel(externalId);
+              void broadcastInvalidate();
+            }}
+          />
+        </div>
+      );
+    }
+    if (view === 'byok') {
+      return (
+        <ExtensionConfigureStep
+          extensionId={extension.id}
+          onSuccess={launchAndClose}
+          onClose={() => setView('chooser')}
+        />
+      );
+    }
+    return (
+      <ExtensionProviderChooser
+        extensionName={extension.name}
+        onCloud={() => setView('cloud')}
+        onByok={() => setView('byok')}
+        onCancel={onClose}
+      />
+    );
+  }
+
+  if (needsConfig) {
+    return (
+      <ExtensionConfigureStep
+        extensionId={extension.id}
+        onSuccess={launchAndClose}
+        onClose={onClose}
+      />
+    );
+  }
+
+  return null;
+}
+
+function ExtensionProviderChooser({
+  extensionName,
+  onCloud,
+  onByok,
+  onCancel
+}: {
+  extensionName: string;
+  onCloud: () => void;
+  onByok: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="flex flex-1 flex-col items-center p-6">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <h2 className="font-serif text-xl tracking-tight text-balance">
+          Choose a provider
+        </h2>
+        <div className="h-px w-8 bg-border" />
+      </div>
+
+      <div className="mt-6 w-full max-w-sm space-y-6">
+        <p className="text-center text-xs leading-relaxed text-muted-foreground">
+          {extensionName} needs an LLM provider. Pick how you'd like to connect.
+        </p>
+
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={onCloud}
+            className="flex w-full items-start gap-3 border border-border p-4 text-left transition-colors hover:bg-muted/40"
+          >
+            <IconCloud className="mt-0.5 size-4 shrink-0" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Cloud Access</p>
+              <p className="text-xs text-muted-foreground">
+                One subscription, no API keys to manage.
+              </p>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={onByok}
+            className="flex w-full items-start gap-3 border border-border p-4 text-left transition-colors hover:bg-muted/40"
+          >
+            <IconKey className="mt-0.5 size-4 shrink-0" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Bring your own key</p>
+              <p className="text-xs text-muted-foreground">
+                Use your own API keys for the providers this extension needs.
+              </p>
+            </div>
+          </button>
+        </div>
+
+        <button
+          type="button"
+          className="w-full text-center text-xs text-muted-foreground underline underline-offset-2"
+          onClick={onCancel}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ExtensionConfigureStep({
+  extensionId,
+  onSuccess,
+  onClose
+}: {
+  extensionId: string;
+  onSuccess: () => void;
+  onClose: () => void;
+}) {
+  // Staging resolves requirements against current providers, so keep it fresh per visit.
+  const staged = useQuery({
+    queryKey: ['extension-configure', extensionId],
+    queryFn: () => stageExtensionConfigure(extensionId),
+    staleTime: 0,
+    gcTime: 0
+  });
+
+  if (staged.isError) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+        <p className="max-w-sm text-xs text-destructive">
+          {staged.error instanceof Error ? staged.error.message : String(staged.error)}
+        </p>
+        <button
+          type="button"
+          className="font-serif text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+          onClick={onClose}
+        >
+          Back
+        </button>
+      </div>
+    );
+  }
+
+  if (!staged.data) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <p className="text-xs text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-md">
+      <ConsentScreen
+        staged={staged.data}
+        variant="setup"
+        onClose={onClose}
+        onSuccess={onSuccess}
+      />
+    </div>
   );
 }
 
@@ -304,8 +565,7 @@ function EmptyState() {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
       <p className="max-w-sm text-sm text-muted-foreground">
-        No extensions are installed yet. Install or enable an extension to start exploring
-        this book.
+        No extensions are enabled. Enable an extension to start exploring this book.
       </p>
       <button
         type="button"
@@ -320,45 +580,23 @@ function EmptyState() {
 }
 
 function ExtensionGrid({
-  bookId,
-  extensions
+  extensions,
+  onActivate
 }: {
-  bookId: string;
   extensions: InstalledExtension[];
+  onActivate: (extension: InstalledExtension, intent: LaunchIntent) => void;
 }) {
-  const [phoneTarget, setPhoneTarget] = useState<{
-    extensionId: string;
-    extensionName: string;
-    entry: string;
-  } | null>(null);
-
   return (
-    <>
-      <div className="grid grid-cols-3 gap-x-6 gap-y-8 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
-        {extensions.map((p) => (
-          <ExtensionTile
-            key={p.id}
-            extension={p}
-            onLaunch={() => void openExtensionPath({ extensionId: p.id, bookId })}
-            onOpenOnPhone={() => {
-              const entry = p.manifest.path?.entry;
-              if (!entry) return;
-              setPhoneTarget({ extensionId: p.id, extensionName: p.name, entry });
-            }}
-          />
-        ))}
-      </div>
-      {phoneTarget && (
-        <PhoneShareDialog
-          open={!!phoneTarget}
-          onOpenChange={(o) => !o && setPhoneTarget(null)}
-          extensionId={phoneTarget.extensionId}
-          extensionName={phoneTarget.extensionName}
-          entry={phoneTarget.entry}
-          bookId={bookId}
+    <div className="grid grid-cols-3 gap-x-6 gap-y-8 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+      {extensions.map((p) => (
+        <ExtensionTile
+          key={p.id}
+          extension={p}
+          onLaunch={() => onActivate(p, 'open')}
+          onOpenOnPhone={() => onActivate(p, 'phone')}
         />
-      )}
-    </>
+      ))}
+    </div>
   );
 }
 

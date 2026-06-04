@@ -1,86 +1,28 @@
 import { IconPencil, IconPlus, IconTrash } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { invoke } from '@tauri-apps/api/core';
 import { ask, message } from '@tauri-apps/plugin-dialog';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { useState } from 'react';
-import { v7 as uuidv7 } from 'uuid';
 
 import { getProviderIcon } from '@/components/icons/provider-icons';
 import { AdvancedProviderForm } from '@/components/provider/advanced';
+import { providerFormProps } from '@/components/provider/form-props';
 import { revokeSession } from '@/extensions/session-tokens';
 import {
   extensionBindingsQueryOptions,
   extensionsQueryOptions,
   type InstalledExtension
 } from '@/hooks/queries/extensions';
-import {
-  getProvidersForUI,
-  providersQueryOptions,
-  type ProviderPreview
-} from '@/hooks/queries/settings';
-import { DEFAULT_ORG_ID } from '@/lib/auth';
+import { providersQueryOptions, type ProviderPreview } from '@/hooks/queries/settings';
 import { CLOUD_PROVIDER_TYPE } from '@/lib/cloud';
 import { broadcastInvalidate } from '@/lib/cross-window-invalidate';
-import { upsertProviderModel } from '@/lib/db/models/provider-model/create-provider-model';
-import { deleteProviderModelById } from '@/lib/db/models/provider-model/delete-provider-model';
-import {
-  createProvider,
-  createProviderWithModel
-} from '@/lib/db/models/provider/create-provider';
 import { removeProvider } from '@/lib/db/models/provider/delete-provider';
-import { updateProviderById } from '@/lib/db/models/provider/update-provider';
-import type { NewProvider, NewProviderModel, ProviderUpdate } from '@/lib/db/types';
-import { getProviderEntry, type TestProviderResult } from '@/lib/llm/providers';
+import { getProviderEntry } from '@/lib/llm/providers';
 
 type View =
   | { kind: 'list' }
   | { kind: 'add' }
   | { kind: 'edit'; provider: ProviderPreview };
-
-const formProps = {
-  listProviders: () => getProvidersForUI(),
-  testProviderConfig: (params: {
-    providerType: string;
-    apiKey: string | null;
-    apiKeyEnvVar: string | null;
-    baseUrl: string | null;
-    modelId: string;
-  }) => invoke<TestProviderResult>('test_provider_config', { params }),
-  upsertProvider: async (data: NewProvider | (ProviderUpdate & { id?: string })) => {
-    if ('id' in data && data.id) {
-      const { id, ...rest } = data;
-      return updateProviderById(id, rest);
-    }
-    return createProvider({
-      ...data,
-      id: uuidv7(),
-      organizationId: DEFAULT_ORG_ID
-    } as NewProvider);
-  },
-  upsertProviderModel: ({
-    providerId,
-    data
-  }: {
-    providerId: string;
-    data: Omit<NewProviderModel, 'providerId'>;
-  }) => upsertProviderModel({ ...data, providerId }),
-  removeProviderModel: async ({ id }: { id: string }) => {
-    await deleteProviderModelById(id);
-    return { ok: true } as const;
-  },
-  createProviderWithModel: ({
-    provider,
-    model
-  }: {
-    provider: Omit<NewProvider, 'id' | 'organizationId'>;
-    model: Omit<NewProviderModel, 'id' | 'providerId'>;
-  }) =>
-    createProviderWithModel({
-      provider: { ...provider, organizationId: DEFAULT_ORG_ID },
-      model
-    })
-};
 
 export function ProvidersPage() {
   const queryClient = useQueryClient();
@@ -95,7 +37,7 @@ export function ProvidersPage() {
   if (view.kind === 'add') {
     return (
       <AdvancedProviderForm
-        {...formProps}
+        {...providerFormProps}
         onBack={() => setView({ kind: 'list' })}
         onProvider={handleProvider}
         onOpenExternal={(url) => void openUrl(url)}
@@ -106,7 +48,7 @@ export function ProvidersPage() {
   if (view.kind === 'edit') {
     return (
       <AdvancedProviderForm
-        {...formProps}
+        {...providerFormProps}
         provider={view.provider}
         onBack={() => setView({ kind: 'list' })}
         onProvider={handleProvider}
