@@ -300,7 +300,12 @@ function resolveSlotRequirement(
 function resolveOptionsRequirement(
   req: ExtensionProviderRequirementOptions,
   providers: MatchableProvider[],
-  bindings: { providerKey: string; providerId: string; modelKey: string | null }[]
+  bindings: {
+    providerKey: string;
+    providerId: string;
+    modelKey: string | null;
+    overrideBaseUrl: string | null;
+  }[]
 ): ResolvedRequirement {
   const options = req.options.map((opt) => resolveOption(opt, providers));
   const bound = bindings.find((b) => b.providerKey === req.key);
@@ -308,28 +313,33 @@ function resolveOptionsRequirement(
   return {
     requirement: req,
     options,
-    binding: { providerId: bound.providerId, modelKey: bound.modelKey ?? null }
+    binding: {
+      providerId: bound.providerId,
+      modelKey: bound.modelKey ?? null,
+      overrideBaseUrl: bound.overrideBaseUrl ?? null
+    }
   };
 }
 
+// All providers that can satisfy an option, or a single preset/unknown fallback for a new credential.
 function resolveOption(
   opt: ExtensionProviderOption,
   providers: MatchableProvider[]
-): ResolvedOption {
+): ResolvedOption[] {
   const url = optionURL(opt);
-  const existing = providers.find((r) => providerMatchesOriginAndAuth(r, url, opt.auth));
-  if (existing) {
-    return {
+  const matches = providers.filter((r) => providerMatchesOriginAndAuth(r, url, opt.auth));
+  if (matches.length > 0) {
+    return matches.map((existing) => ({
       kind: 'existing',
       providerId: existing.id,
       providerName: existing.name,
       providerType: existing.type,
       ...(existing.overrideBaseUrl ? { overrideBaseUrl: existing.overrideBaseUrl } : {})
-    };
+    }));
   }
   const preset = getProviderEntryByOriginAndAuth(url, opt.auth);
   if (preset) {
-    return { kind: 'preset', presetType: preset.type, presetName: preset.name };
+    return [{ kind: 'preset', presetType: preset.type, presetName: preset.name }];
   }
   let suggestedName = opt.providerName ?? '';
   if (!suggestedName) {
@@ -339,7 +349,7 @@ function resolveOption(
       suggestedName = '';
     }
   }
-  return { kind: 'unknown', suggestedName };
+  return [{ kind: 'unknown', suggestedName }];
 }
 
 type RequirementInput =

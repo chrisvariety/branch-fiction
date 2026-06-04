@@ -578,6 +578,8 @@ type CredentialDraft = { name: string; secret: string; baseUrl: string };
 
 type RequirementState = {
   optionIndex: number;
+  // Selected candidate per option when several providers match the same upstream.
+  candidateIndexes: Record<number, number>;
   modelKeys: Record<number, string>;
   useNewCredential: Record<number, boolean>;
 };
@@ -648,29 +650,45 @@ function lookupModelName(providerType: string, modelKey: string): string {
 
 function initialRequirementState(r: {
   requirement: ExtensionProviderRequirementOptions;
-  options: ResolvedOption[];
-  binding?: { providerId: string; modelKey: string | null };
+  options: ResolvedOption[][];
+  binding?: {
+    providerId: string;
+    modelKey: string | null;
+    overrideBaseUrl: string | null;
+  };
 }): RequirementState {
   const modelKeys: Record<number, string> = {};
-  r.options.forEach((_opt, i) => {
+  r.options.forEach((_cands, i) => {
     modelKeys[i] = r.requirement.options[i]!.model ?? '';
   });
-  const boundIdx = r.binding
-    ? r.options.findIndex(
-        (o) => o.kind === 'existing' && o.providerId === r.binding!.providerId
-      )
-    : -1;
-  if (boundIdx >= 0) {
-    if (r.binding!.modelKey) modelKeys[boundIdx] = r.binding!.modelKey;
-    return { optionIndex: boundIdx, modelKeys, useNewCredential: {} };
+  if (r.binding) {
+    const b = r.binding;
+    for (let i = 0; i < r.options.length; i++) {
+      const j = r.options[i]!.findIndex(
+        (c) =>
+          c.kind === 'existing' &&
+          c.providerId === b.providerId &&
+          (c.overrideBaseUrl ?? null) === (b.overrideBaseUrl ?? null)
+      );
+      if (j < 0) continue;
+      if (b.modelKey) modelKeys[i] = b.modelKey;
+      return {
+        optionIndex: i,
+        candidateIndexes: { [i]: j },
+        modelKeys,
+        useNewCredential: {}
+      };
+    }
   }
   // Optional providers default to "None" (no option selected) until the user picks one.
   if (isOptionalRequirement(r.requirement)) {
-    return { optionIndex: -1, modelKeys, useNewCredential: {} };
+    return { optionIndex: -1, candidateIndexes: {}, modelKeys, useNewCredential: {} };
   }
-  const existingIdx = r.options.findIndex((o) => o.kind === 'existing');
+  const existingIdx = r.options.findIndex((cands) =>
+    cands.some((c) => c.kind === 'existing')
+  );
   const optionIndex = existingIdx >= 0 ? existingIdx : 0;
-  return { optionIndex, modelKeys, useNewCredential: {} };
+  return { optionIndex, candidateIndexes: {}, modelKeys, useNewCredential: {} };
 }
 
 function initialCredentialDrafts(
@@ -678,7 +696,8 @@ function initialCredentialDrafts(
 ): Record<string, CredentialDraft> {
   const seed: Record<string, CredentialDraft> = {};
   for (const r of optionsReqs) {
-    r.options.forEach((resolved, i) => {
+    r.options.forEach((cands, i) => {
+      const resolved = cands[0]!;
       if (resolved.kind === 'existing') return;
       const option = r.requirement.options[i]!;
       const key = credentialDedupeKey(option);
@@ -695,7 +714,7 @@ function initialCredentialDrafts(
   return seed;
 }
 
-type OptionsRequirement = Extract<ResolvedRequirement, { options: ResolvedOption[] }>;
+type OptionsRequirement = Extract<ResolvedRequirement, { options: ResolvedOption[][] }>;
 type SlotRequirement = Extract<ResolvedRequirement, { slot: ResolvedSlot }>;
 
 function isOptionsResolved(r: ResolvedRequirement): r is OptionsRequirement {
@@ -765,9 +784,11 @@ function ConsentScreen({
     const state = reqStates[r.requirement.key]!;
     const optionIndex = state.optionIndex;
     const option = r.requirement.options[optionIndex]!;
+    const candidates = r.options[optionIndex]!;
+    const base = candidates[state.candidateIndexes[optionIndex] ?? 0]!;
     const resolved = effectiveResolvedOption(
       option,
-      r.options[optionIndex]!,
+      base,
       state.useNewCredential[optionIndex] ?? false
     );
     return { r, optionIndex, resolved, option };
@@ -777,7 +798,7 @@ function ConsentScreen({
     (r) =>
       !requirementHasModel(r.requirement) &&
       r.requirement.options.length === 1 &&
-      r.options[0]!.kind === 'existing'
+      r.options[0]!.some((c) => c.kind === 'existing')
   );
 
   type CredentialGroup = {
@@ -840,6 +861,23 @@ function ConsentScreen({
       ...prev,
       [reqKey]: { ...prev[reqKey]!, optionIndex: nextIndex }
     }));
+  }
+
+  function setCandidateIndex(
+    reqKey: string,
+    optionIndex: number,
+    candidateIndex: number
+  ) {
+    setReqStates((prev) => {
+      const state = prev[reqKey]!;
+      return {
+        ...prev,
+        [reqKey]: {
+          ...state,
+          candidateIndexes: { ...state.candidateIndexes, [optionIndex]: candidateIndex }
+        }
+      };
+    });
   }
 
   function setConfigValue(key: string, value: unknown) {
@@ -1045,6 +1083,7 @@ function ConsentScreen({
             showAdvanced={showAdvanced}
             onToggleAdvanced={() => setShowAdvanced((v) => !v)}
             onSetOptionIndex={setOptionIndex}
+            onSetCandidateIndex={setCandidateIndex}
             onSetModelKey={setModelKey}
             onSetSlotProvider={setSlotProvider}
             onSetUseNewCredential={setUseNewCredential}
@@ -1055,6 +1094,7 @@ function ConsentScreen({
           <ProviderBindingBox
             reqs={bindingReqs}
             reqStates={reqStates}
+            onChangeCandidateIndex={setCandidateIndex}
             onChangeCredentialSource={setUseNewCredential}
           />
         )}
@@ -1116,6 +1156,7 @@ function ModelsBox({
   showAdvanced,
   onToggleAdvanced,
   onSetOptionIndex,
+  onSetCandidateIndex,
   onSetModelKey,
   onSetSlotProvider,
   onSetUseNewCredential
@@ -1127,6 +1168,11 @@ function ModelsBox({
   showAdvanced: boolean;
   onToggleAdvanced: () => void;
   onSetOptionIndex: (reqKey: string, nextIndex: number) => void;
+  onSetCandidateIndex: (
+    reqKey: string,
+    optionIndex: number,
+    candidateIndex: number
+  ) => void;
   onSetModelKey: (reqKey: string, optionIndex: number, modelKey: string) => void;
   onSetSlotProvider: (reqKey: string, providerModelId: string) => void;
   onSetUseNewCredential: (
@@ -1141,9 +1187,13 @@ function ModelsBox({
   );
   const optionsEditable = visibleOptionsReqs.some((r) => {
     if (r.requirement.options.length > 1) return true;
-    const idx = reqStates[r.requirement.key]!.optionIndex;
+    const state = reqStates[r.requirement.key]!;
+    const idx = state.optionIndex;
     if (idx < 0) return true;
-    return requirementHasModel(r.requirement) && !isCloudBound(r.options[idx]!);
+    const candidates = r.options[idx]!;
+    if (candidates.length > 1) return true;
+    const selected = candidates[state.candidateIndexes[idx] ?? 0]!;
+    return requirementHasModel(r.requirement) && !isCloudBound(selected);
   });
   const slotEditable = slotReqs.some(
     (r) => r.slot.kind === 'configured' && r.slot.candidates.length > 1
@@ -1179,6 +1229,7 @@ function ModelsBox({
           state={reqStates[r.requirement.key]!}
           showAdvanced={showAdvanced}
           onChangeOption={(i) => onSetOptionIndex(r.requirement.key, i)}
+          onChangeCandidate={(i, j) => onSetCandidateIndex(r.requirement.key, i, j)}
           onChangeModel={(modelKey) =>
             onSetModelKey(
               r.requirement.key,
@@ -1267,7 +1318,7 @@ function SlotModelRow({
     <>
       <span className="text-muted-foreground">{role}</span>
       <Select value={current.providerModelId} onValueChange={(v) => v && onSelect(v)}>
-        <SelectTrigger size="sm">
+        <SelectTrigger size="sm" className="w-full">
           <SelectValue>{candidateLabel(current)}</SelectValue>
         </SelectTrigger>
         <SelectContent>
@@ -1313,6 +1364,7 @@ function OptionModelRow({
   state,
   showAdvanced,
   onChangeOption,
+  onChangeCandidate,
   onChangeModel,
   onChangeCredentialSource
 }: {
@@ -1320,6 +1372,7 @@ function OptionModelRow({
   state: RequirementState;
   showAdvanced: boolean;
   onChangeOption: (nextIndex: number) => void;
+  onChangeCandidate: (optionIndex: number, candidateIndex: number) => void;
   onChangeModel: (modelKey: string) => void;
   onChangeCredentialSource: (optionIndex: number, useNew: boolean) => void;
 }) {
@@ -1331,11 +1384,11 @@ function OptionModelRow({
 
   // Option-dependent values only resolve when a real option is selected.
   const useNew = isNone ? false : (state.useNewCredential[optionIndex] ?? false);
+  const candidateIndex = isNone ? 0 : (state.candidateIndexes[optionIndex] ?? 0);
   const option = isNone ? null : req.requirement.options[optionIndex]!;
-  const resolved =
-    option && !isNone
-      ? effectiveResolvedOption(option, req.options[optionIndex]!, useNew)
-      : null;
+  const resolved = option
+    ? effectiveResolvedOption(option, req.options[optionIndex]![candidateIndex]!, useNew)
+    : null;
   const providerType = resolved ? resolvedOptionProviderType(resolved) : '';
   const currentModel = isNone ? '' : (state.modelKeys[optionIndex] ?? '');
   const cloudBound = resolved ? isCloudBound(resolved) : false;
@@ -1357,9 +1410,19 @@ function OptionModelRow({
   const choices = [
     ...(optional ? [{ value: 'none', label: 'None' }] : []),
     ...req.requirement.options.flatMap((opt, i) => {
-      const base = req.options[i]!;
-      const entries = [{ value: `opt:${i}`, label: providerLabelFor(opt, base) }];
-      if (base.kind === 'existing' && base.providerType === CLOUD_PROVIDER_TYPE) {
+      const cands = req.options[i]!;
+      const entries = cands.map((c, j) => ({
+        value: `opt:${i}:${j}`,
+        label: providerLabelFor(opt, c)
+      }));
+      // Cloud-only upstreams also offer entering your own credential.
+      const hasOwnCredential = cands.some(
+        (c) => c.kind === 'existing' && c.providerType !== CLOUD_PROVIDER_TYPE
+      );
+      const hasCloud = cands.some(
+        (c) => c.kind === 'existing' && c.providerType === CLOUD_PROVIDER_TYPE
+      );
+      if (hasCloud && !hasOwnCredential) {
         entries.push({ value: `new:${i}`, label: optionUpstreamLabel(opt) });
       }
       return entries;
@@ -1370,7 +1433,7 @@ function OptionModelRow({
     ? 'none'
     : useNew
       ? `new:${optionIndex}`
-      : `opt:${optionIndex}`;
+      : `opt:${optionIndex}:${candidateIndex}`;
   const triggerLabel = isNone
     ? 'None'
     : useNew
@@ -1390,13 +1453,14 @@ function OptionModelRow({
                 onChangeOption(-1);
                 return;
               }
-              const wantsNew = v.startsWith('new:');
-              const i = Number(v.slice(v.indexOf(':') + 1));
+              const [prefix, iStr, jStr] = v.split(':');
+              const i = Number(iStr);
               onChangeOption(i);
-              onChangeCredentialSource(i, wantsNew);
+              onChangeCredentialSource(i, prefix === 'new');
+              if (prefix === 'opt') onChangeCandidate(i, Number(jStr));
             }}
           >
-            <SelectTrigger size="sm">
+            <SelectTrigger size="sm" className="w-full">
               <SelectValue>{triggerLabel}</SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -1424,10 +1488,16 @@ function OptionModelRow({
 function ProviderBindingBox({
   reqs,
   reqStates,
+  onChangeCandidateIndex,
   onChangeCredentialSource
 }: {
   reqs: OptionsRequirement[];
   reqStates: Record<string, RequirementState>;
+  onChangeCandidateIndex: (
+    reqKey: string,
+    optionIndex: number,
+    candidateIndex: number
+  ) => void;
   onChangeCredentialSource: (
     reqKey: string,
     optionIndex: number,
@@ -1439,6 +1509,7 @@ function ProviderBindingBox({
     reqs.length === 1
       ? 'The extension connects to the following provider:'
       : 'The extension connects to the following providers:';
+  const newLabel = 'Use a new credential…';
   return (
     <div className="flex flex-col gap-2 border border-border p-3">
       <p className="mb-2">{heading}</p>
@@ -1448,33 +1519,46 @@ function ProviderBindingBox({
           const state = reqStates[r.requirement.key]!;
           const optionIndex = state.optionIndex;
           const option = r.requirement.options[optionIndex]!;
-          const base = r.options[optionIndex]!;
-          const existingName =
-            base.kind === 'existing' ? providerLabelFor(option, base) : '';
-          const newLabel = 'Use a new credential…';
+          const candidates = r.options[optionIndex]!;
+          const candidateIndex = state.candidateIndexes[optionIndex] ?? 0;
           const useNew = state.useNewCredential[optionIndex] ?? false;
+          const labelFor = (v: string) =>
+            v === '__new__'
+              ? newLabel
+              : providerLabelFor(option, candidates[Number(v.slice(5))]!);
           return (
             <Fragment key={r.requirement.key}>
               <span className="text-muted-foreground">{role}</span>
               <Select
-                value={useNew ? '__new__' : '__existing__'}
+                value={useNew ? '__new__' : `cand:${candidateIndex}`}
                 onValueChange={(v) => {
                   if (!v) return;
-                  onChangeCredentialSource(
+                  if (v === '__new__') {
+                    onChangeCredentialSource(
+                      r.requirement.key,
+                      optionIndex,
+                      option,
+                      true
+                    );
+                    return;
+                  }
+                  onChangeCredentialSource(r.requirement.key, optionIndex, option, false);
+                  onChangeCandidateIndex(
                     r.requirement.key,
                     optionIndex,
-                    option,
-                    v === '__new__'
+                    Number(v.slice(5))
                   );
                 }}
               >
                 <SelectTrigger size="sm" className="w-full">
-                  <SelectValue>
-                    {(value) => (value === '__new__' ? newLabel : existingName)}
-                  </SelectValue>
+                  <SelectValue>{(value) => labelFor(value as string)}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__existing__">{existingName}</SelectItem>
+                  {candidates.map((c, j) => (
+                    <SelectItem key={`cand:${j}`} value={`cand:${j}`}>
+                      {providerLabelFor(option, c)}
+                    </SelectItem>
+                  ))}
                   <SelectItem value="__new__">{newLabel}</SelectItem>
                 </SelectContent>
               </Select>

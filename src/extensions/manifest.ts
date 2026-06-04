@@ -65,9 +65,14 @@ import type {
 export type ResolvedRequirement =
   | {
       requirement: ExtensionProviderRequirementOptions;
-      options: ResolvedOption[];
+      // Per manifest option: every provider that can satisfy it (user credentials before cloud), or a single preset/unknown fallback.
+      options: ResolvedOption[][];
       // Previously-saved binding for an already-installed extension, used to re-seed the configure screen
-      binding?: { providerId: string; modelKey: string | null };
+      binding?: {
+        providerId: string;
+        modelKey: string | null;
+        overrideBaseUrl: string | null;
+      };
     }
   | {
       requirement: ExtensionProviderRequirementSlot;
