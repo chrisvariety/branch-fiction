@@ -2,6 +2,7 @@ import { v7 as uuidv7 } from 'uuid';
 
 import { NewBookStyle } from '@/app/lib/db/types';
 import { bridgeUpdateBookImport } from '@/lib/bridge';
+import { getBookEntityNamesByIds } from '@/lib/db/models/book-entity/get-book-entity';
 import { getBookImportById } from '@/lib/db/models/book-import/get-book-import';
 import { createBookStyles } from '@/lib/db/models/book-style/create-book-style';
 import { getBookById } from '@/lib/db/models/book/get-book';
@@ -81,33 +82,47 @@ export const handler = createWorkflowFunction<
 
     const scenesWithParagraphs = organizeParagraphsIntoScenes(allScenes, paragraphs);
 
-    const scenesByPovEntity = scenesWithParagraphs.reduce<
+    // group by entity ID when finalization matched one, so name variants don't duplicate styles
+    const scenesByPovKey = scenesWithParagraphs.reduce<
       Record<string, typeof scenesWithParagraphs>
     >((acc, scene) => {
-      const povEntity = scene.povEntity;
-      if (!acc[povEntity]) {
-        acc[povEntity] = [];
+      const key = scene.povBookEntityId ?? scene.povEntity;
+      if (!acc[key]) {
+        acc[key] = [];
       }
-      acc[povEntity].push(scene);
+      acc[key].push(scene);
       return acc;
     }, {});
 
-    const povEntities = Object.keys(scenesByPovEntity);
+    const povKeys = Object.keys(scenesByPovKey);
 
-    if (povEntities.length === 0) {
+    if (povKeys.length === 0) {
       throw new Error('No POV entities found??');
     }
 
-    const majorityPovEntity = determineMajorityPovEntity(scenesByPovEntity);
+    const povEntityIds = povKeys.filter(
+      (key) => scenesByPovKey[key][0].povBookEntityId === key
+    );
+    const entityNameById = new Map(
+      (povEntityIds.length > 0 ? await getBookEntityNamesByIds(povEntityIds) : []).map(
+        (e) => [e.id, e.name]
+      )
+    );
+    const povEntityName = (key: string) =>
+      entityNameById.get(key) ?? scenesByPovKey[key][0].povEntity;
+
+    const majorityPovKey = determineMajorityPovKey(scenesByPovKey);
+    const majorityPovEntity = povEntityName(majorityPovKey);
 
     const bookStyles: NewBookStyle[] = [];
 
-    for (const povEntity of povEntities) {
+    for (const povKey of povKeys) {
+      const povEntity = povEntityName(povKey);
       ctx.log.info(`\nProcessing POV Entity: ${povEntity}`);
-      if (povEntities.length > 1) {
+      if (povKeys.length > 1) {
         await ctx.narrate(`Now ${povEntity}.`);
       }
-      const scenes = scenesByPovEntity[povEntity];
+      const scenes = scenesByPovKey[povKey];
 
       const allText = scenes.flatMap((s) => s.paragraphs.map((p) => p.content));
       const selectedContents = await selectDistinctivePassages(ctx, povEntity, allText);
@@ -124,7 +139,7 @@ export const handler = createWorkflowFunction<
         povEntity,
         povBookEntityId: scenes[0].povBookEntityId,
         styleAnalysis,
-        isMajority: majorityPovEntity === povEntity
+        isMajority: majorityPovKey === povKey
       });
     }
 
@@ -143,17 +158,15 @@ export const handler = createWorkflowFunction<
 
     return {
       bookId: book.id,
-      povEntities,
+      povEntities: povKeys.map(povEntityName),
       majorityPovEntity
     };
   }
 );
 
-function determineMajorityPovEntity(
-  scenesByPovEntity: Record<string, ScenesWithParagraphs>
-) {
-  const povEntityStats = Object.keys(scenesByPovEntity).map((povEntity) => {
-    const scenes = scenesByPovEntity[povEntity];
+function determineMajorityPovKey(scenesByPovKey: Record<string, ScenesWithParagraphs>) {
+  const povKeyStats = Object.keys(scenesByPovKey).map((povKey) => {
+    const scenes = scenesByPovKey[povKey];
     const totalParagraphs = scenes.reduce(
       (sum, scene) => sum + scene.paragraphs.length,
       0
@@ -165,16 +178,16 @@ function determineMajorityPovEntity(
     );
 
     return {
-      povEntity,
+      povKey,
       sceneCount: scenes.length,
       paragraphCount: totalParagraphs,
       tokenCount: totalTokens
     };
   });
 
-  povEntityStats.sort((a, b) => b.paragraphCount - a.paragraphCount);
+  povKeyStats.sort((a, b) => b.paragraphCount - a.paragraphCount);
 
-  return povEntityStats[0].povEntity;
+  return povKeyStats[0].povKey;
 }
 
 async function extractStyle(ctx: WorkflowContext, povEntity: string, contents: string[]) {
