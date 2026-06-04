@@ -182,15 +182,19 @@ async fn resolve_options_transport(
         let external_id = external_id.filter(|s| !s.is_empty()).ok_or_else(|| {
             "user has no cloud externalId — link your cloud account first".to_string()
         })?;
-        let token = app
-            .state::<CloudState>()
-            .mint_or_get_jwt(&external_id)
-            .await?;
+        let cloud = app.state::<CloudState>();
+        // The cloud reads the JWT from the catalog-advertised auth shape's slot.
+        let catalog = cloud.fetch_catalog().await?;
+        let auth = catalog
+            .providers
+            .iter()
+            .find(|p| p.proxy_base_url == base_url)
+            .map(|p| p.auth.clone())
+            .ok_or_else(|| format!("cloud catalog has no provider for proxy {base_url:?}"))?;
+        let token = cloud.mint_or_get_jwt(&external_id).await?;
         return Ok(ResolvedProvider {
             base_url,
-            auth: AuthShape::Bearer {
-                header_prefix: None,
-            },
+            auth,
             secret: Some(token),
             rpm_limit,
         });
