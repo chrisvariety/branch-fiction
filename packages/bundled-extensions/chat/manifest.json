@@ -7,6 +7,31 @@
   "description": "Pick characters and a setting from your book and chat with them. Pick characters and a setting from your book and chat with them. Pick characters and a setting from your book and chat with them. Pick characters and a setting from your book and chat with them.",
   "repository": "https://github.com/chrisvariety/branch-fiction/tree/release/packages/bundled-extensions/chat",
   "seed": "seed.db.gz",
+  "bookData": [
+    { "table": "first_launch_steps", "bookIdColumn": "book_id" },
+    {
+      "table": "character_refs",
+      "bookIdColumn": "book_id",
+      "assetColumns": ["image_url"]
+    },
+    { "table": "book_settings", "bookIdColumn": "book_id" },
+    {
+      "table": "book_interactives",
+      "bookIdColumn": "book_id",
+      "assetColumns": ["url", "video_url"]
+    },
+    {
+      "table": "book_interactive_entities",
+      "bookIdColumn": "book_id",
+      "assetColumns": ["image_url", "head_image_url", "cropped_image_url"]
+    },
+    { "table": "scenarios", "bookIdColumn": "book_id" },
+    {
+      "table": "scenario_entities",
+      "bookIdColumn": "book_id",
+      "assetColumns": ["image_url"]
+    }
+  ],
   "path": {
     "phoneCompatible": true,
     "entry": "dist/index.html",

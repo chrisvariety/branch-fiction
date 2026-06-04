@@ -2,6 +2,7 @@ import {
   IconCloud,
   IconDeviceMobile,
   IconDots,
+  IconFileExport,
   IconKey,
   IconPencil,
   IconPhoto,
@@ -13,7 +14,7 @@ import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-quer
 import { useParams } from '@tanstack/react-router';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { ask } from '@tauri-apps/plugin-dialog';
+import { ask, message, save } from '@tauri-apps/plugin-dialog';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { useEffect, useRef, useState } from 'react';
 
@@ -134,6 +135,20 @@ export function BookPage() {
     void invoke('open_import_window', { bookImportId: bookImport.id, dark: isDark() });
   };
 
+  const handleExport = async () => {
+    if (!book) return;
+    const dest = await save({
+      defaultPath: `${book.slug}.bfbook`,
+      filters: [{ name: 'Branch Fiction Book', extensions: ['bfbook'] }]
+    });
+    if (!dest) return;
+    try {
+      await invoke('export_book_archive', { bookId: id, destPath: dest });
+    } catch (e) {
+      await message(String(e), { title: 'Export Failed', kind: 'error' });
+    }
+  };
+
   const handleDelete = async () => {
     const confirmed = await ask(
       'This permanently removes the book and everything generated for it. This cannot be undone.',
@@ -174,6 +189,13 @@ export function BookPage() {
                 <DropdownMenuItem onClick={() => setEditing(true)}>
                   <IconPencil className="size-4 shrink-0 text-muted-foreground" />
                   Rename
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={book.status !== 'completed'}
+                  onClick={() => void handleExport()}
+                >
+                  <IconFileExport className="size-4 shrink-0 text-muted-foreground" />
+                  Export…
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem variant="destructive" onClick={handleDelete}>

@@ -1,6 +1,27 @@
 import { isKnownSlot, type ProviderAuthShape, SLOT_KEYS, type Slot } from './types';
 
 const EXTENSION_ID_REGEX = /^@[a-z0-9][a-z0-9-]*\/[a-z0-9][a-z0-9-]*$/;
+const SQL_IDENT_REGEX = /^[a-z_][a-z0-9_]*$/;
+
+// Host-managed extension db tables; keep in sync with RESERVED_TABLES in src-tauri/src/extension_db.rs.
+const HOST_MANAGED_TABLES = new Set([
+  'books',
+  'chapters',
+  'chapter_paragraphs',
+  'book_entities',
+  'book_arcs',
+  'book_entity_hierarchies',
+  'chapter_scenes',
+  'chapter_scene_groups',
+  'chapter_relationships',
+  'chapter_entity_appellations',
+  'chapter_entity_attributes',
+  'book_categories',
+  'book_character_place_scores',
+  'book_styles',
+  'book_migrations',
+  'extension_seeds'
+]);
 
 export type ExtensionConfigField =
   | {
@@ -77,6 +98,13 @@ export function isOptionalRequirement(r: ExtensionProviderRequirement): boolean 
   return !isUseSlotRequirement(r) && r.optional === true;
 }
 
+// Book-scoped non-personal table in single-book exports; assetColumns hold portable file:// URLs.
+export type ExtensionBookDataTable = {
+  table: string;
+  bookIdColumn: string;
+  assetColumns?: string[];
+};
+
 export type ExtensionPath = {
   entry: string;
   worker?: string;
@@ -109,6 +137,8 @@ export type ExtensionManifestV1 = {
   // SQLite file (relative to the extension root, optionally .gz) copied into the extension DB once.
   // Tracked by path, so rename to re-seed. Bundled extensions only.
   seed?: string;
+  // Tables packed into single-book exports (never personal data); list FK parents before children.
+  bookData?: ExtensionBookDataTable[];
   // Extra outbound hosts the worker is allowed to reach
   // (provider baseURLs do NOT belong here as those are reached through the local proxy)
   net?: string[];
@@ -205,6 +235,50 @@ export function validateManifest(m: ExtensionManifestV1): void {
       throw new Error(
         `Extension ${m.id}: "seed" must be a relative path inside the extension (got ${JSON.stringify(m.seed)})`
       );
+    }
+  }
+
+  if (m.bookData !== undefined) {
+    if (!Array.isArray(m.bookData)) {
+      throw new Error(`Extension ${m.id}: "bookData" must be an array`);
+    }
+    const seenTables = new Set<string>();
+    for (let i = 0; i < m.bookData.length; i++) {
+      const entry = m.bookData[i];
+      const where = `Extension ${m.id}, bookData[${i}]`;
+      if (!entry || typeof entry !== 'object') {
+        throw new Error(`${where}: must be an object`);
+      }
+      if (typeof entry.table !== 'string' || !SQL_IDENT_REGEX.test(entry.table)) {
+        throw new Error(`${where}: "table" must be a lowercase snake_case identifier`);
+      }
+      if (HOST_MANAGED_TABLES.has(entry.table)) {
+        throw new Error(`${where}: table "${entry.table}" is host-managed`);
+      }
+      if (seenTables.has(entry.table)) {
+        throw new Error(`${where}: duplicate table "${entry.table}"`);
+      }
+      seenTables.add(entry.table);
+      if (
+        typeof entry.bookIdColumn !== 'string' ||
+        !SQL_IDENT_REGEX.test(entry.bookIdColumn)
+      ) {
+        throw new Error(
+          `${where}: "bookIdColumn" must be a lowercase snake_case identifier`
+        );
+      }
+      if (entry.assetColumns !== undefined) {
+        if (
+          !Array.isArray(entry.assetColumns) ||
+          entry.assetColumns.some(
+            (c) => typeof c !== 'string' || !SQL_IDENT_REGEX.test(c)
+          )
+        ) {
+          throw new Error(
+            `${where}: "assetColumns" must be lowercase snake_case identifiers`
+          );
+        }
+      }
     }
   }
 

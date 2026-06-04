@@ -14,12 +14,14 @@ import { useNavigate } from '@tanstack/react-router';
 import { invoke } from '@tauri-apps/api/core';
 import { appDataDir, homeDir, join } from '@tauri-apps/api/path';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
-import { open as openDialog } from '@tauri-apps/plugin-dialog';
+import { getCurrentWindow } from '@tauri-apps/api/window';
+import { ask, message, open as openDialog } from '@tauri-apps/plugin-dialog';
 import { mkdir, writeFile } from '@tauri-apps/plugin-fs';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { v7 as uuidv7 } from 'uuid';
 
+import { openBookWindow } from '@/book/open-book';
 import { providerFormProps } from '@/components/provider/form-props';
 import { ProviderSetup } from '@/components/provider/setup';
 import {
@@ -87,6 +89,42 @@ type ValidateEpubResponse =
 
 function isAcsmName(name: string) {
   return name.toLowerCase().endsWith('.acsm');
+}
+
+function isBfbookName(name: string) {
+  return name.toLowerCase().endsWith('.bfbook');
+}
+
+type ArchiveInfo = {
+  bookId: string;
+  title: string;
+  exists: boolean;
+  extensions: { id: string; name: string; installed: boolean }[];
+};
+
+// Exported book files skip the pipeline entirely; the book opens ready to use.
+async function importBookArchive(path: string): Promise<void> {
+  try {
+    const info = await invoke<ArchiveInfo>('inspect_book_archive', { path });
+    if (info.exists) {
+      const confirmed = await ask(
+        `"${info.title}" is already in your library. Replace it with the copy from this file? Chats and other personal data are kept.`,
+        {
+          title: 'Replace Book',
+          kind: 'warning',
+          okLabel: 'Replace Book',
+          cancelLabel: 'Cancel'
+        }
+      );
+      if (!confirmed) return;
+    }
+    await invoke('import_book_archive', { path, replace: info.exists });
+    await broadcastInvalidate();
+    await openBookWindow(info.bookId);
+    await getCurrentWindow().close();
+  } catch (e) {
+    await message(String(e), { title: 'Import Failed', kind: 'error' });
+  }
 }
 
 function basename(path: string): string {
@@ -341,6 +379,10 @@ function FileUpload() {
 
   const handleDroppedPath = useCallback((path: string) => {
     const name = basename(path);
+    if (isBfbookName(name)) {
+      void importBookArchive(path);
+      return;
+    }
     if (isAcsmName(name)) {
       setAcsmName(name);
       setSelectedPath(null);
@@ -406,10 +448,16 @@ function FileUpload() {
       multiple: false,
       directory: false,
       defaultPath: home,
-      filters: [{ name: 'EPUB / ACSM', extensions: ['epub', 'acsm'] }]
+      filters: [
+        { name: 'EPUB / ACSM / Book file', extensions: ['epub', 'acsm', 'bfbook'] }
+      ]
     });
     if (!chosen || typeof chosen !== 'string') return;
     const name = basename(chosen);
+    if (isBfbookName(name)) {
+      void importBookArchive(chosen);
+      return;
+    }
     if (isAcsmName(name)) {
       setAcsmName(name);
       setSelectedPath(null);
@@ -615,8 +663,8 @@ function FileUpload() {
                     <div className="h-px w-8 bg-border" />
                     <p className="text-xs leading-relaxed text-muted-foreground">
                       {isDragging
-                        ? 'Drop EPUB file'
-                        : 'Drag and drop an EPUB file here, or click to choose a file.'}
+                        ? 'Drop file'
+                        : 'Drag and drop an EPUB or exported book file (.bfbook) here, or click to choose a file.'}
                     </p>
                   </div>
 

@@ -11,6 +11,7 @@ export {
   validateManifest
 } from '@branch-fiction/extension-sdk';
 export type {
+  ExtensionBookDataTable,
   ExtensionConfigField,
   ExtensionPath,
   ExtensionManifestV1,

@@ -12,7 +12,7 @@ use crate::db_path::{main_db_path, open_main_db_ro};
 const EXTENSION_INIT_SQL: &str = include_str!("../extension_db_migrations/0001_init.sql");
 const EXTENSION_DB_VERSION: i64 = 1;
 
-const RESERVED_TABLES: &[(&str, &str)] = &[
+pub(crate) const RESERVED_TABLES: &[(&str, &str)] = &[
     ("books", "id"),
     ("chapters", "book_id"),
     ("chapter_paragraphs", "book_id"),
@@ -57,23 +57,34 @@ pub fn extension_assets_dir(app: &AppHandle, extension_id: &str) -> Result<PathB
     Ok(extension_data_dir(app, extension_id)?.join("assets"))
 }
 
+pub(crate) fn extension_db_file(app: &AppHandle, extension_id: &str) -> Result<PathBuf, String> {
+    Ok(extension_data_dir(app, extension_id)?.join("db.sqlite"))
+}
+
+/// Book payloads from imported archives, parked until the extension is installed.
+pub(crate) fn pending_payload_dir(app: &AppHandle, extension_id: &str) -> Result<PathBuf, String> {
+    extension_data_dir_at(app, "extension-data-pending", extension_id)
+}
+
 /// Ensure the extension DB exists, run migrations, sync reserved tables from main, then close.
 pub async fn prepare_extension_db(app: &AppHandle, extension_id: &str) -> Result<PathBuf, String> {
     let seed = manifest_seed_source(app, extension_id).await;
-    prepare_extension_db_at(app, &extension_data_dir(app, extension_id)?, seed).await
+    let pending = pending_payload_dir(app, extension_id).ok();
+    prepare_extension_db_at(app, &extension_data_dir(app, extension_id)?, seed, pending).await
 }
 
 pub async fn prepare_extension_dev_db(
     app: &AppHandle,
     extension_id: &str,
 ) -> Result<PathBuf, String> {
-    prepare_extension_db_at(app, &extension_dev_data_dir(app, extension_id)?, None).await
+    prepare_extension_db_at(app, &extension_dev_data_dir(app, extension_id)?, None, None).await
 }
 
 async fn prepare_extension_db_at(
     app: &AppHandle,
     data_dir: &Path,
     seed: Option<(String, PathBuf)>,
+    pending_dir: Option<PathBuf>,
 ) -> Result<PathBuf, String> {
     std::fs::create_dir_all(data_dir).map_err(|e| format!("mkdir extension-data: {e}"))?;
     std::fs::create_dir_all(data_dir.join("assets"))
@@ -106,8 +117,246 @@ async fn prepare_extension_db_at(
         }
     }
 
+    if let Some(pending_dir) = pending_dir {
+        apply_pending_payloads(&mut conn, &pending_dir, &data_dir.join("assets")).await;
+    }
+
     let _ = conn.close().await;
     Ok(db_path)
+}
+
+/// Applies book payloads stashed by archive imports that ran before this extension was installed.
+async fn apply_pending_payloads(
+    conn: &mut SqliteConnection,
+    pending_dir: &Path,
+    assets_dir: &Path,
+) {
+    let Ok(entries) = std::fs::read_dir(pending_dir) else {
+        return;
+    };
+    let mut files: Vec<PathBuf> = entries
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .filter(|p| p.extension().is_some_and(|e| e == "db"))
+        .collect();
+    files.sort();
+    for path in files {
+        match apply_book_payload_file(conn, &path, assets_dir).await {
+            Ok(()) => {
+                let _ = std::fs::remove_file(&path);
+            }
+            // Leave the file for a retry on next prepare; failures may be transient.
+            Err(e) => eprintln!("extension pending payload {}: {e}", path.display()),
+        }
+    }
+}
+
+fn quoted_ident(name: &str) -> Option<String> {
+    let ok = !name.is_empty()
+        && !name.starts_with(|c: char| c.is_ascii_digit())
+        && name
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_');
+    ok.then(|| format!("\"{name}\""))
+}
+
+/// Applies one exported book payload db: creates missing tables from their DDL, then replaces the book's rows.
+pub(crate) async fn apply_book_payload_file(
+    conn: &mut SqliteConnection,
+    payload_path: &Path,
+    assets_dir: &Path,
+) -> Result<(), String> {
+    let attach_sql = format!(
+        "ATTACH DATABASE '{}' AS seed",
+        payload_path.to_string_lossy().replace('\'', "''")
+    );
+    conn.execute(attach_sql.as_str())
+        .await
+        .map_err(|e| format!("attach payload db: {e}"))?;
+    let result = apply_book_payload_inner(conn, assets_dir).await;
+    let _ = conn.execute("DETACH DATABASE seed").await;
+    result
+}
+
+async fn apply_book_payload_inner(
+    conn: &mut SqliteConnection,
+    assets_dir: &Path,
+) -> Result<(), String> {
+    let book_id: Option<(String,)> =
+        sqlx::query_as("SELECT value FROM seed._payload_meta WHERE key = 'book_id'")
+            .fetch_optional(&mut *conn)
+            .await
+            .map_err(|e| format!("read _payload_meta: {e}"))?;
+    let book_id = book_id.map(|(v,)| v).ok_or("payload missing book_id")?;
+
+    let decls: Vec<(String, String)> =
+        sqlx::query_as("SELECT tbl, book_id_column FROM seed._payload_tables")
+            .fetch_all(&mut *conn)
+            .await
+            .map_err(|e| format!("read _payload_tables: {e}"))?;
+
+    let reserved: HashSet<&str> = RESERVED_TABLES
+        .iter()
+        .map(|(t, _)| *t)
+        .chain(["book_migrations", "extension_seeds"])
+        .collect();
+
+    let mut tx = conn
+        .begin()
+        .await
+        .map_err(|e| format!("begin payload tx: {e}"))?;
+    tx.execute("PRAGMA defer_foreign_keys = ON")
+        .await
+        .map_err(|e| format!("defer fks: {e}"))?;
+
+    for (table, book_id_col) in &decls {
+        if reserved.contains(table.as_str()) {
+            eprintln!("payload table {table} is host-managed; skipping");
+            continue;
+        }
+        let (Some(quoted_table), Some(quoted_col)) =
+            (quoted_ident(table), quoted_ident(book_id_col))
+        else {
+            eprintln!("payload table {table} ({book_id_col}) has an invalid name; skipping");
+            continue;
+        };
+
+        let in_payload: Option<(String, Option<String>)> = sqlx::query_as(
+            "SELECT name, sql FROM seed.sqlite_master WHERE type = 'table' AND name = ?1",
+        )
+        .bind(table)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(|e| format!("check payload table {table}: {e}"))?;
+        let Some((_, Some(create_sql))) = in_payload else {
+            continue;
+        };
+
+        let exists: Option<(String,)> = sqlx::query_as(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?1",
+        )
+        .bind(table)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(|e| format!("check table {table}: {e}"))?;
+        if exists.is_none() {
+            tx.execute(create_sql.as_str())
+                .await
+                .map_err(|e| format!("create {table}: {e}"))?;
+            let indexes: Vec<(String,)> = sqlx::query_as(
+                "SELECT sql FROM seed.sqlite_master \
+                 WHERE type = 'index' AND tbl_name = ?1 AND sql IS NOT NULL",
+            )
+            .bind(table)
+            .fetch_all(&mut *tx)
+            .await
+            .map_err(|e| format!("list payload indexes for {table}: {e}"))?;
+            for (create_idx,) in indexes {
+                if let Err(e) = tx.execute(create_idx.as_str()).await {
+                    eprintln!("payload index on {table}: {e}");
+                }
+            }
+        }
+
+        let seed_cols: HashSet<String> = insertable_columns(&mut tx, "seed.", table)
+            .await?
+            .into_iter()
+            .collect();
+        let cols: Vec<String> = insertable_columns(&mut tx, "", table)
+            .await?
+            .into_iter()
+            .filter(|c| seed_cols.contains(c))
+            .collect();
+        if cols.is_empty() {
+            continue;
+        }
+        let col_list = cols
+            .iter()
+            .map(|c| format!("\"{c}\""))
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        let delete_sql = format!("DELETE FROM {quoted_table} WHERE {quoted_col} = ?1");
+        sqlx::query(&delete_sql)
+            .bind(&book_id)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| format!("clear {table}: {e}"))?;
+        let insert_sql = format!(
+            "INSERT INTO {quoted_table} ({col_list}) SELECT {col_list} FROM seed.{quoted_table}"
+        );
+        sqlx::query(&insert_sql)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| format!("copy {table}: {e}"))?;
+    }
+
+    crate::book_seeds::extract_seed_assets(&mut tx, assets_dir).await?;
+    tx.commit().await.map_err(|e| format!("commit payload tx: {e}"))?;
+    Ok(())
+}
+
+/// Replaces one book's reserved-table rows with fresh copies from main (used after a re-import).
+pub(crate) async fn refresh_book_in_extension_db(
+    conn: &mut SqliteConnection,
+    main_db_path: &Path,
+    book_id: &str,
+) -> Result<(), String> {
+    conn.execute("PRAGMA foreign_keys = OFF")
+        .await
+        .map_err(|e| format!("pragma off: {e}"))?;
+
+    let attach_sql = format!(
+        "ATTACH DATABASE '{}' AS app",
+        main_db_path.to_string_lossy().replace('\'', "''")
+    );
+    conn.execute(attach_sql.as_str())
+        .await
+        .map_err(|e| format!("attach main db: {e}"))?;
+
+    let result = refresh_book_inner(conn, book_id).await;
+
+    let _ = conn.execute("DETACH DATABASE app").await;
+    let _ = conn.execute("PRAGMA foreign_keys = ON").await;
+    result
+}
+
+async fn refresh_book_inner(conn: &mut SqliteConnection, book_id: &str) -> Result<(), String> {
+    let mut tx = conn
+        .begin()
+        .await
+        .map_err(|e| format!("begin refresh tx: {e}"))?;
+    for (table, book_id_col) in RESERVED_TABLES {
+        let delete_sql = format!("DELETE FROM \"{table}\" WHERE \"{book_id_col}\" = ?1");
+        sqlx::query(&delete_sql)
+            .bind(book_id)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| format!("prune {table} for book {book_id}: {e}"))?;
+
+        let cols = insertable_columns(&mut tx, "", table).await?;
+        if cols.is_empty() {
+            continue;
+        }
+        let col_list = cols
+            .iter()
+            .map(|c| format!("\"{c}\""))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let insert_sql = format!(
+            "INSERT INTO \"{table}\" ({col_list}) \
+             SELECT {col_list} FROM app.\"{table}\" WHERE \"{book_id_col}\" = ?1"
+        );
+        sqlx::query(&insert_sql)
+            .bind(book_id)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| format!("refresh {table} for book {book_id}: {e}"))?;
+    }
+    tx.commit()
+        .await
+        .map_err(|e| format!("commit refresh tx: {e}"))?;
+    Ok(())
 }
 
 /// Resolves the manifest's `seed` to (relative, absolute path); bundled-only since the host attaches the file directly.
@@ -299,7 +548,7 @@ async fn apply_manifest_seed_inner(
     Ok(())
 }
 
-async fn open_extension_conn(db_path: &Path) -> Result<SqliteConnection, String> {
+pub(crate) async fn open_extension_conn(db_path: &Path) -> Result<SqliteConnection, String> {
     let opts = SqliteConnectOptions::from_str(&db_path.to_string_lossy())
         .map_err(|e| format!("sqlite opts: {e}"))?
         .create_if_missing(true)

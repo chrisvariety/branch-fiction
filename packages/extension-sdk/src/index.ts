@@ -2,6 +2,7 @@ export type { ProviderAuthShape, Slot } from './types';
 export { isKnownSlot, SLOT_KEYS, SLOT_LABELS } from './types';
 
 export type {
+  ExtensionBookDataTable,
   ExtensionConfigField,
   ExtensionPath,
   ExtensionManifestV1,

@@ -10,7 +10,7 @@ use crate::db_path::open_main_db_rw;
 use crate::migrations::MAIN_MIGRATIONS;
 
 /// Keep in sync with SEED_TABLES in scripts/export-seed-book.mjs.
-const SEED_CONTENT_TABLES: &[&str] = &[
+pub(crate) const SEED_CONTENT_TABLES: &[&str] = &[
     "chapters",
     "chapter_paragraphs",
     "chapter_scenes",
@@ -264,7 +264,10 @@ async fn apply_seed_inner(
 }
 
 /// Inserts the seed's books row, rewriting unique columns that collide with existing books.
-async fn insert_book_row(tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>, book_id: &str) -> Result<(), String> {
+pub(crate) async fn insert_book_row(
+    tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+    book_id: &str,
+) -> Result<(), String> {
     let exists: Option<(String,)> = sqlx::query_as("SELECT id FROM books WHERE id = ?1")
         .bind(book_id)
         .fetch_optional(&mut **tx)
@@ -312,7 +315,7 @@ async fn insert_book_row(tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>, book_id: 
     Ok(())
 }
 
-async fn copy_content_table(
+pub(crate) async fn copy_content_table(
     tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
     table: &str,
 ) -> Result<(), String> {

@@ -1,4 +1,5 @@
 mod app_menu;
+mod book_archive;
 mod book_seeds;
 mod bundled_extensions;
 mod cloud_link;
@@ -35,6 +36,7 @@ mod secret_key;
 mod test_provider;
 mod window_commands;
 
+use book_archive::{export_book_archive, import_book_archive, inspect_book_archive};
 use book_seeds::apply_book_seeds;
 use bundled_extensions::list_bundled_extension_dirs;
 use cloud_link::link_cloud_account;
@@ -144,6 +146,9 @@ pub fn run() {
             read_selection_entities,
             update_selection_entities,
             ensure_import_db,
+            export_book_archive,
+            inspect_book_archive,
+            import_book_archive,
             read_model_projection,
             test_provider_config,
             get_provider_catalog,
