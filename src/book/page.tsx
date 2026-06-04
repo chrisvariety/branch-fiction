@@ -53,7 +53,6 @@ import { deleteBookById } from '@/lib/db/models/book/delete-book';
 import { getBookById } from '@/lib/db/models/book/get-book';
 import { updateBookById } from '@/lib/db/models/book/update-book';
 import type { Book } from '@/lib/db/types';
-import { importDbExists } from '@/lib/import-db';
 import { extensionAssetUrl, transformImageUrl } from '@/lib/media/transform-url';
 import { BookCoverFigure } from '@/main/book-cover';
 
@@ -122,16 +121,14 @@ export function BookPage() {
 
   const { data: canUpdateSelection = false } = useQuery({
     queryKey: ['import-updatable', id],
-    queryFn: async () => {
-      const bookImport = await getBookImportByBookId(id);
-      return bookImport ? importDbExists(bookImport.id) : false;
-    },
+    queryFn: async () => !!(await getBookImportByBookId(id)),
     enabled: !!id
   });
 
   const handleUpdateSelection = async () => {
     const bookImport = await getBookImportByBookId(id);
-    if (!bookImport || !(await importDbExists(bookImport.id))) return;
+    if (!bookImport) return;
+    await invoke('ensure_import_db', { bookImportId: bookImport.id, bookId: id });
     await updateBookImportById(bookImport.id, { status: 'awaiting_selection' });
     await broadcastInvalidate();
     void invoke('open_import_window', { bookImportId: bookImport.id, dark: isDark() });

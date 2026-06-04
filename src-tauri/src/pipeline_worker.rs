@@ -415,10 +415,43 @@ async fn run_worker_task(
     }
 
     app.state::<PipelineBridgeState>().revoke(&bridge_token);
-    if cancelled {
+    // Completed imports are fully synced to main; drop the per-import db (Update rebuilds it on demand).
+    if cancelled || book_import_completed(&app, &book_import_id).await {
         delete_import_db(&app, &book_import_id);
     }
     finalize_worker(&app, &book_import_id);
+}
+
+async fn book_import_completed(app: &AppHandle, book_import_id: &str) -> bool {
+    use sqlx::sqlite::SqliteConnectOptions;
+    use sqlx::{ConnectOptions, Connection};
+    use std::str::FromStr;
+    use std::time::Duration;
+
+    let Ok(main_path) = main_db_path(app) else {
+        return false;
+    };
+    let Ok(opts) = SqliteConnectOptions::from_str(&main_path.to_string_lossy()) else {
+        return false;
+    };
+    let Ok(mut conn) = opts
+        .create_if_missing(false)
+        .read_only(true)
+        .busy_timeout(Duration::from_secs(5))
+        .connect()
+        .await
+    else {
+        return false;
+    };
+    let status: Option<(String,)> =
+        sqlx::query_as("SELECT status FROM book_imports WHERE id = ?1")
+            .bind(book_import_id)
+            .fetch_optional(&mut conn)
+            .await
+            .ok()
+            .flatten();
+    let _ = conn.close().await;
+    matches!(status, Some((s,)) if s == "completed")
 }
 
 async fn read_provider_env_var_names(db_path: &str) -> Result<Vec<String>, String> {

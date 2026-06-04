@@ -10,7 +10,7 @@ use tauri::{AppHandle, Manager};
 use crate::db_path::main_db_path;
 use crate::migrations::MAIN_MIGRATIONS;
 
-/// Pipeline tables synced from the per-import DB to main at each checkpoint; order irrelevant (defer_foreign_keys).
+/// Pipeline tables synced between the per-import DB and main; order irrelevant (defer_foreign_keys).
 const SHARED_TABLES: &[&str] = &[
     "chapters",
     "chapter_paragraphs",
@@ -61,6 +61,108 @@ pub fn delete_import_db(app: &AppHandle, book_import_id: &str) {
     // Best-effort cleanup of WAL sidecars.
     let _ = std::fs::remove_file(path.with_extension("db-wal"));
     let _ = std::fs::remove_file(path.with_extension("db-shm"));
+}
+
+/// Rebuilds a missing per-import DB from main so selection updates work after the original is gone.
+#[tauri::command(rename_all = "camelCase")]
+pub async fn ensure_import_db(
+    app: AppHandle,
+    book_import_id: String,
+    book_id: String,
+) -> Result<(), String> {
+    if import_db_path(&app, &book_import_id)?.exists() {
+        return Ok(());
+    }
+    let running = {
+        let state = app.state::<crate::pipeline_worker::PipelineWorkerState>();
+        let map = state.children.lock().map_err(|e| e.to_string())?;
+        map.contains_key(&book_import_id)
+    };
+    if running {
+        return Err(format!(
+            "import {book_import_id} is running; cannot rebuild its db"
+        ));
+    }
+    prepare_import_db(&app, &book_import_id).await?;
+    sync_main_to_import(&app, &book_import_id, &book_id).await
+}
+
+pub async fn sync_main_to_import(
+    app: &AppHandle,
+    book_import_id: &str,
+    book_id: &str,
+) -> Result<(), String> {
+    let import_path = import_db_path(app, book_import_id)?;
+    let main_path = main_db_path(app)?;
+
+    // FKs off: the import db carries no books/users rows for shared tables to reference.
+    let mut conn = SqliteConnectOptions::from_str(&main_path.to_string_lossy())
+        .map_err(|e| format!("sqlite opts: {e}"))?
+        .create_if_missing(false)
+        .busy_timeout(Duration::from_secs(30))
+        .foreign_keys(false)
+        .connect()
+        .await
+        .map_err(|e| format!("open main db: {e}"))?;
+
+    let attach_sql = format!(
+        "ATTACH DATABASE '{}' AS import",
+        import_path.to_string_lossy().replace('\'', "''")
+    );
+    conn.execute(attach_sql.as_str())
+        .await
+        .map_err(|e| format!("attach import db: {e}"))?;
+
+    let result = run_reverse_sync(&mut conn, book_import_id, book_id).await;
+
+    let _ = conn.execute("DETACH DATABASE import").await;
+    let _ = conn.close().await;
+    result
+}
+
+async fn run_reverse_sync(
+    conn: &mut SqliteConnection,
+    book_import_id: &str,
+    book_id: &str,
+) -> Result<(), String> {
+    let mut tx = conn
+        .begin()
+        .await
+        .map_err(|e| format!("begin reverse sync: {e}"))?;
+
+    for table in SHARED_TABLES {
+        let cols = insertable_columns(&mut tx, table).await?;
+        if cols.is_empty() {
+            continue;
+        }
+        let col_list = cols
+            .iter()
+            .map(|c| format!("\"{c}\""))
+            .collect::<Vec<_>>()
+            .join(", ");
+        // Main holds every book, so scope each table to this import.
+        let (scope, bind) = match *table {
+            "pipeline_steps" => ("book_import_id = ?1", book_import_id),
+            "pipeline_step_usages" => (
+                "pipeline_step_id IN (SELECT id FROM pipeline_steps WHERE book_import_id = ?1)",
+                book_import_id,
+            ),
+            _ => ("book_id = ?1", book_id),
+        };
+        let sql = format!(
+            "INSERT OR REPLACE INTO import.\"{table}\" ({col_list}) \
+             SELECT {col_list} FROM \"{table}\" WHERE {scope}"
+        );
+        sqlx::query(&sql)
+            .bind(bind)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| format!("reverse sync {table}: {e}"))?;
+    }
+    tx.commit()
+        .await
+        .map_err(|e| format!("commit reverse sync: {e}"))?;
+    Ok(())
 }
 
 pub async fn sync_import_to_main(app: &AppHandle, book_import_id: &str) -> Result<(), String> {

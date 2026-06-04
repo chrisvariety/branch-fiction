@@ -62,8 +62,8 @@ use extension_signature::verify_extension_signature_cmd;
 use extension_slots::{auto_configure_cloud_extensions, set_extension_provider_model};
 use http_server::{HttpPortState, get_http_port};
 use import_db::{
-    read_model_projection, read_pipeline_step_usages_for_import, read_pipeline_steps_for_import,
-    read_selection_entities, update_selection_entities,
+    ensure_import_db, read_model_projection, read_pipeline_step_usages_for_import,
+    read_pipeline_steps_for_import, read_selection_entities, update_selection_entities,
 };
 use keepawake::{KeepawakeState, allow_sleep, prevent_sleep};
 use phone_share::{PhoneShareState, new_state as new_phone_share_state};
@@ -143,6 +143,7 @@ pub fn run() {
             read_pipeline_step_usages_for_import,
             read_selection_entities,
             update_selection_entities,
+            ensure_import_db,
             read_model_projection,
             test_provider_config,
             get_provider_catalog,
