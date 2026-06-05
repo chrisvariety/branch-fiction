@@ -129,7 +129,12 @@ export function BookPage() {
   const handleUpdateSelection = async () => {
     const bookImport = await getBookImportByBookId(id);
     if (!bookImport) return;
-    await invoke('ensure_import_db', { bookImportId: bookImport.id, bookId: id });
+    try {
+      await invoke('ensure_import_db', { bookImportId: bookImport.id, bookId: id });
+    } catch (e) {
+      await message(String(e), { title: 'Update Failed', kind: 'error' });
+      return;
+    }
     await updateBookImportById(bookImport.id, { status: 'awaiting_selection' });
     await broadcastInvalidate();
     void invoke('open_import_window', { bookImportId: bookImport.id, dark: isDark() });

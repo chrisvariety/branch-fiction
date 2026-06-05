@@ -84,7 +84,12 @@ pub async fn ensure_import_db(
         ));
     }
     prepare_import_db(&app, &book_import_id).await?;
-    sync_main_to_import(&app, &book_import_id, &book_id).await
+    let result = sync_main_to_import(&app, &book_import_id, &book_id).await;
+    // Don't leave a half-built db behind; its existence makes future calls no-op.
+    if result.is_err() {
+        delete_import_db(&app, &book_import_id);
+    }
+    result
 }
 
 pub async fn sync_main_to_import(
