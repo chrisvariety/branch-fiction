@@ -466,8 +466,8 @@ function RecoveryPhrasePanel({ phrase, onDone }: { phrase: string; onDone: () =>
   return (
     <div className="flex max-w-md flex-col gap-3 border border-border bg-muted/40 p-4">
       <p className="text-xs leading-relaxed font-medium">
-        Your recovery key. Write it down and keep it safe — it cannot be recovered if
-        lost, and your backups cannot be read without it.
+        This is your recovery key. Write it down and keep it safe, as it cannot be
+        recovered if lost, and your backups cannot be read without it.
       </p>
       <ol className="grid grid-cols-3 gap-x-4 gap-y-1.5">
         {words.map((word, i) => (
