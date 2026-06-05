@@ -103,7 +103,11 @@ type ArchiveInfo = {
 };
 
 // Exported book files skip the pipeline entirely; the book opens ready to use.
+let importInFlight = false;
+
 async function importBookArchive(path: string): Promise<void> {
+  if (importInFlight) return;
+  importInFlight = true;
   try {
     const info = await invoke<ArchiveInfo>('inspect_book_archive', { path });
     if (info.exists) {
@@ -124,6 +128,8 @@ async function importBookArchive(path: string): Promise<void> {
     await getCurrentWindow().close();
   } catch (e) {
     await message(String(e), { title: 'Import Failed', kind: 'error' });
+  } finally {
+    importInFlight = false;
   }
 }
 
@@ -402,9 +408,11 @@ function FileUpload() {
   }, []);
 
   useEffect(() => {
+    // Cleanup can run before the listener resolves (StrictMode); don't leak it.
+    let cancelled = false;
     let unlisten: (() => void) | undefined;
     void (async () => {
-      unlisten = await getCurrentWebview().onDragDropEvent((event) => {
+      const stop = await getCurrentWebview().onDragDropEvent((event) => {
         const payload = event.payload;
         if (payload.type === 'enter' || payload.type === 'over') {
           setIsDragging(true);
@@ -416,8 +424,11 @@ function FileUpload() {
           if (path) handleDroppedPath(path);
         }
       });
+      if (cancelled) stop();
+      else unlisten = stop;
     })();
     return () => {
+      cancelled = true;
       unlisten?.();
     };
   }, [handleDroppedPath]);

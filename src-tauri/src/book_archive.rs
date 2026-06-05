@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::io::Read;
 use std::path::{Component, Path, PathBuf};
 use std::str::FromStr;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
@@ -73,7 +74,13 @@ async fn attach(conn: &mut SqliteConnection, path: &Path, name: &str) -> Result<
 }
 
 fn temp_path(label: &str) -> PathBuf {
-    std::env::temp_dir().join(format!("branch-fiction-{label}-{}.db", std::process::id()))
+    // Unique per call: concurrent inspect/import must not delete each other's files.
+    static SEQ: AtomicU64 = AtomicU64::new(0);
+    let seq = SEQ.fetch_add(1, Ordering::Relaxed);
+    std::env::temp_dir().join(format!(
+        "branch-fiction-{label}-{}-{seq}.db",
+        std::process::id()
+    ))
 }
 
 #[tauri::command(rename_all = "camelCase")]
@@ -600,6 +607,10 @@ pub async fn import_book_archive(
     path: String,
     replace: bool,
 ) -> Result<ImportedBook, String> {
+    // Concurrent imports contend on the main db write lock; run them one at a time.
+    static IMPORT_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+    let _guard = IMPORT_LOCK.lock().await;
+
     let (db_file, is_temp) = materialize_archive(Path::new(&path))?;
     let result = import_archive_db(&app, &db_file, replace).await;
     if is_temp {
@@ -684,7 +695,11 @@ async fn import_archive_inner(
         .map_err(|e| format!("app_data_dir: {e}"))?
         .join("storage");
 
-    let mut tx = conn.begin().await.map_err(|e| format!("begin: {e}"))?;
+    // IMMEDIATE takes the write lock up front so busy_timeout applies to it.
+    let mut tx = conn
+        .begin_with("BEGIN IMMEDIATE")
+        .await
+        .map_err(|e| format!("begin: {e}"))?;
     tx.execute("PRAGMA defer_foreign_keys = ON")
         .await
         .map_err(|e| format!("defer fks: {e}"))?;
