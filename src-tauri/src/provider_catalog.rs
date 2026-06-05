@@ -215,6 +215,19 @@ pub fn provider_catalog() -> Vec<CatalogEntry> {
             requires_base_url: false,
         },
         CatalogEntry {
+            provider_type: "nvidia",
+            name: "NVIDIA NIM",
+            base_url: "https://integrate.api.nvidia.com/v1",
+            auth: AuthShape::Bearer {
+                header_prefix: None,
+            },
+            api_key_placeholder: "nvapi-...",
+            env_var_placeholder: "NVIDIA_API_KEY",
+            pi_provider: Some("nvidia"),
+            is_compatible_variant: false,
+            requires_base_url: false,
+        },
+        CatalogEntry {
             provider_type: "together",
             name: "Together AI",
             base_url: "https://api.together.ai/v1",

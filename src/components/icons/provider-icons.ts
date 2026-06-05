@@ -18,6 +18,7 @@ import { IconBrandHuggingFace } from './huggingface';
 import { IconBrandMiniMax } from './minimax';
 import { IconBrandMistral } from './mistral';
 import { IconBrandMoonshot } from './moonshot';
+import { IconBrandNvidia } from './nvidia';
 import { IconBrandOllama } from './ollama';
 import { IconBrandOpenRouter } from './openrouter';
 import { IconBrandTogetherAI } from './together';
@@ -41,6 +42,7 @@ export const PROVIDER_ICONS: Record<ProviderTypeKey, ProviderIcon> = {
   minimax: IconBrandMiniMax,
   mistral: IconBrandMistral,
   moonshotai: IconBrandMoonshot,
+  nvidia: IconBrandNvidia,
   xiaomi: IconBrandXiaomi,
   cerebras: IconBrandCerebras,
   groq: IconBrandGroq,

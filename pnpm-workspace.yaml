@@ -4,8 +4,8 @@ packages:
   - "."
 catalog:
   "@base-ui/react": ^1.5.0
-  "@earendil-works/pi-agent-core": ^0.78.0
-  "@earendil-works/pi-ai": ^0.78.0
+  "@earendil-works/pi-agent-core": ^0.78.1
+  "@earendil-works/pi-ai": ^0.78.1
   "@huggingface/jinja": ^0.5.9
   "@stablelib/base64": ^2.0.1
   "@tabler/icons-react": ^3.44.0
@@ -62,13 +62,5 @@ allowBuilds:
 nodeVersion: 25.9.0
 engineStrict: true
 minimumReleaseAgeExclude:
-  - '@earendil-works/pi-agent-core@0.75.3'
-  - '@earendil-works/pi-ai@0.75.3'
-  - '@google/genai@2.4.0'
-  - '@hono/node-server@2.0.3'
-  - '@types/node@25.9.0'
-  - framer-motion@12.39.0
-  - motion-dom@12.39.0
-  - motion-utils@12.39.0
-  - motion@12.39.0
-  - tmp@0.2.6
+  - '@earendil-works/pi-agent-core@0.78.1'
+  - '@earendil-works/pi-ai@0.78.1'

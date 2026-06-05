@@ -16,6 +16,11 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger
+} from '@/components/ui/collapsible';
+import {
   Combobox,
   ComboboxCollection,
   ComboboxContent,
@@ -24,11 +29,6 @@ import {
   ComboboxItem,
   ComboboxList
 } from '@/components/ui/combobox';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger
-} from '@/components/ui/collapsible';
 import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
@@ -745,6 +745,7 @@ export function AdvancedProviderForm({
                   className="font-mono"
                   autoComplete="off"
                   spellCheck={false}
+                  autoFocus={useCustomModel}
                 />
                 {modelOptions.length > 0 && (
                   <button
