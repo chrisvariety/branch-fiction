@@ -54,6 +54,15 @@ export type Book = Selectable<BooksTable>;
 export type NewBook = Insertable<BooksTable>;
 export type BookUpdate = Updateable<BooksTable>;
 
+export interface BookSeedsTable {
+  name: string;
+  bookId: string;
+  schemaVersion: number;
+  appliedAt: Generated<string>;
+}
+
+export type BookSeed = Selectable<BookSeedsTable>;
+
 export interface ChaptersTable {
   id: string;
   idx: number;
@@ -511,6 +520,7 @@ export type BookEntityExtractionCheckpointUpdate =
 export interface Database {
   users: UsersTable;
   books: BooksTable;
+  bookSeeds: BookSeedsTable;
   chapters: ChaptersTable;
   chapterParagraphs: ChapterParagraphsTable;
   chapterScenes: ChapterScenesTable;

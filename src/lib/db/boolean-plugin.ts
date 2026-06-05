@@ -16,6 +16,7 @@ const BOOLEAN_COLUMNS = new Set([
   'notificationsEnabled', // bookImports
   'autoConfirmProjection', // bookImports
   'isMajority', // bookStyles
+  'isSeed', // books query (derived from book_seeds)
   'enabled' // extensions
 ]);
 

@@ -17,6 +17,7 @@ import {
 import { activeImportsQueryOptions } from '@/hooks/queries/active-imports';
 import { booksQueryOptions } from '@/hooks/queries/books';
 import { BookCover } from '@/main/book-cover';
+import { SeedWelcome } from '@/main/seed-welcome';
 
 type Layout = 'grid' | 'list';
 type Sort = 'recent' | 'title';
@@ -59,6 +60,9 @@ export function BooksPage() {
         : books,
     [books, sort]
   );
+
+  const onlySeedBooks =
+    books.length > 0 && books.every((book) => book.isSeed) && activeImports.length === 0;
 
   const showingImports = view === 'imports' && activeImports.length > 0;
   const anyImportRunning = activeImports.some(
@@ -161,6 +165,11 @@ export function BooksPage() {
             <div className="flex flex-1 items-center justify-center">
               <p className="text-muted-foreground">No books yet.</p>
             </div>
+          ) : onlySeedBooks ? (
+            <SeedWelcome
+              books={sortedBooks}
+              onOpenBook={(id) => void openBookWindow(id)}
+            />
           ) : layout === 'list' ? (
             <div className="flex flex-col divide-y divide-border/60">
               {sortedBooks.map((book) => (

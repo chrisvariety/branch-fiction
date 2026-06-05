@@ -8,7 +8,17 @@ export async function getBooks() {
 export async function getCompletedBooks() {
   return getDb()
     .selectFrom('books')
-    .selectAll()
+    .selectAll('books')
+    .select((eb) =>
+      eb
+        .exists(
+          eb
+            .selectFrom('bookSeeds')
+            .select('bookSeeds.bookId')
+            .whereRef('bookSeeds.bookId', '=', 'books.id')
+        )
+        .as('isSeed')
+    )
     .where('status', '=', 'completed')
     .orderBy('updatedAt', 'desc')
     .execute();
