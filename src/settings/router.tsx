@@ -1,4 +1,10 @@
-import { IconCloud, IconKey, IconPuzzle, IconSettings } from '@tabler/icons-react';
+import {
+  IconCloud,
+  IconDatabase,
+  IconKey,
+  IconPuzzle,
+  IconSettings
+} from '@tabler/icons-react';
 import {
   createRouter,
   createRootRoute,
@@ -13,6 +19,7 @@ import {
 import { useWindowTitle } from '@/hooks/use-window-title';
 import { cn } from '@/lib/utils';
 
+import { BackupPage } from './backup';
 import { CloudPage } from './cloud';
 import { ExtensionsPage } from './extensions';
 import { GeneralPage } from './general';
@@ -22,7 +29,8 @@ const tabs = [
   { id: 'general', label: 'General', path: '/general', icon: IconSettings },
   { id: 'providers', label: 'Providers', path: '/providers', icon: IconKey },
   { id: 'extensions', label: 'Extensions', path: '/extensions', icon: IconPuzzle },
-  { id: 'cloud', label: 'Cloud', path: '/cloud', icon: IconCloud }
+  { id: 'cloud', label: 'Cloud', path: '/cloud', icon: IconCloud },
+  { id: 'backup', label: 'Backup', path: '/backup', icon: IconDatabase }
 ] as const;
 
 function SettingsLayout() {
@@ -110,12 +118,19 @@ const cloudRoute = createRoute({
   component: CloudPage
 });
 
+const backupRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/backup',
+  component: BackupPage
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   generalRoute,
   providersRoute,
   extensionsRoute,
-  cloudRoute
+  cloudRoute,
+  backupRoute
 ]);
 
 export const settingsRouter = createRouter({

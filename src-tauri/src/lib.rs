@@ -1,3 +1,4 @@
+mod app_backup;
 mod app_menu;
 mod book_archive;
 mod book_seeds;
@@ -36,6 +37,7 @@ mod secret_key;
 mod test_provider;
 mod window_commands;
 
+use app_backup::{create_app_backup, restore_app_backup};
 use book_archive::{export_book_archive, import_book_archive, inspect_book_archive};
 use book_seeds::apply_book_seeds;
 use bundled_extensions::list_bundled_extension_dirs;
@@ -116,6 +118,7 @@ pub fn run() {
         .manage(ExtensionSdkState::default())
         .manage(TestProviderState::default())
         .setup(|app| {
+            app_backup::apply_pending_restore(app.handle());
             install_default_store().expect("failed to initialize OS keychain store");
             let port = http_server::spawn(app.handle())
                 .expect("failed to start embedded http server");
@@ -149,6 +152,8 @@ pub fn run() {
             export_book_archive,
             inspect_book_archive,
             import_book_archive,
+            create_app_backup,
+            restore_app_backup,
             read_model_projection,
             test_provider_config,
             get_provider_catalog,
