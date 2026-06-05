@@ -30,7 +30,7 @@ fn data_dir(app: &AppHandle) -> Result<PathBuf, String> {
         .map_err(|e| format!("app_data_dir: {e}"))
 }
 
-fn ensure_no_imports_running(app: &AppHandle) -> Result<(), String> {
+pub(crate) fn ensure_no_imports_running(app: &AppHandle) -> Result<(), String> {
     let state = app.state::<PipelineWorkerState>();
     let running = state.children.lock().map(|m| m.len()).unwrap_or(0);
     if running > 0 {
@@ -63,12 +63,17 @@ async fn vacuum_into(src_db: &Path, dest: &Path) -> Result<(), String> {
 #[tauri::command(rename_all = "camelCase")]
 pub async fn create_app_backup(app: AppHandle, dest_path: String) -> Result<(), String> {
     ensure_no_imports_running(&app)?;
-    let data = data_dir(&app)?;
+    build_backup_zip(&app, Path::new(&dest_path)).await
+}
+
+/// Builds a full backup zip at dest; caller is responsible for the import-running check.
+pub(crate) async fn build_backup_zip(app: &AppHandle, dest: &Path) -> Result<(), String> {
+    let data = data_dir(app)?;
     let staging = std::env::temp_dir().join(format!("branch-fiction-backup-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&staging);
     std::fs::create_dir_all(&staging).map_err(|e| format!("mkdir staging: {e}"))?;
 
-    let result = build_backup(&data, &staging, Path::new(&dest_path)).await;
+    let result = build_backup(&data, &staging, dest).await;
     let _ = std::fs::remove_dir_all(&staging);
     result
 }
@@ -240,9 +245,18 @@ fn add_dir_to_zip(
 #[tauri::command(rename_all = "camelCase")]
 pub async fn restore_app_backup(app: AppHandle, path: String) -> Result<bool, String> {
     ensure_no_imports_running(&app)?;
-    let data = data_dir(&app)?;
+    stage_restore_from_zip(&app, Path::new(&path))?;
+    if tauri::is_dev() {
+        return Ok(false);
+    }
+    app.restart();
+}
 
-    let file = File::open(&path).map_err(|e| format!("open backup: {e}"))?;
+/// Validates and extracts a backup zip into restore-staging, applied on next launch.
+pub(crate) fn stage_restore_from_zip(app: &AppHandle, path: &Path) -> Result<(), String> {
+    let data = data_dir(app)?;
+
+    let file = File::open(path).map_err(|e| format!("open backup: {e}"))?;
     let mut archive =
         zip::ZipArchive::new(file).map_err(|_| "not a Branch Fiction backup file".to_string())?;
     validate_backup(&mut archive)?;
@@ -258,11 +272,7 @@ pub async fn restore_app_backup(app: AppHandle, path: String) -> Result<bool, St
         return Err(e);
     }
     std::fs::rename(&staging_tmp, &staging).map_err(|e| format!("commit staging: {e}"))?;
-
-    if tauri::is_dev() {
-        return Ok(false);
-    }
-    app.restart();
+    Ok(())
 }
 
 fn validate_backup(archive: &mut zip::ZipArchive<File>) -> Result<(), String> {

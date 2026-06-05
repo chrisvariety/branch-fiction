@@ -1,8 +1,10 @@
 mod app_backup;
 mod app_menu;
+mod backup_crypto;
 mod book_archive;
 mod book_seeds;
 mod bundled_extensions;
+mod cloud_backup;
 mod cloud_link;
 mod cloud_state;
 mod db_path;
@@ -41,6 +43,10 @@ use app_backup::{create_app_backup, restore_app_backup};
 use book_archive::{export_book_archive, import_book_archive, inspect_book_archive};
 use book_seeds::apply_book_seeds;
 use bundled_extensions::list_bundled_extension_dirs;
+use cloud_backup::{
+    create_backup_recovery_key, create_cloud_backup, delete_cloud_backup, get_backup_recovery_key,
+    list_cloud_backups, restore_cloud_backup, set_backup_recovery_key,
+};
 use cloud_link::link_cloud_account;
 use cloud_state::CloudState;
 use epub_reader::read_epub_entries;
@@ -154,6 +160,13 @@ pub fn run() {
             import_book_archive,
             create_app_backup,
             restore_app_backup,
+            get_backup_recovery_key,
+            create_backup_recovery_key,
+            set_backup_recovery_key,
+            create_cloud_backup,
+            list_cloud_backups,
+            restore_cloud_backup,
+            delete_cloud_backup,
             read_model_projection,
             test_provider_config,
             get_provider_catalog,

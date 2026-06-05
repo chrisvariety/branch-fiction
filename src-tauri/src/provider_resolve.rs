@@ -117,7 +117,7 @@ async fn read_text_model_row(
     .ok_or_else(|| format!("no provider model {provider_model_id:?}"))
 }
 
-async fn cloud_external_id(conn: &mut SqliteConnection) -> Result<String, String> {
+pub(crate) async fn cloud_external_id(conn: &mut SqliteConnection) -> Result<String, String> {
     sqlx::query_as::<_, (Option<String>,)>("SELECT external_id FROM users WHERE id = ?1")
         .bind(DEFAULT_USER_ID)
         .fetch_optional(conn)
