@@ -23,6 +23,10 @@
       "types": "./dist/pi-handle.d.ts",
       "default": "./dist/pi-handle.js"
     },
+    "./models-catalog": {
+      "types": "./dist/models-catalog.d.ts",
+      "default": "./dist/models-catalog.js"
+    },
     "./sdk-source": {
       "types": "./dist/sdk-source.d.ts",
       "default": "./dist/sdk-source.js"

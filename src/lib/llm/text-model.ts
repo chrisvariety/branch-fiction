@@ -1,4 +1,4 @@
-import { getModels } from '@earendil-works/pi-ai';
+import { getCatalogModels } from '@branch-fiction/extension-sdk/models-catalog';
 
 import { getProviderEntry } from './providers';
 
@@ -9,7 +9,7 @@ type TextProviderLike = { type: string; createdAt: string; models: SlotModel[] }
 function isTextModel(providerType: string, modelKey: string): boolean {
   const piProvider = getProviderEntry(providerType)?.piProvider ?? null;
   if (!piProvider) return true;
-  const known = getModels(piProvider);
+  const known = getCatalogModels(piProvider);
   if (known.length === 0) return true;
   return known.some((m) => m.id === modelKey);
 }

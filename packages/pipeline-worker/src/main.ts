@@ -1,4 +1,5 @@
 import './lib/env-soft';
+import { applyModelsCatalog } from '@branch-fiction/extension-sdk/models-catalog';
 import PQueue from 'p-queue';
 
 import { configureBridge } from './lib/bridge';
@@ -14,21 +15,36 @@ const STEP_CONCURRENCY = 10;
 
 const queue = new PQueue({ concurrency: STEP_CONCURRENCY });
 
+async function loadModelsCatalog(path: string | undefined): Promise<void> {
+  if (!path) return;
+  try {
+    applyModelsCatalog(JSON.parse(await Deno.readTextFile(path)));
+    console.error(`[pipeline-worker] applied models catalog from ${path}`);
+  } catch (e) {
+    if (!(e instanceof Deno.errors.NotFound)) {
+      console.error(`[pipeline-worker] failed to load models catalog: ${e}`);
+    }
+  }
+}
+
 let initialized = false;
 
 const api = {
   async init({
     dbPath,
+    modelsCatalogPath,
     bridgePort,
     bridgeToken
   }: {
     dbPath: string;
+    modelsCatalogPath?: string;
     bridgePort: number;
     bridgeToken: string;
   }) {
     if (initialized) return { ok: true } as const;
     configureBridge(bridgePort, bridgeToken);
     initDb(dbPath);
+    await loadModelsCatalog(modelsCatalogPath);
     initialized = true;
     console.error(
       `[pipeline-worker] initialized dbPath=${dbPath} bridgePort=${bridgePort}`

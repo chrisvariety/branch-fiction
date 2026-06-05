@@ -1,11 +1,11 @@
 import {
   type Api,
-  getModel,
-  getProviders,
   type KnownProvider,
   type Model,
   type ThinkingLevel
 } from '@earendil-works/pi-ai';
+
+import { getCatalogModel, getCatalogProviders } from './models-catalog';
 
 export type PiModelHandle = {
   model: Model<Api>;
@@ -26,12 +26,13 @@ const PI_PROVIDER_ALIASES: Record<string, KnownProvider> = {
   vercel_ai_gateway: 'vercel-ai-gateway'
 };
 
-const PI_PROVIDERS = new Set<string>(getProviders());
-
+// Resolved per call: the model catalog overlay can add providers at runtime.
 export function resolvePiProvider(providerType: string): KnownProvider | undefined {
   const alias = PI_PROVIDER_ALIASES[providerType];
   if (alias) return alias;
-  return PI_PROVIDERS.has(providerType) ? (providerType as KnownProvider) : undefined;
+  return getCatalogProviders().includes(providerType)
+    ? (providerType as KnownProvider)
+    : undefined;
 }
 
 // xai models run via openai-responses instead of pi-ai's standard, completions API:
@@ -59,8 +60,12 @@ export function buildPiModel({
   const reasoningOpt = reasoning ?? undefined;
   const piProvider = resolvePiProvider(providerType);
   if (piProvider) {
-    // cast here because modelId is user-configured at runtime
-    const base = getModel(piProvider, modelId as never) as Model<Api>;
+    const base = getCatalogModel(piProvider, modelId);
+    if (!base) {
+      throw new Error(
+        `Unknown model "${modelId}" for provider "${piProvider}" — refresh the model catalog or pick another model`
+      );
+    }
     let model: Model<Api> = baseUrl ? { ...base, baseUrl } : base;
     if (providerType === 'xai' && XAI_OPENAI_RESPONSES_MODEL_IDS.has(modelId)) {
       model = {

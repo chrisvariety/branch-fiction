@@ -148,6 +148,12 @@ async fn spawn_worker(
         .to_string_lossy()
         .to_string();
     let storage_dir = app_data_dir.join("storage").to_string_lossy().to_string();
+    // covered by the recursive storage_dir read grant
+    let models_catalog_path = app_data_dir
+        .join("storage")
+        .join("models-catalog.json")
+        .to_string_lossy()
+        .to_string();
 
     let args = vec![
         "run".to_string(),
@@ -196,6 +202,7 @@ async fn spawn_worker(
             import_id,
             run_request,
             db_path,
+            models_catalog_path,
             bridge_token_for_task,
             bridge_port,
             child,
@@ -266,6 +273,7 @@ async fn run_worker_task(
     book_import_id: String,
     run_request: Value,
     db_path: String,
+    models_catalog_path: String,
     bridge_token: String,
     bridge_port: u16,
     mut child: CommandChild,
@@ -280,6 +288,7 @@ async fn run_worker_task(
         "method": "init",
         "params": [{
             "dbPath": db_path,
+            "modelsCatalogPath": models_catalog_path,
             "bridgePort": bridge_port,
             "bridgeToken": bridge_token,
         }]

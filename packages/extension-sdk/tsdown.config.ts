@@ -9,6 +9,7 @@ export default defineConfig({
     index: resolve(PKG_ROOT, 'src/index.ts'),
     manifest: resolve(PKG_ROOT, 'src/manifest.ts'),
     'pi-handle': resolve(PKG_ROOT, 'src/pi-handle.ts'),
+    'models-catalog': resolve(PKG_ROOT, 'src/models-catalog.ts'),
     'sdk-source': resolve(PKG_ROOT, 'src/sdk-source.ts'),
     dev: resolve(PKG_ROOT, 'src/dev/index.ts'),
     'dev-cli': resolve(PKG_ROOT, 'src/dev/cli.ts'),

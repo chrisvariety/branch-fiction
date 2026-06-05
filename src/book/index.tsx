@@ -9,6 +9,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { registerExtensionSdkSource } from '@/extensions/sdk-source';
 import { wireCrossWindowInvalidate } from '@/lib/cross-window-invalidate';
+import { loadSavedModelsCatalog } from '@/lib/llm/models-catalog';
 import { loadProviderCatalog } from '@/lib/llm/providers';
 import { bootstrapHttpPort } from '@/lib/media/transform-url';
 
@@ -18,6 +19,7 @@ import '../../index.css';
 
 await bootstrapHttpPort();
 await loadProviderCatalog();
+await loadSavedModelsCatalog();
 await registerExtensionSdkSource();
 
 const queryClient = new QueryClient({

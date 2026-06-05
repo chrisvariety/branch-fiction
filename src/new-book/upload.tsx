@@ -1,4 +1,4 @@
-import { getModel } from '@earendil-works/pi-ai';
+import { getCatalogModel } from '@branch-fiction/extension-sdk/models-catalog';
 import { decode as base64Decode, encode as base64Encode } from '@stablelib/base64';
 import {
   IconAlertTriangle,
@@ -344,7 +344,7 @@ function FileUpload() {
     if (!model) return null;
     const piProvider = getProviderEntry(selectedProvider.type)?.piProvider ?? null;
     const modelData = piProvider
-      ? (getModel(piProvider, model.modelKey as never) ?? null)
+      ? (getCatalogModel(piProvider, model.modelKey) ?? null)
       : null;
     return {
       provider: selectedProvider,

@@ -1,5 +1,5 @@
-import { getModels } from '@earendil-works/pi-ai';
-import { IconChevronLeft, IconPencil, IconServer } from '@tabler/icons-react';
+import { getCatalogModels } from '@branch-fiction/extension-sdk/models-catalog';
+import { IconChevronLeft, IconPencil, IconRefresh } from '@tabler/icons-react';
 import { message } from '@tauri-apps/plugin-dialog';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { Fragment, useMemo, useRef, useState } from 'react';
@@ -8,6 +8,15 @@ import { getProviderIcon } from '@/components/icons/provider-icons';
 import { providerFormProps } from '@/components/provider/form-props';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Combobox,
+  ComboboxCollection,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList
+} from '@/components/ui/combobox';
 import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
@@ -37,6 +46,7 @@ import {
   type StagedExtensionInstall
 } from '@/extensions/manifest';
 import { useCommitExtensionInstall } from '@/hooks/queries/extensions';
+import { useModelsCatalog } from '@/hooks/queries/models-catalog';
 import { CLOUD_PROVIDER_TYPE } from '@/lib/cloud';
 import {
   getProviderCatalog,
@@ -118,7 +128,7 @@ function isCloudBound(o: ResolvedOption): boolean {
 function lookupModelName(providerType: string, modelKey: string): string {
   const piProvider = getProviderEntry(providerType)?.piProvider;
   if (!piProvider) return modelKey;
-  const match = getModels(piProvider).find((m) => m.id === modelKey);
+  const match = getCatalogModels(piProvider).find((m) => m.id === modelKey);
   return match?.name ?? modelKey;
 }
 
@@ -241,7 +251,7 @@ async function createTextProviderForSlots(
   if (!test.ok) throw new Error(`${entry.name}: ${test.error}`);
 
   const displayName = entry.piProvider
-    ? (getModels(entry.piProvider).find((m) => m.id === modelKey)?.name ?? null)
+    ? (getCatalogModels(entry.piProvider).find((m) => m.id === modelKey)?.name ?? null)
     : null;
   const { providerId } = await providerFormProps.createProviderWithModel({
     provider: {
@@ -1496,26 +1506,23 @@ function ExpandableDescription({ children }: { children: string }) {
 function ModelPicker({
   providerType,
   value,
-  onChange,
-  onCommit
+  onChange
 }: {
   providerType: string;
   value: string;
   onChange: (modelKey: string) => void;
-  onCommit?: (modelKey: string) => void;
 }) {
   const piProvider = getProviderEntry(providerType)?.piProvider ?? null;
-  const modelOptions = useMemo(() => {
+  const modelsCatalog = useModelsCatalog();
+  const modelItems = useMemo(() => {
     if (!piProvider) return [];
-    return getModels(piProvider)
-      .map((m) => ({ id: m.id, name: m.name }))
+    return getCatalogModels(piProvider)
+      .map((m) => ({ value: m.id, label: m.name }))
       .reverse();
-  }, [piProvider]);
+  }, [piProvider, modelsCatalog.version]);
 
-  const isInCatalog = modelOptions.some((m) => m.id === value);
-  const [useCustom, setUseCustom] = useState(!isInCatalog && value !== '');
-
-  if (modelOptions.length === 0 || useCustom) {
+  // Custom/compatible providers have no pi catalog; the model is free-form.
+  if (modelItems.length === 0) {
     return (
       <div className="flex flex-col gap-1.5">
         <FieldLabel className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
@@ -1524,13 +1531,6 @@ function ModelPicker({
         <Input
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          onBlur={() => onCommit?.(value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              onCommit?.(value);
-            }
-          }}
           placeholder="model-id"
           className="font-mono"
           autoComplete="off"
@@ -1542,39 +1542,55 @@ function ModelPicker({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <FieldLabel className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-        Model
+      <FieldLabel className="w-full text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+        <span className="flex flex-1 items-center justify-between gap-2">
+          <span>Model</span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            onClick={() => modelsCatalog.onRefresh()}
+            disabled={modelsCatalog.isFetching}
+            title="Refresh models"
+          >
+            <IconRefresh
+              className={`size-3 ${modelsCatalog.isFetching ? 'animate-spin' : ''}`}
+            />
+          </Button>
+        </span>
       </FieldLabel>
-      <Select
-        value={value}
-        onValueChange={(v) => {
-          if (v === '__custom__') {
-            setUseCustom(true);
-            onChange('');
-            return;
-          }
-          const next = v ?? '';
-          onChange(next);
-          onCommit?.(next);
+      <Combobox
+        items={modelItems}
+        value={modelItems.find((i) => i.value === value) ?? null}
+        onValueChange={(item) => {
+          onChange(item?.value ?? '');
+        }}
+        filter={(item, query) => {
+          const q = query.trim().toLowerCase();
+          return (
+            item.label.toLowerCase().includes(q) || item.value.toLowerCase().includes(q)
+          );
         }}
       >
-        <SelectTrigger size="sm">
-          <SelectValue placeholder="Choose a model" />
-        </SelectTrigger>
-        <SelectContent>
-          {modelOptions.map((m) => (
-            <SelectItem key={m.id} value={m.id}>
-              {m.name}
-            </SelectItem>
-          ))}
-          <SelectItem value="__custom__">
-            <span className="flex items-center gap-1.5">
-              <IconServer className="size-3.5" />
-              Custom Model
-            </span>
-          </SelectItem>
-        </SelectContent>
-      </Select>
+        <ComboboxInput
+          placeholder="Choose a model"
+          className="w-full"
+          autoComplete="off"
+          spellCheck={false}
+        />
+        <ComboboxContent>
+          <ComboboxEmpty>No models found.</ComboboxEmpty>
+          <ComboboxList>
+            <ComboboxCollection>
+              {(item: { value: string; label: string }) => (
+                <ComboboxItem key={item.value} value={item}>
+                  {item.label}
+                </ComboboxItem>
+              )}
+            </ComboboxCollection>
+          </ComboboxList>
+        </ComboboxContent>
+      </Combobox>
     </div>
   );
 }

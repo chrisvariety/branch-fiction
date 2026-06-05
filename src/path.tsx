@@ -13,6 +13,7 @@ import ReactDOM from 'react-dom/client';
 import { ThemeProvider } from './components/theme-provider';
 import { registerExtensionSdkSource } from './extensions/sdk-source';
 import { wireCrossWindowInvalidate } from './lib/cross-window-invalidate';
+import { loadSavedModelsCatalog } from './lib/llm/models-catalog';
 import { loadProviderCatalog } from './lib/llm/providers';
 import { bootstrapHttpPort } from './lib/media/transform-url';
 
@@ -21,6 +22,7 @@ import { routeTree } from './path-routes/root';
 
 await bootstrapHttpPort();
 await loadProviderCatalog();
+await loadSavedModelsCatalog();
 // Register the iframe SDK source before any iframe requests `/extension-sdk.js`.
 await registerExtensionSdkSource();
 

@@ -1,6 +1,8 @@
 // Must run before any other import so extension-worker module init can probe
 // env vars without tripping Deno's NotCapable.
 import '@/env-soft';
+import { applyModelsCatalog } from '@branch-fiction/extension-sdk/models-catalog';
+
 import { type ProviderHandle, setupHost } from '@/host';
 import { setDataRoot } from '@/host-fs';
 import { serveRPC } from '@/rpc-worker';
@@ -15,12 +17,26 @@ type InitArgs = {
   config: Record<string, unknown>;
   dbPath: string;
   dataDir: string;
+  modelsCatalogPath?: string | null;
   extensionWorkerPath: string;
 };
 
+// overlay lives on globalThis, so this also covers the extension worker bundle
+async function loadModelsCatalog(path: string | null | undefined): Promise<void> {
+  if (!path) return;
+  try {
+    applyModelsCatalog(JSON.parse(await Deno.readTextFile(path)));
+  } catch (e) {
+    if (!(e instanceof Deno.errors.NotFound)) {
+      console.error(`[extension-host] failed to load models catalog: ${e}`);
+    }
+  }
+}
+
 const api = {
-  init(args: InitArgs) {
+  async init(args: InitArgs) {
     if (initialized) return { ok: true } as const;
+    await loadModelsCatalog(args.modelsCatalogPath);
     setDataRoot(args.dataDir);
     setupHost({
       extensionId: args.extensionId,

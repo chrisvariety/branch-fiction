@@ -7,6 +7,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { syncBundledExtensions } from '@/extensions/bundled';
 import { applyBookSeeds } from '@/lib/book-seeds';
 import { wireCrossWindowInvalidate } from '@/lib/cross-window-invalidate';
+import { loadSavedModelsCatalog } from '@/lib/llm/models-catalog';
 import { loadProviderCatalog } from '@/lib/llm/providers';
 import { bootstrapHttpPort } from '@/lib/media/transform-url';
 
@@ -15,6 +16,7 @@ import { BooksPage } from './books';
 
 await bootstrapHttpPort();
 await loadProviderCatalog();
+await loadSavedModelsCatalog();
 await syncBundledExtensions();
 await applyBookSeeds();
 

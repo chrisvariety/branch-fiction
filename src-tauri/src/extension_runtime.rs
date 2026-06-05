@@ -284,7 +284,14 @@ pub async fn run_extension_task_internal(
         }
     };
 
-    let allow_read = format!(
+    let models_catalog_path = app
+        .path()
+        .app_data_dir()
+        .ok()
+        .map(|p| p.join("storage").join("models-catalog.json"))
+        .map(|p| p.to_string_lossy().to_string());
+
+    let mut allow_read = format!(
         "{},{},{}",
         extension_data_dir.to_string_lossy(),
         req.extension_install_dir,
@@ -293,6 +300,10 @@ pub async fn run_extension_task_internal(
             .map(|p| p.to_string_lossy().to_string())
             .unwrap_or_default()
     );
+    if let Some(catalog_path) = &models_catalog_path {
+        allow_read.push(',');
+        allow_read.push_str(catalog_path);
+    }
     let allow_write = extension_data_dir.to_string_lossy().to_string();
 
     let http_port = app.state::<HttpPortState>().0;
@@ -356,6 +367,7 @@ pub async fn run_extension_task_internal(
         req.config,
         db_path_str,
         data_dir_str,
+        models_catalog_path,
         req.extension_worker_path,
         req.task,
         req.payload,
@@ -375,6 +387,7 @@ async fn pump_worker(
     config: Value,
     db_path: String,
     data_dir: String,
+    models_catalog_path: Option<String>,
     extension_worker_path: String,
     task_name: String,
     payload: Option<Value>,
@@ -394,6 +407,7 @@ async fn pump_worker(
             "config": config,
             "dbPath": db_path,
             "dataDir": data_dir,
+            "modelsCatalogPath": models_catalog_path,
             "extensionWorkerPath": extension_worker_path,
         }]
     });

@@ -219,10 +219,23 @@ async fn spawn_and_run(
     let allow_net = format!("127.0.0.1:{port},localhost:{port}");
     let proxy_base_url = format!("http://127.0.0.1:{port}/test-provider/{token}");
 
+    let models_catalog_path = app
+        .path()
+        .app_data_dir()
+        .ok()
+        .map(|p| p.join("storage").join("models-catalog.json"))
+        .map(|p| p.to_string_lossy().to_string());
+
+    let mut allow_read = bundle_dir;
+    if let Some(catalog_path) = &models_catalog_path {
+        allow_read.push(',');
+        allow_read.push_str(catalog_path);
+    }
+
     let args = vec![
         "run".to_string(),
         "--no-config".to_string(),
-        format!("--allow-read={bundle_dir}"),
+        format!("--allow-read={allow_read}"),
         format!("--allow-net={allow_net}"),
         bundle_str,
     ];
@@ -239,6 +252,7 @@ async fn spawn_and_run(
         "providerType": params.provider_type,
         "modelId": params.model_id,
         "proxyBaseUrl": proxy_base_url,
+        "modelsCatalogPath": models_catalog_path,
     });
     // tauri-plugin-shell has no close-stdin API, so the worker reads a single
     // newline-terminated line rather than waiting for EOF.

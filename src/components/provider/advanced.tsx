@@ -1,8 +1,10 @@
-import { getModels, getSupportedThinkingLevels } from '@earendil-works/pi-ai';
+import { getCatalogModels } from '@branch-fiction/extension-sdk/models-catalog';
+import { getSupportedThinkingLevels } from '@earendil-works/pi-ai';
 import {
   IconAlertTriangle,
   IconChevronRight,
   IconHelp,
+  IconRefresh,
   IconServer,
   IconVariable,
   IconKey
@@ -45,6 +47,7 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useModelsCatalog } from '@/hooks/queries/models-catalog';
 import type { ProviderPreview } from '@/hooks/queries/settings';
 import type {
   NewProvider,
@@ -61,7 +64,6 @@ import {
 } from '@/lib/llm/providers';
 
 const MIN_CONTEXT_WINDOW = 200000;
-const CUSTOM_MODEL = '__custom__';
 const MODEL_COMPARISON_URL =
   'https://artificialanalysis.ai/models?pricing=intelligence-vs-price#pricing-tabs';
 
@@ -175,7 +177,6 @@ export function AdvancedProviderForm({
   const [apiKeyEnvVar, setApiKeyEnvVar] = useState(editProvider?.secretEnvVar ?? '');
   const initialModelKey = editProvider?.models[0]?.modelKey ?? '';
   const [modelId, setModelId] = useState<string>(initialModelKey);
-  const [useCustomModel, setUseCustomModel] = useState(false);
   const [baseUrl, setBaseUrl] = useState(editProvider?.baseUrl ?? '');
   const [showBaseUrl, setShowBaseUrl] = useState(
     !!editProvider?.baseUrl && !editEntry?.isCompatibleVariant
@@ -248,16 +249,15 @@ export function AdvancedProviderForm({
       ? null
       : (getProviderEntry(provider.type)?.piProvider ?? null);
 
+  const modelsCatalog = useModelsCatalog();
+
   const modelOptions = useMemo(() => {
     if (!piProvider) return [];
-    return getModels(piProvider).reverse();
-  }, [piProvider]);
+    return getCatalogModels(piProvider).reverse();
+  }, [piProvider, modelsCatalog.version]);
 
   const modelItems = useMemo(
-    () => [
-      ...modelOptions.map((m) => ({ value: m.id, label: m.name })),
-      { value: CUSTOM_MODEL, label: 'Custom Model' }
-    ],
+    () => modelOptions.map((m) => ({ value: m.id, label: m.name })),
     [modelOptions]
   );
 
@@ -495,7 +495,6 @@ export function AdvancedProviderForm({
                 setCustomFormat('openai_compatible');
                 setBaseUrl('');
                 setModelId('');
-                setUseCustomModel(false);
                 setReasoning('default');
               }}
             >
@@ -512,7 +511,6 @@ export function AdvancedProviderForm({
                 const next = v as ProviderChoice;
                 setChoice(next);
                 setModelId('');
-                setUseCustomModel(false);
                 setBaseUrl('');
                 setShowBaseUrl(false);
                 setReasoning('default');
@@ -688,21 +686,33 @@ export function AdvancedProviderForm({
 
         {choice !== 'custom' && (
           <Field orientation="vertical">
-            <FieldLabel>Model</FieldLabel>
-            {modelOptions.length > 0 && !useCustomModel ? (
+            <FieldLabel>
+              <span className="flex flex-1 items-center justify-between gap-2">
+                <span>Model</span>
+                {modelOptions.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => modelsCatalog.onRefresh()}
+                    disabled={modelsCatalog.isFetching}
+                    title="Refresh models"
+                  >
+                    <IconRefresh
+                      className={`size-3 ${modelsCatalog.isFetching ? 'animate-spin' : ''}`}
+                    />
+                  </Button>
+                )}
+              </span>
+            </FieldLabel>
+            {modelOptions.length > 0 ? (
               <Combobox
                 items={modelItems}
                 value={modelItems.find((i) => i.value === modelId) ?? null}
                 onValueChange={(item) => {
-                  if (item?.value === CUSTOM_MODEL) {
-                    setUseCustomModel(true);
-                    setModelId('');
-                    return;
-                  }
                   setModelId(item?.value ?? '');
                 }}
                 filter={(item, query) => {
-                  if (item.value === CUSTOM_MODEL) return true;
                   const q = query.trim().toLowerCase();
                   return (
                     item.label.toLowerCase().includes(q) ||
@@ -722,14 +732,7 @@ export function AdvancedProviderForm({
                     <ComboboxCollection>
                       {(item: { value: string; label: string }) => (
                         <ComboboxItem key={item.value} value={item}>
-                          {item.value === CUSTOM_MODEL ? (
-                            <span className="flex items-center gap-1.5">
-                              <IconServer className="size-3.5" />
-                              {item.label}
-                            </span>
-                          ) : (
-                            item.label
-                          )}
+                          {item.label}
                         </ComboboxItem>
                       )}
                     </ComboboxCollection>
@@ -737,29 +740,14 @@ export function AdvancedProviderForm({
                 </ComboboxContent>
               </Combobox>
             ) : (
-              <>
-                <Input
-                  value={modelId}
-                  onChange={(e) => setModelId(e.target.value)}
-                  placeholder="model-id"
-                  className="font-mono"
-                  autoComplete="off"
-                  spellCheck={false}
-                  autoFocus={useCustomModel}
-                />
-                {modelOptions.length > 0 && (
-                  <button
-                    type="button"
-                    className="w-auto! self-start text-left text-xs text-muted-foreground underline underline-offset-2"
-                    onClick={() => {
-                      setUseCustomModel(false);
-                      setModelId('');
-                    }}
-                  >
-                    Choose from catalog instead
-                  </button>
-                )}
-              </>
+              <Input
+                value={modelId}
+                onChange={(e) => setModelId(e.target.value)}
+                placeholder="model-id"
+                className="font-mono"
+                autoComplete="off"
+                spellCheck={false}
+              />
             )}
             {/* TODO bring this back if we have a 'calibration' available? {estimatedCost != null && (
               <p

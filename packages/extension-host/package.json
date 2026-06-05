@@ -12,6 +12,9 @@
     "fmt:check": "oxfmt --check",
     "ci": "concurrently \"pnpm lint --fix\" \"pnpm fmt\""
   },
+  "dependencies": {
+    "@branch-fiction/extension-sdk": "workspace:*"
+  },
   "devDependencies": {
     "@types/deno": "catalog:",
     "@types/node": "catalog:",
