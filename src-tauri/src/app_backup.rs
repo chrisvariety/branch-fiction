@@ -350,6 +350,9 @@ pub fn apply_pending_restore(app: &AppHandle) {
     match std::fs::read_dir(&staging) {
         Ok(entries) => {
             for entry in entries.filter_map(|e| e.ok()) {
+                if entry.file_name() == BACKUP_META {
+                    continue;
+                }
                 let target = data.join(entry.file_name());
                 if let Err(e) = std::fs::rename(entry.path(), &target) {
                     eprintln!("restore: move {}: {e}", entry.file_name().to_string_lossy());
