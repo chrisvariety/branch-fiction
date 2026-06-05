@@ -16,6 +16,15 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
+  Combobox,
+  ComboboxCollection,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList
+} from '@/components/ui/combobox';
+import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger
@@ -52,6 +61,7 @@ import {
 } from '@/lib/llm/providers';
 
 const MIN_CONTEXT_WINDOW = 200000;
+const CUSTOM_MODEL = '__custom__';
 const MODEL_COMPARISON_URL =
   'https://artificialanalysis.ai/models?pricing=intelligence-vs-price#pricing-tabs';
 
@@ -242,6 +252,14 @@ export function AdvancedProviderForm({
     if (!piProvider) return [];
     return getModels(piProvider).reverse();
   }, [piProvider]);
+
+  const modelItems = useMemo(
+    () => [
+      ...modelOptions.map((m) => ({ value: m.id, label: m.name })),
+      { value: CUSTOM_MODEL, label: 'Custom Model' }
+    ],
+    [modelOptions]
+  );
 
   const selectedModel = useMemo(
     () => modelOptions.find((m) => m.id === modelId),
@@ -672,34 +690,52 @@ export function AdvancedProviderForm({
           <Field orientation="vertical">
             <FieldLabel>Model</FieldLabel>
             {modelOptions.length > 0 && !useCustomModel ? (
-              <Select
-                value={modelId}
-                onValueChange={(v) => {
-                  if (v === '__custom__') {
+              <Combobox
+                items={modelItems}
+                value={modelItems.find((i) => i.value === modelId) ?? null}
+                onValueChange={(item) => {
+                  if (item?.value === CUSTOM_MODEL) {
                     setUseCustomModel(true);
                     setModelId('');
                     return;
                   }
-                  setModelId(v ?? '');
+                  setModelId(item?.value ?? '');
+                }}
+                filter={(item, query) => {
+                  if (item.value === CUSTOM_MODEL) return true;
+                  const q = query.trim().toLowerCase();
+                  return (
+                    item.label.toLowerCase().includes(q) ||
+                    item.value.toLowerCase().includes(q)
+                  );
                 }}
               >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Choose a model" />
-                </SelectTrigger>
-                <SelectContent>
-                  {modelOptions.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.name}
-                    </SelectItem>
-                  ))}
-                  <SelectItem value="__custom__">
-                    <span className="flex items-center gap-1.5">
-                      <IconServer className="size-3.5" />
-                      Custom Model
-                    </span>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+                <ComboboxInput
+                  placeholder="Choose a model"
+                  className="w-full"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <ComboboxContent>
+                  <ComboboxEmpty>No models found.</ComboboxEmpty>
+                  <ComboboxList>
+                    <ComboboxCollection>
+                      {(item: { value: string; label: string }) => (
+                        <ComboboxItem key={item.value} value={item}>
+                          {item.value === CUSTOM_MODEL ? (
+                            <span className="flex items-center gap-1.5">
+                              <IconServer className="size-3.5" />
+                              {item.label}
+                            </span>
+                          ) : (
+                            item.label
+                          )}
+                        </ComboboxItem>
+                      )}
+                    </ComboboxCollection>
+                  </ComboboxList>
+                </ComboboxContent>
+              </Combobox>
             ) : (
               <>
                 <Input
