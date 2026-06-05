@@ -101,25 +101,33 @@ async fn export_to(
     let mut conn = open_db_rw(out_path).await?;
     attach(&mut conn, main_path, "src").await?;
 
-    let book: Option<(String, String, Option<String>)> =
-        sqlx::query_as("SELECT slug, title, image_url FROM src.books WHERE id = ?1")
+    let book: Option<(String, String, Option<String>, Option<String>)> =
+        sqlx::query_as("SELECT slug, title, image_url, status FROM src.books WHERE id = ?1")
             .bind(book_id)
             .fetch_optional(&mut conn)
             .await
             .map_err(|e| format!("read book: {e}"))?;
-    let Some((slug, title, image_url)) = book else {
+    let Some((slug, title, image_url, status)) = book else {
         return Err("book not found".into());
     };
+    // Main holds the last completed state, so a paused "Update" doesn't block export.
+    if status.as_deref() != Some("completed") {
+        return Err("book import is not finished".into());
+    }
 
-    let unfinished: Option<(String,)> = sqlx::query_as(
-        "SELECT status FROM src.book_imports WHERE book_id = ?1 AND status != 'completed'",
-    )
-    .bind(book_id)
-    .fetch_optional(&mut conn)
-    .await
-    .map_err(|e| format!("check import status: {e}"))?;
-    if let Some((status,)) = unfinished {
-        return Err(format!("book import is not finished (status: {status})"));
+    let import_ids: Vec<(String,)> =
+        sqlx::query_as("SELECT id FROM src.book_imports WHERE book_id = ?1")
+            .bind(book_id)
+            .fetch_all(&mut conn)
+            .await
+            .map_err(|e| format!("list book imports: {e}"))?;
+    let running = {
+        let state = app.state::<crate::pipeline_worker::PipelineWorkerState>();
+        let map = state.children.lock().map_err(|e| e.to_string())?;
+        import_ids.iter().any(|(id,)| map.contains_key(id))
+    };
+    if running {
+        return Err("book import is currently running".into());
     }
 
     sqlx::query("CREATE TABLE books AS SELECT * FROM src.books WHERE id = ?1")
