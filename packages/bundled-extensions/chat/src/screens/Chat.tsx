@@ -435,8 +435,8 @@ function ChatInner({ chatSlug }: { chatSlug: string }) {
         <HeaderContainer
           className={
             showStickyHeader && !showActionLabelAsCard
-              ? 'sticky top-0 z-40 bg-white/95 shadow-sm backdrop-blur-sm transition-all'
-              : 'bg-white'
+              ? 'sticky top-0 z-40 bg-background/95 shadow-sm backdrop-blur-sm transition-all'
+              : 'bg-background'
           }
         >
           <div className="flex w-full items-center">
@@ -459,7 +459,7 @@ function ChatInner({ chatSlug }: { chatSlug: string }) {
               )}
             </div>
             {isEditing ? (
-              <InputGroup className="mr-4 ml-2 flex-1 bg-white">
+              <InputGroup className="mr-4 ml-2 flex-1 bg-background">
                 <InputGroupInput
                   value={titleDraft}
                   onChange={(e) => setTitleDraft(e.target.value)}
@@ -500,10 +500,10 @@ function ChatInner({ chatSlug }: { chatSlug: string }) {
                       <img
                         src={chat.playerEntity.imageUrl}
                         alt={chat.playerEntity.name}
-                        className="h-12 w-12 rounded-full border border-border object-cover shadow-lg ring-2 ring-white/60"
+                        className="h-12 w-12 rounded-full border border-border object-cover shadow-lg ring-2 ring-background/60"
                       />
                     ) : (
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/80 text-sm font-semibold text-foreground shadow-lg ring-2 ring-white/60">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-sm font-semibold text-foreground shadow-lg ring-2 ring-background/60">
                         {chat.playerEntity.name.slice(0, 1).toUpperCase()}
                       </div>
                     )}

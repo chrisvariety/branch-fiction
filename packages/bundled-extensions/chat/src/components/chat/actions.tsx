@@ -38,7 +38,7 @@ function usePendingAction() {
 }
 
 const containerClassName =
-  'rounded-lg border border-gray-300 p-4 shadow-[0_0_15px_rgba(0,0,0,0.1)] w-full';
+  'rounded-lg border border-border p-4 shadow-[0_0_15px_rgba(0,0,0,0.1)] w-full';
 
 const cardClassName = `group flex h-full cursor-pointer flex-col gap-3 text-left transition-colors disabled:cursor-default disabled:opacity-50 ${containerClassName}`;
 
@@ -56,8 +56,10 @@ function ActionCardContent({
   return (
     <div className="flex items-center justify-between gap-3">
       <div className="min-w-0 flex-1">
-        <div className="text-sm font-semibold text-gray-900">{title}</div>
-        {description && <div className="mt-1 text-sm text-gray-700">{description}</div>}
+        <div className="text-sm font-semibold text-foreground">{title}</div>
+        {description && (
+          <div className="mt-1 text-sm text-muted-foreground">{description}</div>
+        )}
       </div>
       <span
         className={clsx(
@@ -110,8 +112,8 @@ export function ActionCard({
       className={clsx(
         cardClassName,
         taken
-          ? 'bg-gray-100 shadow-[inset_0_0_5px_rgba(0,0,0,0.1)]'
-          : 'bg-white hover:bg-gray-50'
+          ? 'bg-muted shadow-[inset_0_0_5px_rgba(0,0,0,0.1)]'
+          : 'bg-background hover:bg-muted/60'
       )}
     >
       <ActionCardContent
@@ -170,7 +172,7 @@ export function WriteYourOwnActionCard({
             onChange={setContent}
             onKeyDown={handleKeyDown}
             placeholder="Write your own action..."
-            className="w-full resize-none bg-transparent text-base text-gray-900 placeholder:text-gray-500 focus:outline-none"
+            className="w-full resize-none bg-transparent text-base text-foreground placeholder:text-muted-foreground focus:outline-none"
             suggestions={characterNames}
             minRows={2}
             maxRows={6}
@@ -182,7 +184,7 @@ export function WriteYourOwnActionCard({
                 setIsExpanded(false);
                 setContent('');
               }}
-              className="px-3 py-1.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700"
+              className="px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               Cancel
             </button>
@@ -195,8 +197,8 @@ export function WriteYourOwnActionCard({
             </button>
           </div>
           {actionTitles.length > 0 && (
-            <div className="mt-3 border-t border-gray-200 pt-3">
-              <div className="mb-2 text-xs font-medium text-gray-500">
+            <div className="mt-3 border-t border-border pt-3">
+              <div className="mb-2 text-xs font-medium text-muted-foreground">
                 Put your own spin on…
               </div>
               <div className="flex flex-col gap-1">
@@ -210,9 +212,9 @@ export function WriteYourOwnActionCard({
                         textareaRef.current?.focus();
                       });
                     }}
-                    className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                    className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-muted-foreground transition-colors hover:bg-muted"
                   >
-                    <IconCornerDownRight className="size-3.5 shrink-0 text-gray-400" />
+                    <IconCornerDownRight className="size-3.5 shrink-0 text-muted-foreground" />
                     <span className="line-clamp-1">{title}</span>
                   </button>
                 ))}

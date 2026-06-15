@@ -105,13 +105,13 @@ export function ChatNodeScreen({
         !isFirstNode &&
         (showActionLabelAsCard ? (
           <div className="px-4 py-3">
-            <div className="rounded-lg border border-gray-300 bg-gray-100 p-4 shadow-[inset_0_0_5px_rgba(0,0,0,0.1)]">
+            <div className="rounded-lg border border-border bg-muted p-4 shadow-[inset_0_0_5px_rgba(0,0,0,0.1)]">
               <div className="flex items-center justify-between gap-3">
                 <div className="text-sm">
-                  <div className="mb-1 text-xs tracking-wide text-gray-600 uppercase">
+                  <div className="mb-1 text-xs tracking-wide text-muted-foreground uppercase">
                     Your pending fate
                   </div>
-                  <div className="line-clamp-1 font-semibold text-gray-900">
+                  <div className="line-clamp-1 font-semibold text-foreground">
                     {node.actionLabel}
                   </div>
                 </div>
@@ -326,7 +326,7 @@ function ChatNodeVisualLoader({
   const showGenerateButton = visualPartId && !isImagePending;
 
   return showGenerateButton ? (
-    <div className="flex aspect-video w-full items-center justify-center bg-gray-100">
+    <div className="flex aspect-video w-full items-center justify-center bg-muted">
       <Button size="xl" onClick={() => onGenerateImage(visualPartId)}>
         Generate Image
       </Button>
