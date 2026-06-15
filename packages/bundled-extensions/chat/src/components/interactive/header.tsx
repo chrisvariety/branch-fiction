@@ -36,7 +36,7 @@ export function InteractiveHeader({
       {/* Progress bars */}
       <div className="flex gap-1.5">
         {(['selectCharacters', 'selectPlace'] as const).map((step) => (
-          <div key={step} className="relative h-0.5 flex-1 rounded-full bg-white/30">
+          <div key={step} className="relative h-1 flex-1 rounded-full bg-white/30">
             {currentStep === step && (
               <motion.div
                 layoutId="progress-indicator"
