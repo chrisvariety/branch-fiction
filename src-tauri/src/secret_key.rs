@@ -24,8 +24,7 @@ pub fn install_default_store() -> Result<(), String> {
     Ok(())
 }
 
-#[tauri::command]
-pub fn get_or_create_secret_key(app: tauri::AppHandle) -> Result<Vec<u8>, String> {
+pub fn load_or_create_secret_key(app: &tauri::AppHandle) -> Result<Vec<u8>, String> {
     let service = app.config().identifier.clone();
     let entry = Entry::new(&service, ACCOUNT).map_err(|e| e.to_string())?;
     match entry.get_secret() {
@@ -38,4 +37,9 @@ pub fn get_or_create_secret_key(app: tauri::AppHandle) -> Result<Vec<u8>, String
         }
         Err(e) => Err(e.to_string()),
     }
+}
+
+#[tauri::command]
+pub fn get_or_create_secret_key(app: tauri::AppHandle) -> Result<Vec<u8>, String> {
+    load_or_create_secret_key(&app)
 }

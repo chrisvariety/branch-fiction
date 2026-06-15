@@ -2,25 +2,14 @@ use aes_gcm::Aes256Gcm;
 use aes_gcm::aead::{Aead, KeyInit, Nonce as AeadNonce};
 use base64::Engine as _;
 use base64::engine::general_purpose::STANDARD as B64;
-use keyring_core::Entry;
 use tauri::AppHandle;
 
-const SECRET_KEY_ACCOUNT: &str = "secret-key";
+use crate::secret_key::load_or_create_secret_key;
+
 const NONCE_BYTES: usize = 12;
 
 fn cipher_for(app: &AppHandle) -> Result<Aes256Gcm, String> {
-    let service = app.config().identifier.clone();
-    let entry =
-        Entry::new(&service, SECRET_KEY_ACCOUNT).map_err(|e| format!("keyring entry: {e}"))?;
-    let key_bytes = entry
-        .get_secret()
-        .map_err(|e| format!("keyring get_secret: {e}"))?;
-    if key_bytes.len() != 32 {
-        return Err(format!(
-            "keyring secret-key length is {} (expected 32)",
-            key_bytes.len()
-        ));
-    }
+    let key_bytes = load_or_create_secret_key(app)?;
     Aes256Gcm::new_from_slice(&key_bytes).map_err(|e| format!("aes-gcm key length: {e}"))
 }
 

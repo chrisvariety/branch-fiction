@@ -49,10 +49,10 @@ export function RestorePurchase({
       if (!data.result?.hasActiveSubscription) {
         throw new Error('No active subscription found for this email');
       }
+      await linkCloudAccount(data.result.userId);
       return data.result;
     },
-    onSuccess: async (result) => {
-      await linkCloudAccount(result.userId);
+    onSuccess: () => {
       for (const key of invalidationQueryKeys) {
         void queryClient.invalidateQueries({ queryKey: key });
       }
@@ -70,7 +70,7 @@ export function RestorePurchase({
           <p className="text-xs text-muted-foreground">
             {step === 'otp' ? (
               <>
-                If we found a matching account, a 6-digit code was sent to{' '}
+                If we found a matching account, a code was sent to{' '}
                 <span className="font-medium text-foreground">{email}</span>.
               </>
             ) : (
@@ -90,6 +90,8 @@ export function RestorePurchase({
                 value={otp}
                 onChange={setOtp}
                 onComplete={() => verifyMutation.mutate()}
+                validationType="alpha"
+                normalizeValue={(value) => value.toUpperCase()}
               >
                 <InputOTPGroup>
                   <InputOTPSlot index={0} />

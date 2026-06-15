@@ -70,7 +70,7 @@ export function CloudAccess({
       if (
         data.result.status === 'succeeded' &&
         data.result.userId &&
-        provisionMutation.isIdle
+        (provisionMutation.isIdle || provisionMutation.isError)
       ) {
         provisionMutation.mutate(data.result.userId);
       }
@@ -115,6 +115,11 @@ export function CloudAccess({
             <p className="text-xs text-muted-foreground">
               Complete your purchase in the browser window that just opened.
             </p>
+            {provisionMutation.isError && (
+              <p className="text-xs text-destructive">
+                {provisionMutation.error.message}
+              </p>
+            )}
             <Button
               variant="outline"
               size="sm"
