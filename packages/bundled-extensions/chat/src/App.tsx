@@ -1,6 +1,7 @@
 import { IconLoader2 } from '@tabler/icons-react';
 import { RouterProvider } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
+import { Toaster } from 'sonner';
 
 import type { FirstLaunchStep } from '@/lib/db/types';
 import { ensureSchema } from '@/lib/schema';
@@ -25,15 +26,18 @@ export function App() {
     });
   }, []);
 
-  if (phase.kind === 'loading') {
-    return <CenteredLoader />;
-  }
-
-  if (phase.ctx.bookId === null) {
-    return <CenteredNote>Open this path from a book on the main page.</CenteredNote>;
-  }
-
-  return <RouterProvider router={router} context={{ ctx: phase.ctx as BookCtx }} />;
+  return (
+    <>
+      {phase.kind === 'loading' ? (
+        <CenteredLoader />
+      ) : phase.ctx.bookId === null ? (
+        <CenteredNote>Open this path from a book on the main page.</CenteredNote>
+      ) : (
+        <RouterProvider router={router} context={{ ctx: phase.ctx as BookCtx }} />
+      )}
+      <Toaster theme="system" richColors closeButton position="top-center" />
+    </>
+  );
 }
 
 function CenteredLoader() {

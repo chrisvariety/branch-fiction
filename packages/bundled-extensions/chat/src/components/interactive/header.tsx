@@ -30,7 +30,7 @@ export function InteractiveHeader({
   return (
     <div
       hidden={hidden}
-      className="absolute inset-x-0 top-0 z-20 bg-linear-to-b from-black/80 to-transparent px-4 pt-3 pb-6 lg:rounded-t-xl"
+      className="absolute inset-x-0 top-8 z-20 rounded-t-xl bg-linear-to-b from-black/80 to-transparent px-4 pt-3 pb-6"
       onClick={(e) => e.stopPropagation()}
     >
       {/* Progress bars */}

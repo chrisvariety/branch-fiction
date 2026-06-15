@@ -53,7 +53,7 @@ function WelcomeDialog({
               role="dialog"
               aria-modal="true"
               aria-labelledby={titleId}
-              className="mt-0 flex h-[calc(100%-3rem)] w-full flex-col rounded-lg bg-white/20 px-6 py-8 text-left md:px-10 md:py-10"
+              className="mt-0 flex h-[calc(100%-3rem)] w-full flex-col rounded-xl bg-white/20 px-6 py-8 text-left md:px-10 md:py-10"
               style={{ maxWidth: containerWidth }}
             >
               <div>

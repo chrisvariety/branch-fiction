@@ -384,7 +384,7 @@ export function InteractivePicker({ ctx }: Props) {
         <div
           ref={viewportRef}
           className={clsx(
-            'relative overflow-hidden bg-foreground/5 lg:rounded-xl',
+            'relative mt-8 overflow-hidden rounded-xl bg-foreground/5',
             'transition-opacity duration-300',
             !imageLoaded && 'opacity-0',
             activeIsSimple && 'h-[calc(100svh-2.5rem)] w-screen md:h-[calc(100vh-4rem)]'
