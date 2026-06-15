@@ -3,7 +3,7 @@ import { IconChevronLeft, IconPencil } from '@tabler/icons-react';
 import { useMutation, useMutationState, useSuspenseQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useRouter } from '@tanstack/react-router';
 import clsx from 'clsx';
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { Container, HeaderContainer } from '@/components/chat/container';
@@ -83,6 +83,18 @@ function WorldInner({ worldSlug }: { worldSlug: string }) {
   });
   const currentImageState = imageGenerationState[imageGenerationState.length - 1];
   const isGeneratingImage = currentImageState?.status === 'pending';
+
+  // Pick up completion of a background generation kicked off from InteractivePicker.
+  const prevImageStatus = useRef(currentImageState?.status);
+  useEffect(() => {
+    if (
+      prevImageStatus.current === 'pending' &&
+      currentImageState?.status === 'success'
+    ) {
+      void refetch();
+    }
+    prevImageStatus.current = currentImageState?.status;
+  }, [currentImageState?.status, refetch]);
 
   const handleUpdate = async () => {
     const next = titleDraft.trim();
