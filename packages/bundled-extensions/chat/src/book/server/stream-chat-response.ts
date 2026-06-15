@@ -4,6 +4,7 @@ import { v7 as uuidv7 } from 'uuid';
 import { DEFAULT_USER_ID } from '@/lib/auth';
 import { detectOutOfSceneMentions } from '@/lib/chat/detect-out-of-scene-mentions';
 import {
+  buildFriendlyIdMap,
   resolveEntitiesByFriendlyIds,
   stripFriendlyIdPrefixes
 } from '@/lib/chat/friendly-id-map';
@@ -11,7 +12,10 @@ import { smoothStream, type StreamMessage } from '@/lib/chat/smooth-stream';
 import { getText, parse, querySelector, querySelectorAll } from '@/lib/llm/xml';
 import { ensureDbReady, getDb } from '@/worker/db';
 import { getEntitiesWithAppearanceArcByBookIds } from '@/worker/db/models/book-arc/get-book-arc';
-import { getBookEntitiesByBookIdsAndFriendlyIds } from '@/worker/db/models/book-entity/get-book-entity';
+import {
+  getBookEntitiesByBookIds,
+  getBookEntitiesByBookIdsAndFriendlyIds
+} from '@/worker/db/models/book-entity/get-book-entity';
 import { createChatNodeParts } from '@/worker/db/models/chat-node-part/create-chat-node-part';
 import { deleteChatNodePartsByIds } from '@/worker/db/models/chat-node-part/delete-chat-node-part';
 import { createChatNode } from '@/worker/db/models/chat-node/create-chat-node';
@@ -205,6 +209,11 @@ export async function streamChatResponse(params: {
     throw new Error('Node already has parts');
   const previousNodes = nodes.filter((n) => n.nodeId !== params.nodeId);
 
+  // Maps stored entity ids back to the friendly ids the model emits in <characters>.
+  const friendlyIdByEntityId = chat.bookIds?.length
+    ? buildFriendlyIdMap(await getBookEntitiesByBookIds(chat.bookIds))
+    : new Map<string, string>();
+
   function reconstructAssistantXml(node: (typeof previousNodes)[number]): string {
     const sections: string[] = [];
 
@@ -212,12 +221,10 @@ export async function streamChatResponse(params: {
       (p) => p.type === 'VISUAL' && p.subtype !== 'none' && p.subtype !== 'skipped_image'
     );
     if (visualPart?.content) {
-      let charsAttr = '';
-      const args = visualPart.toolCall?.args;
-      if (args && typeof args === 'object' && 'character_ids' in args) {
-        const ids = (args as { character_ids?: unknown }).character_ids;
-        if (Array.isArray(ids)) charsAttr = ids.join(',');
-      }
+      const charsAttr = (visualPart.bookEntityIds ?? [])
+        .map((id) => friendlyIdByEntityId.get(id))
+        .filter((fid): fid is string => Boolean(fid))
+        .join(',');
       sections.push(
         `<visual>\n  <prompt>${escapeXml(visualPart.content)}</prompt>\n  <characters>${charsAttr}</characters>\n</visual>`
       );
