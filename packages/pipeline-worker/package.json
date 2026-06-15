@@ -21,8 +21,8 @@
     "@huggingface/jinja": "catalog:",
     "@leeoniya/ufuzzy": "^1.0.19",
     "@stablelib/base64": "catalog:",
-    "@toon-format/toon": "^2.2.0",
-    "@valibot/to-json-schema": "^1.7.0",
+    "@toon-format/toon": "^2.3.0",
+    "@valibot/to-json-schema": "^1.7.1",
     "css-select": "catalog:",
     "dedent": "catalog:",
     "dom-serializer": "catalog:",
@@ -35,7 +35,7 @@
     "htmlparser2": "catalog:",
     "kysely": "catalog:",
     "kysely-plugin-serialize": "catalog:",
-    "langsmith": "^0.7.1",
+    "langsmith": "^0.7.7",
     "mdast-util-from-markdown": "catalog:",
     "mdast-util-to-markdown": "catalog:",
     "p-queue": "catalog:",
@@ -57,6 +57,6 @@
     "oxlint": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
-    "vitest": "^4.1.6"
+    "vitest": "^4.1.8"
   }
 }
