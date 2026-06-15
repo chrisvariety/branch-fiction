@@ -82,6 +82,7 @@ function ChatInner({ chatSlug }: { chatSlug: string }) {
   const {
     state,
     shouldStream,
+    isStreaming,
     goBack,
     goToIndex,
     goForward,
@@ -256,23 +257,25 @@ function ChatInner({ chatSlug }: { chatSlug: string }) {
     }
   });
 
-  const {
-    isFetching: isStreamingResponse,
-    error: streamError,
-    refetch: refetchStream
-  } = useQuery({
+  const { error: streamError, refetch: refetchStream } = useQuery({
     queryKey: ['streamChatResponse', state.latestLeafNodeId, chatSlug],
     queryFn: async () => {
       if (!state.latestLeafNodeId) return null;
       const nodeId = state.latestLeafNodeId;
 
       try {
-        await streamChatResponse({ nodeId, chatSlug }, (chunk) => {
-          const effects = appendStreamChunk(nodeId, chunk);
-          executeEffects(effects);
-        });
-      } finally {
+        await streamChatResponse(
+          { nodeId, chatSlug },
+          (chunk) => {
+            const effects = appendStreamChunk(nodeId, chunk);
+            executeEffects(effects);
+          },
+          // Fired on 'chat-stream-done', before the behind-the-scenes director runs.
+          () => streamCompleted(nodeId)
+        );
+      } catch (e) {
         streamCompleted(nodeId);
+        throw e;
       }
 
       return null;
@@ -293,7 +296,6 @@ function ChatInner({ chatSlug }: { chatSlug: string }) {
     }
   }, [streamError]);
 
-  const isStreaming = isStreamingResponse;
   const showActionLabelAsCard = isStreaming && hasLiftedAction;
 
   const [prevChatId, setPrevChatId] = useState(chat.id);

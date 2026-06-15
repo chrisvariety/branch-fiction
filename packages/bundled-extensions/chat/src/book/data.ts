@@ -77,7 +77,8 @@ export type ChatStreamChunk = {
 
 export function streamChatResponse(
   params: { nodeId: string; chatSlug: string },
-  onChunk: (chunk: ChatStreamChunk) => void
+  onChunk: (chunk: ChatStreamChunk) => void,
+  onDone?: () => void
 ): Promise<null> & { cancel: () => void } {
   const handle = window.extensionSDK.worker
     .spawn<null>('streamChatResponse', params)
@@ -85,6 +86,8 @@ export function streamChatResponse(
       const event = args[0] as { kind?: string; message?: ChatStreamChunk } | undefined;
       if (event?.kind === 'chat-stream-chunk' && event.message) {
         onChunk(event.message);
+      } else if (event?.kind === 'chat-stream-done') {
+        onDone?.();
       }
     });
   return handle;

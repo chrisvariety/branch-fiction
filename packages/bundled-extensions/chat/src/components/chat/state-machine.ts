@@ -45,6 +45,8 @@ export type ChatState = {
   pendingImagePartIds: string[];
   // Child node currently being loaded (for GO_FORWARD to existing branch)
   loadingChildId: string | null;
+  // Node whose turn output is actively streaming (cleared when output is done)
+  streamingNodeId: string | null;
   // Stream completed but no ACTION parts were received
   streamFailed: boolean;
 };
@@ -192,6 +194,7 @@ export function createChatReducer() {
           nodeStack: [...trimmedStack, placeholderNode],
           latestLeafNodeId: newNodeId,
           cursorIndex: parentIndex + 1,
+          streamingNodeId: newNodeId,
           streamFailed: false
         };
       }
@@ -318,6 +321,7 @@ export function createChatReducer() {
           latestLeafNodeId: currentLeafNodeId,
           pendingImagePartIds: [],
           loadingChildId: null,
+          streamingNodeId: deriveStreamingNodeId(nodeStack, currentLeafNodeId),
           streamFailed: false
         };
       }
@@ -353,7 +357,12 @@ export function createChatReducer() {
         const node = state.nodeStack.find((n) => n.id === action.nodeId);
         if (!node) return state;
         const hasActions = node.parts.some((p) => p.type === 'ACTION');
-        return { ...state, streamFailed: !hasActions };
+        return {
+          ...state,
+          streamingNodeId:
+            state.streamingNodeId === action.nodeId ? null : state.streamingNodeId,
+          streamFailed: !hasActions
+        };
       }
 
       case 'RETRY_NODE': {
@@ -366,6 +375,7 @@ export function createChatReducer() {
         return {
           ...state,
           nodeStack: nextStack,
+          streamingNodeId: action.nodeId,
           streamFailed: false,
           pendingImagePartIds: state.pendingImagePartIds.filter(
             (id) => !clearedPartIds.has(id)
@@ -461,11 +471,18 @@ export function createInitialState(
     latestLeafNodeId: currentLeafNodeId,
     pendingImagePartIds: [],
     loadingChildId: null,
+    streamingNodeId: deriveStreamingNodeId(nodeStack, currentLeafNodeId),
     streamFailed: false
   };
 }
 
-// === Derived State Helpers ===
+function deriveStreamingNodeId(
+  nodeStack: ChatLeafNode[],
+  leafNodeId: string
+): string | null {
+  const leaf = nodeStack.find((n) => n.id === leafNodeId);
+  return leaf && leaf.parts.length === 0 ? leafNodeId : null;
+}
 
 export function getLatestLeafNode(state: ChatState): ChatLeafNode | null {
   return state.nodeStack.find((n) => n.id === state.latestLeafNodeId) ?? null;
@@ -474,4 +491,8 @@ export function getLatestLeafNode(state: ChatState): ChatLeafNode | null {
 export function shouldStreamResponse(state: ChatState): boolean {
   const latestLeafNode = getLatestLeafNode(state);
   return !!latestLeafNode && latestLeafNode.parts.length === 0;
+}
+
+export function isStreamingResponse(state: ChatState): boolean {
+  return state.streamingNodeId === state.latestLeafNodeId;
 }

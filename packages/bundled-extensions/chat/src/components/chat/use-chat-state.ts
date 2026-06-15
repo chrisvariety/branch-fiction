@@ -5,6 +5,7 @@ import {
   createInitialState,
   getLatestLeafNode,
   getTransitionEffects,
+  isStreamingResponse,
   shouldStreamResponse,
   type ChatAction,
   type ChatEffectIntent,
@@ -45,6 +46,7 @@ export function useChatState({
   // Derived values
   const latestLeafNode = getLatestLeafNode(state);
   const shouldStream = shouldStreamResponse(state);
+  const isStreaming = isStreamingResponse(state);
 
   // === Action helpers ===
 
@@ -155,6 +157,7 @@ export function useChatState({
     // Derived state
     latestLeafNode,
     shouldStream,
+    isStreaming,
 
     // Action helpers
     goBack,

@@ -558,6 +558,9 @@ export async function streamChatResponse(params: {
 
   await streamDone;
 
+  // Turn fully written; release the UI before the behind-the-scenes director runs.
+  host.log({ kind: 'chat-stream-done' });
+
   if (turnComplete) {
     const recentPrevious = previousNodes.slice(0, 2).reverse();
     const directorMessages = [
