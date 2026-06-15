@@ -4,7 +4,7 @@ import { IconArrowRight, IconPlus } from '@tabler/icons-react';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 
-import { Container, HeaderContainer } from '@/components/chat/container';
+import { Container } from '@/components/chat/container';
 import { ItemCard } from '@/components/chat/item-card';
 import {
   latestChatsQueryOptions,
@@ -17,12 +17,6 @@ export function WorldsIndex() {
 
   return (
     <Container className="lg:max-w-4xl">
-      <HeaderContainer>
-        <h1 className="flex-1 font-sans text-base font-medium">
-          Interactive Fan Fiction
-        </h1>
-      </HeaderContainer>
-
       <div className="flex flex-col pb-4">
         {latestChats.length > 0 && (
           <>
