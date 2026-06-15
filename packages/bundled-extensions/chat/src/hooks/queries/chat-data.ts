@@ -97,11 +97,12 @@ async function fetchChat(chatSlug: string): Promise<ChatData> {
   const currentLeafNode = nodeStack[nodeStack.length - 1];
 
   const firstEntity = chat.chatEntities[0];
+  const playerImageUrl = firstEntity?.refImageUrl ?? firstEntity?.imageUrl ?? null;
   const playerEntity = firstEntity
     ? {
         name: firstEntity.name,
-        imageUrl: firstEntity.imageUrl
-          ? transformImageUrl(firstEntity.imageUrl, { variant: 'thumb' })
+        imageUrl: playerImageUrl
+          ? transformImageUrl(playerImageUrl, { variant: 'thumb' })
           : null
       }
     : null;

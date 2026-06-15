@@ -41,9 +41,15 @@ export async function getChatWithUserWorldByUserIdAndSlug(
         eb
           .selectFrom('chatEntities')
           .innerJoin('bookEntities', 'bookEntities.id', 'chatEntities.bookEntityId')
+          .leftJoin('characterRefs', (join) =>
+            join
+              .onRef('characterRefs.characterId', '=', 'bookEntities.id')
+              .onRef('characterRefs.bookId', '=', 'bookEntities.bookId')
+          )
           .select([
             'chatEntities.bookEntityId',
             'chatEntities.imageUrl',
+            'characterRefs.imageUrl as refImageUrl',
             'bookEntities.name',
             'bookEntities.names',
             'bookEntities.type'
