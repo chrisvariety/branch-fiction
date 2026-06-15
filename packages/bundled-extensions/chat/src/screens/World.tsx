@@ -236,7 +236,11 @@ function ScenarioList({
       let wakeLock: WakeLockSentinel | null = null;
       try {
         if ('wakeLock' in navigator) {
-          wakeLock = await navigator.wakeLock.request('screen');
+          try {
+            wakeLock = await navigator.wakeLock.request('screen');
+          } catch {
+            // Wake lock may be blocked by Permissions-Policy; non-fatal.
+          }
         }
         const { chatSlug } = await createNewChat({
           scenarioId,
