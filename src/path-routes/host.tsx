@@ -154,7 +154,7 @@ function PathHost() {
         src={boot.src}
         title={boot.title}
         sandbox="allow-scripts"
-        allow="autoplay"
+        allow="screen-wake-lock; fullscreen; gamepad; autoplay"
         className="flex-1 border-0 bg-transparent"
       />
     </div>
