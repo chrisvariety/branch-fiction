@@ -33,6 +33,9 @@ import { directChat } from './chat-director';
 export const DEMO_NODE_LIMIT = 10;
 export const OCCASIONAL_IMAGE_GENERATION_REMINDER_INTERVAL = 3;
 
+// Set to true to log the raw, unparsed LLM output for each turn.
+const DEBUG_LOG_RAW_OUTPUT = false;
+
 const NARRATIVE_OPEN = '<narrative>';
 const NARRATIVE_CLOSE = '</narrative>';
 const VISUAL_OPEN = '<visual>';
@@ -344,7 +347,6 @@ export async function streamChatResponse(params: {
 
   const processVisualBlock = async (blockXml: string): Promise<void> => {
     if (visualProcessed) return;
-    visualProcessed = true;
 
     const doc = parse(blockXml);
     const promptText = getText(querySelector(doc, 'prompt')).trim();
@@ -357,6 +359,8 @@ export async function streamChatResponse(params: {
     if (!promptText || !friendlyIds.length || !chat.bookIds?.length) {
       return;
     }
+
+    visualProcessed = true;
 
     const bookEntities = await getBookEntitiesByBookIdsAndFriendlyIds(
       chat.bookIds,
@@ -479,6 +483,10 @@ export async function streamChatResponse(params: {
       }
 
       await scan();
+
+      if (DEBUG_LOG_RAW_OUTPUT) {
+        console.log(`[chat raw output] node ${params.nodeId}:\n${buffer}`);
+      }
 
       if (narrativeContent.trim()) {
         await createChatNodeParts([
