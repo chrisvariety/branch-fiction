@@ -5,6 +5,7 @@ import type {
   ImagesOutputContent
 } from '@earendil-works/pi-ai';
 
+import { ImageSafetyError } from '../image-errors';
 import type { OneShotImageOptions } from './options';
 
 export const FAL_IMAGES_API = 'fal-images';
@@ -48,7 +49,12 @@ export async function generateImagesFal(
   });
 
   if (!res.ok) {
-    const error = new Error(`Fal API error (${res.status}): ${await res.text()}`);
+    const bodyText = await res.text();
+    // 422 with a `content_policy_violation` entry in the `detail` array. https://docs.fal.ai/model-apis/errors
+    if (/content_policy_violation|flagged by a content checker/i.test(bodyText)) {
+      throw new ImageSafetyError(`Fal rejected prompt: ${bodyText}`);
+    }
+    const error = new Error(`Fal API error (${res.status}): ${bodyText}`);
     Object.assign(error, { status: res.status });
     throw error;
   }

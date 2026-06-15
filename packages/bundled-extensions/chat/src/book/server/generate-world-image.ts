@@ -6,8 +6,8 @@ import { updateUserWorldById } from '@/worker/db/models/user-world/update-user-w
 
 import { resolveArtStyle } from '../../lib/media/art-style';
 import { compositeCrops, loadCharacterCrops } from '../../lib/media/character-crops';
-import { generateOneShotImage } from '../../lib/media/generate-one-shot-image';
-import { assemblePrompt, type StructuredPrompt } from '../../lib/media/image-models';
+import { type StructuredPrompt } from '../../lib/media/image-models';
+import { generateImageWithSafetyRewrite } from '../../lib/media/rewrite-for-safety';
 import { buildAssetUrl, parseAssetUrl } from '../../lib/media/transform-url';
 import { getProvider } from '../../worker/providers';
 
@@ -65,11 +65,14 @@ export async function generateWorldImage({
       Do NOT include any other characters.`
   };
 
-  const image = await generateOneShotImage(getProvider('image_generation_chat'), {
-    prompt: assemblePrompt(prompt),
-    refImages: [{ data: compositeBase64, mimeType: 'image/png' }],
-    aspectRatio: '16:9'
-  });
+  const image = await generateImageWithSafetyRewrite(
+    getProvider('image_generation_chat'),
+    {
+      prompt,
+      refImages: [{ data: compositeBase64, mimeType: 'image/png' }],
+      aspectRatio: '16:9'
+    }
+  );
 
   const key = `user-worlds/${userWorld.id}`;
   const imageUrl = buildAssetUrl(key, image.mimeType);

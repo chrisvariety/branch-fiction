@@ -7,8 +7,8 @@ import { decode } from '@stablelib/base64';
 
 import { buildImagesModel } from '@/worker/providers';
 
-import { withGenAIRetry } from './generate-safely';
 import type { OneShotImageOptions } from './image-apis/options';
+import { withGenAIRetry } from './image-retry';
 import './image-apis/register';
 import type { AspectRatio, GeneratedImage, InlineImage } from './image-types';
 

@@ -13,8 +13,8 @@ import {
   compositeCropsWithReference,
   loadCharacterCrops
 } from '../../lib/media/character-crops';
-import { generateOneShotImage } from '../../lib/media/generate-one-shot-image';
-import { assemblePrompt, type StructuredPrompt } from '../../lib/media/image-models';
+import { type StructuredPrompt } from '../../lib/media/image-models';
+import { generateImageWithSafetyRewrite } from '../../lib/media/rewrite-for-safety';
 import { buildAssetUrl, parseAssetUrl } from '../../lib/media/transform-url';
 import { getChatImageProvider } from '../../worker/providers';
 
@@ -75,11 +75,14 @@ async function startScene(
     suffix: `Rendered in a ${resolveArtStyle(artStyle)}.`
   };
 
-  const image = await generateOneShotImage(getChatImageProvider(imageModelKey), {
-    prompt: assemblePrompt(prompt),
-    refImages,
-    aspectRatio: '16:9'
-  });
+  const image = await generateImageWithSafetyRewrite(
+    getChatImageProvider(imageModelKey),
+    {
+      prompt,
+      refImages,
+      aspectRatio: '16:9'
+    }
+  );
 
   return saveSceneImage(chatMessagePartId, image.data, image.mimeType);
 }
@@ -119,11 +122,14 @@ async function continueScene(
     suffix: ''
   };
 
-  const image = await generateOneShotImage(getChatImageProvider(imageModelKey), {
-    prompt: assemblePrompt(prompt),
-    refImages: [{ data: combinedBase64, mimeType: 'image/png' }],
-    aspectRatio: '16:9'
-  });
+  const image = await generateImageWithSafetyRewrite(
+    getChatImageProvider(imageModelKey),
+    {
+      prompt,
+      refImages: [{ data: combinedBase64, mimeType: 'image/png' }],
+      aspectRatio: '16:9'
+    }
+  );
 
   return saveSceneImage(chatMessagePartId, image.data, image.mimeType);
 }

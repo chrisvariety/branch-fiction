@@ -2,11 +2,10 @@ import { GoogleGenAI } from '@google/genai';
 import { decode } from '@stablelib/base64';
 import OpenAI from 'openai';
 
-import {
-  extractImageFromResponse,
-  SAFETY_SETTINGS,
-  withGenAIRetry
-} from './generate-safely';
+import { extractImageFromResponse, SAFETY_SETTINGS } from './image-apis/gemini';
+import { isOpenAIModerationError } from './image-apis/openai';
+import { ImageSafetyError } from './image-errors';
+import { withGenAIRetry } from './image-retry';
 import type { AspectRatio, GeneratedImage, InlineImage } from './image-types';
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
@@ -153,12 +152,18 @@ function createOpenAIImageChatSession(
 
       return withGenAIRetry(
         async () => {
-          const response = await client.responses.create({
-            model: OPENAI_ORCHESTRATOR_MODEL,
-            ...(previousResponseId && { previous_response_id: previousResponseId }),
-            input: [{ role: 'user', content }],
-            tools: [imageTool]
-          });
+          const response = await client.responses
+            .create({
+              model: OPENAI_ORCHESTRATOR_MODEL,
+              ...(previousResponseId && { previous_response_id: previousResponseId }),
+              input: [{ role: 'user', content }],
+              tools: [imageTool]
+            })
+            .catch((error: unknown) => {
+              if (isOpenAIModerationError(error))
+                throw new ImageSafetyError(String(error));
+              throw error;
+            });
 
           previousResponseId = response.id;
 

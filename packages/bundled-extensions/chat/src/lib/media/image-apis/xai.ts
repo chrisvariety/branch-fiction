@@ -5,6 +5,7 @@ import type {
   ImagesOutputContent
 } from '@earendil-works/pi-ai';
 
+import { ImageSafetyError } from '../image-errors';
 import type { OneShotImageOptions } from './options';
 
 export const XAI_IMAGES_API = 'xai-images';
@@ -58,7 +59,11 @@ export async function generateImagesXai(
   );
 
   if (!res.ok) {
-    const error = new Error(`xAI API error (${res.status}): ${await res.text()}`);
+    const bodyText = await res.text();
+    if (/content moderation|moderation_blocked/i.test(bodyText)) {
+      throw new ImageSafetyError(`xAI rejected prompt: ${bodyText}`);
+    }
+    const error = new Error(`xAI API error (${res.status}): ${bodyText}`);
     Object.assign(error, { status: res.status });
     throw error;
   }

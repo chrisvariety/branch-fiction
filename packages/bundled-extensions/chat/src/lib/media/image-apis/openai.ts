@@ -6,10 +6,20 @@ import type {
 } from '@earendil-works/pi-ai';
 import OpenAI from 'openai';
 
+import { ImageSafetyError } from '../image-errors';
 import type { AspectRatio } from '../image-types';
 import type { OneShotImageOptions } from './options';
 
 export const OPENAI_IMAGES_API = 'openai-images';
+
+// gpt-image moderation surfaces as a 400 APIError with code "moderation_blocked".
+export function isOpenAIModerationError(error: unknown): boolean {
+  return (
+    error instanceof OpenAI.APIError &&
+    (error.code === 'moderation_blocked' ||
+      /moderation|safety system/i.test(error.message ?? ''))
+  );
+}
 
 // Text model used to orchestrate the `image_generation` tool on OpenAI.
 // currently not configurable :(
@@ -49,14 +59,19 @@ export async function generateImagesOpenAI(
     ...(options?.aspectRatio && { size: aspectRatioToOpenAISize(options.aspectRatio) })
   };
 
-  const response = await client.responses.create(
-    {
-      model: OPENAI_ORCHESTRATOR_MODEL,
-      input: [{ role: 'user', content }],
-      tools: [imageTool]
-    },
-    { signal: options?.signal }
-  );
+  const response = await client.responses
+    .create(
+      {
+        model: OPENAI_ORCHESTRATOR_MODEL,
+        input: [{ role: 'user', content }],
+        tools: [imageTool]
+      },
+      { signal: options?.signal }
+    )
+    .catch((error: unknown) => {
+      if (isOpenAIModerationError(error)) throw new ImageSafetyError(String(error));
+      throw error;
+    });
 
   const imageCall = response.output.find(
     (o): o is Extract<typeof o, { type: 'image_generation_call' }> =>
