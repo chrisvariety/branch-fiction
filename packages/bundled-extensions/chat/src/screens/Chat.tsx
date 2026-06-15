@@ -39,17 +39,18 @@ type BookCtx = ExtensionCtx & { bookId: string };
 type Props = {
   ctx: BookCtx;
   chatSlug: string;
+  fromWorld: boolean;
 };
 
-export function Chat({ chatSlug }: Props) {
+export function Chat({ chatSlug, fromWorld }: Props) {
   return (
     <Suspense fallback={<CenteredLoader />}>
-      <ChatInner chatSlug={chatSlug} />
+      <ChatInner chatSlug={chatSlug} fromWorld={fromWorld} />
     </Suspense>
   );
 }
 
-function ChatInner({ chatSlug }: { chatSlug: string }) {
+function ChatInner({ chatSlug, fromWorld }: { chatSlug: string; fromWorld: boolean }) {
   const queryClient = useQueryClient();
   const { data } = useSuspenseQuery(chatQueryOptions(chatSlug));
   const { chat, topCharacters, nodeCount } = data;
@@ -443,7 +444,7 @@ function ChatInner({ chatSlug }: { chatSlug: string }) {
         >
           <div className="flex w-full items-center">
             <div className="w-12 shrink-0">
-              {chat.userWorld?.slug ? (
+              {fromWorld && chat.userWorld?.slug ? (
                 <Link
                   to="/world/$worldSlug"
                   params={{ worldSlug: chat.userWorld.slug }}

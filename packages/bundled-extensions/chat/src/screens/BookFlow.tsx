@@ -1,8 +1,9 @@
 import { isTaskAlreadyRunningError } from '@branch-fiction/extension-sdk';
 import { IconAlertTriangle, IconLoader2 } from '@tabler/icons-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { Suspense, useEffect, useRef, useState } from 'react';
 
+import { worldsQueryOptions } from '@/hooks/queries/library-data';
 import { getPrimaryCastIdsByBookId } from '@/iframe/db/models/book-entity/get-primary-cast-ids';
 import { upsertBookSettingsArtStyle } from '@/iframe/db/models/book-settings/create-book-settings';
 import { getBookSettings } from '@/iframe/db/models/book-settings/get-book-settings';
@@ -13,6 +14,7 @@ import { overallStatus } from '@/lib/first-launch-status';
 import { ArtStylePicker } from './ArtStylePicker';
 import { FirstLaunch } from './FirstLaunch';
 import { InteractivePicker } from './InteractivePicker';
+import { WorldsIndex } from './WorldsIndex';
 
 type BookCtx = ExtensionCtx & { bookId: string };
 
@@ -122,11 +124,19 @@ function FirstLaunchGate({ ctx }: { ctx: BookCtx }) {
   if (overall === 'done') {
     return (
       <Suspense fallback={<CenteredLoader />}>
-        <InteractivePicker ctx={ctx} />
+        <DoneGate ctx={ctx} />
       </Suspense>
     );
   }
   return <FirstLaunch ctx={ctx} steps={steps} />;
+}
+
+function DoneGate({ ctx }: { ctx: BookCtx }) {
+  const { data: worlds } = useSuspenseQuery(worldsQueryOptions());
+  if (worlds.length === 0) {
+    return <InteractivePicker ctx={ctx} />;
+  }
+  return <WorldsIndex />;
 }
 
 function CenteredLoader() {

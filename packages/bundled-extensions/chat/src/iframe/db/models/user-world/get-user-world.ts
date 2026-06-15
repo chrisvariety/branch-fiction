@@ -1,6 +1,16 @@
 import { getDb } from '@/iframe/db';
 import type { UserWorld } from '@/lib/db/types';
 
+export async function getUserWorldsByUserId(userId: UserWorld['userId'], limit?: number) {
+  let query = getDb()
+    .selectFrom('userWorlds')
+    .select(['id', 'title', 'slug', 'imageUrl'])
+    .where('userId', '=', userId)
+    .orderBy('updatedAt', 'desc');
+  if (limit !== undefined) query = query.limit(limit);
+  return query.execute();
+}
+
 export async function getUserWorldWithScenariosByUserIdAndSlug(
   userId: UserWorld['userId'],
   slug: UserWorld['slug']

@@ -266,7 +266,11 @@ function ScenarioList({
       }
     },
     onSuccess: (chatSlug) => {
-      void navigate({ to: '/chat/$chatSlug', params: { chatSlug } });
+      void navigate({
+        to: '/chat/$chatSlug',
+        params: { chatSlug },
+        search: { fromWorld: true }
+      });
     },
     onError: (error) => {
       console.error('Failed to create chat:', error);
@@ -294,7 +298,11 @@ function ScenarioList({
             <ScenarioCard
               key={scenario.id}
               render={
-                <Link to="/chat/$chatSlug" params={{ chatSlug: scenario.chatSlug }} />
+                <Link
+                  to="/chat/$chatSlug"
+                  params={{ chatSlug: scenario.chatSlug }}
+                  search={{ fromWorld: true }}
+                />
               }
               title={scenario.title}
               description={scenario.description}

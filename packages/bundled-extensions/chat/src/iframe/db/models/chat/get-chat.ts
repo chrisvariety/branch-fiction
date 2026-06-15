@@ -22,6 +22,27 @@ export async function getChatSlugsByUserIdAndScenarioIds(
   );
 }
 
+export async function getLatestChatsByUserId(userId: Chat['userId'], limit?: number) {
+  let query = getDb()
+    .selectFrom('chats')
+    .select(['chats.slug', 'chats.title'])
+    .select((eb) => [
+      eb
+        .selectFrom('chatNodeParts')
+        .select('chatNodeParts.contentUrl')
+        .whereRef('chatNodeParts.chatNodeId', '=', 'chats.currentLeafNodeId')
+        .where('chatNodeParts.type', '=', 'VISUAL')
+        .where('chatNodeParts.contentUrl', 'is not', null)
+        .orderBy('chatNodeParts.idx', 'asc')
+        .limit(1)
+        .as('coverImageUrl')
+    ])
+    .where('chats.userId', '=', userId)
+    .orderBy('chats.updatedAt', 'desc');
+  if (limit !== undefined) query = query.limit(limit);
+  return query.execute();
+}
+
 export async function getChatWithUserWorldByUserIdAndSlug(
   userId: Chat['userId'],
   slug: Chat['slug']
