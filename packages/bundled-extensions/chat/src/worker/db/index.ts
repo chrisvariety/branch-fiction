@@ -98,7 +98,7 @@ class NodeSqliteDriver implements Driver {
   }
 
   async beginTransaction(c: DatabaseConnection, _s: TransactionSettings): Promise<void> {
-    await c.executeQuery(CompiledQuery.raw('begin'));
+    await c.executeQuery(CompiledQuery.raw('begin immediate'));
   }
 
   async commitTransaction(c: DatabaseConnection): Promise<void> {
