@@ -58,7 +58,12 @@ function FirstLaunchGate({ ctx }: { ctx: BookCtx }) {
   const { data: steps } = useQuery({
     queryKey: ['firstLaunchSteps', ctx.bookId],
     queryFn: () => getFirstLaunchStepsByBookId(ctx.bookId),
-    refetchInterval: 1000
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (!data) return 1000;
+      const status = overallStatus(data);
+      return status === 'done' || status === 'error' ? false : 1000;
+    }
   });
   const startedRef = useRef(false);
   const [startError, setStartError] = useState<string | null>(null);
