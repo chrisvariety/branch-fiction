@@ -277,12 +277,22 @@ fn encode_route_segment(s: &str) -> String {
     out
 }
 
-fn path_label(extension_id: &str) -> String {
-    let safe = extension_id
-        .chars()
+fn sanitize_extension_path_segment(s: &str) -> String {
+    s.chars()
         .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
-        .collect::<String>();
-    format!("path__{safe}")
+        .collect()
+}
+
+fn extension_path_label_prefix(extension_id: &str) -> String {
+    format!("path__{}__", sanitize_extension_path_segment(extension_id))
+}
+
+fn extension_path_label(extension_id: &str, book_id: &str) -> String {
+    format!(
+        "{}{}",
+        extension_path_label_prefix(extension_id),
+        sanitize_extension_path_segment(book_id)
+    )
 }
 
 #[tauri::command(rename_all = "camelCase")]
@@ -298,16 +308,13 @@ pub async fn open_path_window(
     if book_id.is_empty() {
         return Err("bookId is required".to_string());
     }
-    let label = path_label(&extension_id);
+    let label = extension_path_label(&extension_id, &book_id);
 
     let encoded_id = encode_route_segment(&extension_id);
     let route = format!("/{encoded_id}?bookId={}", encode_route_segment(&book_id));
 
     if let Some(existing) = app_handle.get_webview_window(&label) {
         existing.set_focus().map_err(|e| e.to_string())?;
-        app_handle
-            .emit_to(label.as_str(), "path:navigate", route)
-            .map_err(|e| e.to_string())?;
         return Ok(());
     }
 
@@ -335,9 +342,11 @@ pub async fn close_path_window(app_handle: AppHandle, extension_id: String) -> R
     if extension_id.is_empty() {
         return Err("extensionId is required".to_string());
     }
-    let label = path_label(&extension_id);
-    if let Some(existing) = app_handle.get_webview_window(&label) {
-        existing.destroy().map_err(|e| e.to_string())?;
+    let prefix = extension_path_label_prefix(&extension_id);
+    for (label, window) in app_handle.webview_windows() {
+        if label.starts_with(&prefix) {
+            window.destroy().map_err(|e| e.to_string())?;
+        }
     }
     Ok(())
 }

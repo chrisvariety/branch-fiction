@@ -1,13 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import {
-  RouterProvider,
-  createHashHistory,
-  createRouter,
-  useRouter
-} from '@tanstack/react-router';
-import { isTauri } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
-import React, { useEffect } from 'react';
+import { RouterProvider, createHashHistory, createRouter } from '@tanstack/react-router';
+import React from 'react';
 import ReactDOM from 'react-dom/client';
 
 import { ThemeProvider } from './components/theme-provider';
@@ -40,33 +33,11 @@ const router = createRouter({
   history: createHashHistory()
 });
 
-function NavigateOnEvent() {
-  const r = useRouter();
-  useEffect(() => {
-    if (!isTauri()) return;
-    const unlisten = listen<string>('path:navigate', (e) => {
-      void r.navigate({ to: e.payload });
-    });
-    return () => {
-      void unlisten.then((fn) => fn());
-    };
-  }, [r]);
-  return null;
-}
-
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <RouterProvider
-          router={router}
-          InnerWrap={({ children }) => (
-            <>
-              <NavigateOnEvent />
-              {children}
-            </>
-          )}
-        />
+        <RouterProvider router={router} />
       </ThemeProvider>
     </QueryClientProvider>
   </React.StrictMode>

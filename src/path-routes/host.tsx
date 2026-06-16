@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { type Theme, useTheme } from '../components/theme-provider';
 import { mintSession, revokeSession } from '../extensions/session-tokens';
 import { useWindowTitle } from '../hooks/use-window-title';
+import { getBookById } from '../lib/db/models/book/get-book';
 import { getExtensionById } from '../lib/db/models/extension/get-extension';
 import { getHttpPort } from '../lib/media/transform-url';
 import { rootRoute } from './__root';
@@ -85,10 +86,19 @@ function PathHost() {
     enabled: tauri
   });
 
+  const bookQuery = useQuery({
+    queryKey: ['path', 'book', bookId],
+    queryFn: () => getBookById(bookId as string),
+    enabled: tauri && bookId !== null
+  });
+
   const [boot, setBoot] = useState<IframeBoot | null>(null);
   const [bootError, setBootError] = useState<string | null>(null);
 
-  useWindowTitle(boot?.title);
+  const bookTitle = bookQuery.data?.title;
+  useWindowTitle(
+    boot?.title ? [boot.title, bookTitle].filter(Boolean).join(' — ') : undefined
+  );
 
   const extension = extensionQuery.data;
   const manifest = extension?.manifest as
