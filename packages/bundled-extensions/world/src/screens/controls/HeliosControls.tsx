@@ -63,11 +63,12 @@ export function HeliosControls({
             }}
           />
           <button
-            className="rounded-lg bg-white/90 px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-white disabled:opacity-40"
+            aria-label="Evolve the scene"
+            className="grid h-9 w-9 place-items-center rounded-lg text-lg leading-none text-white/70 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent"
             disabled={!text.trim() || busy}
             onClick={evolve}
           >
-            Evolve
+            →
           </button>
         </div>
       </div>

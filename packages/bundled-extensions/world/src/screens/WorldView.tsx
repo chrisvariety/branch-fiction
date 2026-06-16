@@ -139,22 +139,19 @@ function WorldStage({
   }, [started, tryPlay]);
 
   return (
-    <div className="flex h-screen flex-col gap-2 bg-neutral-950 p-3">
-      <div className="flex justify-end">
+    <div className="flex h-screen items-center justify-center bg-neutral-950 p-3">
+      <div
+        ref={stageRef}
+        className="relative aspect-video max-h-full w-full max-w-[calc((100vh-1.5rem)*16/9)] overflow-hidden rounded-2xl bg-black"
+      >
+        <ReactorView className="h-full w-full" videoObjectFit="cover" />
         <button
           aria-label="Exit"
-          className="grid h-8 w-8 place-items-center rounded-full border border-white/20 bg-black/40 text-lg leading-none text-white/80 transition-colors hover:bg-black/60 hover:text-white"
+          className="absolute top-3 right-3 z-10 grid h-8 w-8 place-items-center rounded-full border border-white/20 bg-black/40 text-lg leading-none text-white/80 backdrop-blur-sm transition-colors hover:bg-black/60 hover:text-white"
           onClick={onExit}
         >
           ✕
         </button>
-      </div>
-
-      <div
-        ref={stageRef}
-        className="relative flex-1 overflow-hidden rounded-2xl bg-black"
-      >
-        <ReactorView className="h-full w-full" videoObjectFit="contain" />
         <img
           src={seedSrc}
           alt=""
