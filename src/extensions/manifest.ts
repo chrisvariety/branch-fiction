@@ -46,6 +46,9 @@ export type SlotCandidate = {
   providerName: string;
   providerType: string;
   modelKey: string;
+  // For cloud candidates: the catalog-advertised upstream + model, since the DB row is a placeholder.
+  cloudUpstreamName?: string;
+  cloudModelName?: string;
 };
 
 // A `useSlot` area reflects the org's default text model; switching it updates the global default.

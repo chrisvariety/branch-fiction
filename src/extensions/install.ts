@@ -6,6 +6,7 @@ import { DEFAULT_ORG_ID } from '../lib/auth';
 import {
   CLOUD_PROVIDER_TYPE,
   fetchCloudCatalog,
+  type CloudCatalogResponse,
   type CloudProvider,
   type CloudSlot
 } from '../lib/cloud';
@@ -88,15 +89,37 @@ async function checkExtensionSignature(sourcePath: string): Promise<SignatureSta
   }
 }
 
+type CloudTextSlotInfo = { upstreamName: string; modelName: string };
+
+// The catalog-advertised upstream provider + model behind each text role (piText, piTextLight).
+function resolveCloudTextSlots(
+  catalog: CloudCatalogResponse
+): Record<string, CloudTextSlotInfo> {
+  const out: Record<string, CloudTextSlotInfo> = {};
+  for (const [role, slot] of Object.entries(catalog.slots)) {
+    const provider = catalog.providers.find((p) => p.baseUrl === slot.baseUrl);
+    const preset = provider
+      ? getProviderEntryByOriginAndAuth(provider.baseUrl, provider.auth)
+      : null;
+    out[role] = { upstreamName: preset?.name ?? '', modelName: slot.modelKey ?? '' };
+  }
+  return out;
+}
+
 async function buildCloudMatchContext(
   providers: Provider[],
   manifestId: string,
   provenance: ExtensionProvenance | undefined,
   signed: boolean
-): Promise<{ virtuals: MatchableProvider[]; slots: Record<string, CloudSlot> }> {
-  if (!isCloudEligible(provenance, signed)) return { virtuals: [], slots: {} };
+): Promise<{
+  virtuals: MatchableProvider[];
+  slots: Record<string, CloudSlot>;
+  textSlots: Record<string, CloudTextSlotInfo>;
+}> {
+  const empty = { virtuals: [], slots: {}, textSlots: {} };
+  if (!isCloudEligible(provenance, signed)) return empty;
   const cloudRow = providers.find((p) => p.type === CLOUD_PROVIDER_TYPE);
-  if (!cloudRow) return { virtuals: [], slots: {} };
+  if (!cloudRow) return empty;
   try {
     const catalog = await fetchCloudCatalog();
     const virtuals = catalog.providers.map((cp) => ({
@@ -105,9 +128,13 @@ async function buildCloudMatchContext(
       authShape: cp.auth,
       overrideBaseUrl: cp.proxyBaseUrl
     }));
-    return { virtuals, slots: catalog.extensionModels?.[manifestId] ?? {} };
+    return {
+      virtuals,
+      slots: catalog.extensionModels?.[manifestId] ?? {},
+      textSlots: resolveCloudTextSlots(catalog)
+    };
   } catch {
-    return { virtuals: [], slots: {} };
+    return empty;
   }
 }
 
@@ -127,10 +154,13 @@ export async function stageExtensionInstall(
   const signed = sigStatus === 'valid';
   const reqs = manifest.providers ?? [];
   const providers = reqs.length > 0 ? await getProvidersByOrganizationId(ORG_ID) : [];
-  const { virtuals: cloudVirtuals, slots: extensionSlots } =
-    reqs.length > 0
-      ? await buildCloudMatchContext(providers, manifest.id, provenance, signed)
-      : { virtuals: [], slots: {} };
+  const {
+    virtuals: cloudVirtuals,
+    slots: extensionSlots,
+    textSlots: cloudTextSlots
+  } = reqs.length > 0
+    ? await buildCloudMatchContext(providers, manifest.id, provenance, signed)
+    : { virtuals: [], slots: {}, textSlots: {} };
   const existingBindings = existing
     ? await getExtensionProviderBindings(manifest.id)
     : [];
@@ -140,14 +170,20 @@ export async function stageExtensionInstall(
   for (const req of reqs) {
     if (isUseSlotRequirement(req)) {
       requirements.push(
-        resolveSlotRequirement(req, providers, orgTextModel, existingBindings)
+        resolveSlotRequirement(
+          req,
+          providers,
+          orgTextModel,
+          existingBindings,
+          cloudTextSlots
+        )
       );
     } else {
-      // A catalog-declared slot serves a single cloud provider, so we need to restrict cloud matches to it.
+      // Cloud is authoritative for provider+model, so only offered where it declares a slot.
       const slot = extensionSlots[req.key];
       const allowedCloud = slot
         ? cloudVirtuals.filter((v) => v.baseUrl === slot.baseUrl)
-        : cloudVirtuals;
+        : [];
       const matchable: MatchableProvider[] = [...providers, ...allowedCloud];
       requirements.push(resolveOptionsRequirement(req, matchable, existingBindings));
     }
@@ -273,20 +309,25 @@ function resolveSlotRequirement(
   req: ExtensionProviderRequirementSlot,
   providers: OrgProvider[],
   orgTextModel: OrgTextModel,
-  bindings: { providerKey: string; providerId: string }[]
+  bindings: { providerKey: string; providerId: string }[],
+  cloudTextSlots: Record<string, CloudTextSlotInfo>
 ): ResolvedRequirement {
   const candidates: SlotCandidate[] = selectableTextProviders(providers).flatMap((p) => {
     const model = primaryTextModel(p);
     if (!model) return [];
-    return [
-      {
-        providerModelId: model.id,
-        providerId: p.id,
-        providerName: p.name,
-        providerType: p.type,
-        modelKey: model.modelKey
-      }
-    ];
+    const candidate: SlotCandidate = {
+      providerModelId: model.id,
+      providerId: p.id,
+      providerName: p.name,
+      providerType: p.type,
+      modelKey: model.modelKey
+    };
+    if (p.type === CLOUD_PROVIDER_TYPE) {
+      const info = cloudTextSlots[req.useSlot];
+      candidate.cloudUpstreamName = info?.upstreamName || undefined;
+      candidate.cloudModelName = info?.modelName || undefined;
+    }
+    return [candidate];
   });
   if (candidates.length === 0) return { requirement: req, slot: { kind: 'empty' } };
 

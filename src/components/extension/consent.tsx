@@ -943,8 +943,21 @@ function ModelsBox({
 }
 
 // `useSlot` area: defaults to app text model, overridable per extension.
+// Provider-oriented label for the picker, e.g. "Google Gemini (Cloud)".
 function candidateLabel(c: SlotCandidate): string {
-  if (c.providerType === CLOUD_PROVIDER_TYPE) return c.providerName;
+  if (c.providerType === CLOUD_PROVIDER_TYPE) {
+    return c.cloudUpstreamName ? `${c.cloudUpstreamName} (Cloud)` : c.providerName;
+  }
+  return `${c.providerName} · ${lookupModelName(c.providerType, c.modelKey)}`;
+}
+
+// Read-only "Provider · Model"; cloud keeps its "(Cloud)" tag plus the advertised model.
+function candidateDisplayLabel(c: SlotCandidate): string {
+  if (c.providerType === CLOUD_PROVIDER_TYPE) {
+    return c.cloudModelName
+      ? `${candidateLabel(c)} · ${c.cloudModelName}`
+      : candidateLabel(c);
+  }
   return `${c.providerName} · ${lookupModelName(c.providerType, c.modelKey)}`;
 }
 
@@ -980,7 +993,7 @@ function SlotModelRow({
     return (
       <>
         <span className="text-muted-foreground">{role}</span>
-        <span className="font-medium">{candidateLabel(current)}</span>
+        <span className="font-medium">{candidateDisplayLabel(current)}</span>
       </>
     );
   }
@@ -1062,14 +1075,17 @@ function OptionModelRow({
     : null;
   const providerType = resolved ? resolvedOptionProviderType(resolved) : '';
   const currentModel = isNone ? '' : (state.modelKeys[optionIndex] ?? '');
+  // Cloud dictates both provider and model from its catalog; only BYO providers override.
   const cloudBound = resolved ? isCloudBound(resolved) : false;
+  const showModelInput = !isNone && wantsModel && !cloudBound;
+
+  const display = isNone
+    ? 'None'
+    : currentModel
+      ? `${providerLabelFor(option!, resolved!)} · ${lookupModelName(providerType, currentModel)}`
+      : providerLabelFor(option!, resolved!) || '—';
 
   if (!showAdvanced) {
-    const display = isNone
-      ? 'None'
-      : currentModel
-        ? lookupModelName(providerType, currentModel)
-        : '—';
     return (
       <>
         <span className="text-muted-foreground">{role}</span>
@@ -1143,13 +1159,10 @@ function OptionModelRow({
             </SelectContent>
           </Select>
         )}
-        {/* Cloud serves its own model for the role; only BYO providers pick one. */}
-        {!isNone && wantsModel && !cloudBound && (
-          <ModelPicker
-            providerType={providerType}
-            value={currentModel}
-            onChange={onChangeModel}
-          />
+        {showModelInput ? (
+          <ModelOverrideInput value={currentModel} onChange={onChangeModel} />
+        ) : (
+          choices.length <= 1 && <span className="font-medium">{display}</span>
         )}
       </div>
     </>
@@ -1505,6 +1518,31 @@ function ExpandableDescription({ children }: { children: string }) {
     >
       <span className={expanded ? 'block' : 'line-clamp-1'}>{children}</span>
     </button>
+  );
+}
+
+// Free-form so image/vision models outside the text catalog can be entered.
+function ModelOverrideInput({
+  value,
+  onChange
+}: {
+  value: string;
+  onChange: (modelKey: string) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <FieldLabel className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+        Model
+      </FieldLabel>
+      <Input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="model-id"
+        className="font-mono"
+        autoComplete="off"
+        spellCheck={false}
+      />
+    </div>
   );
 }
 
