@@ -543,8 +543,11 @@ export function ConsentScreen({
 
       const requirements: CommitInstallArgs['requirements'] = picks.map((p) => {
         const wantsModel = requirementHasModel(p.r.requirement);
+        // Cloud serves the model from the catalog
+        const cloudBound = isCloudBound(p.resolved);
         const stateModel = reqStates[p.r.requirement.key]!.modelKeys[p.optionIndex] ?? '';
-        const modelKey = wantsModel ? stateModel.trim() || undefined : undefined;
+        const modelKey =
+          wantsModel && !cloudBound ? stateModel.trim() || undefined : undefined;
         if (p.resolved.kind === 'existing') {
           return {
             kind: 'existing',

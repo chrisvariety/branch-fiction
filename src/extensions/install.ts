@@ -3,7 +3,12 @@ import { compareSemVer, isValidSemVer } from 'semver-parser';
 import { v7 as uuidv7 } from 'uuid';
 
 import { DEFAULT_ORG_ID } from '../lib/auth';
-import { CLOUD_PROVIDER_TYPE, fetchCloudCatalog, type CloudProvider } from '../lib/cloud';
+import {
+  CLOUD_PROVIDER_TYPE,
+  fetchCloudCatalog,
+  type CloudProvider,
+  type CloudSlot
+} from '../lib/cloud';
 import { getDb } from '../lib/db';
 import { getExtensionProviderBindings } from '../lib/db/models/extension-provider/get-extension-provider';
 import {
@@ -83,24 +88,26 @@ async function checkExtensionSignature(sourcePath: string): Promise<SignatureSta
   }
 }
 
-async function buildCloudVirtualProviders(
+async function buildCloudMatchContext(
   providers: Provider[],
+  manifestId: string,
   provenance: ExtensionProvenance | undefined,
   signed: boolean
-): Promise<MatchableProvider[]> {
-  if (!isCloudEligible(provenance, signed)) return [];
+): Promise<{ virtuals: MatchableProvider[]; slots: Record<string, CloudSlot> }> {
+  if (!isCloudEligible(provenance, signed)) return { virtuals: [], slots: {} };
   const cloudRow = providers.find((p) => p.type === CLOUD_PROVIDER_TYPE);
-  if (!cloudRow) return [];
+  if (!cloudRow) return { virtuals: [], slots: {} };
   try {
-    const { providers: cloudProviders } = await fetchCloudCatalog();
-    return cloudProviders.map((cp) => ({
+    const catalog = await fetchCloudCatalog();
+    const virtuals = catalog.providers.map((cp) => ({
       ...cloudRow,
       baseUrl: cp.baseUrl,
       authShape: cp.auth,
       overrideBaseUrl: cp.proxyBaseUrl
     }));
+    return { virtuals, slots: catalog.extensionModels?.[manifestId] ?? {} };
   } catch {
-    return [];
+    return { virtuals: [], slots: {} };
   }
 }
 
@@ -120,11 +127,10 @@ export async function stageExtensionInstall(
   const signed = sigStatus === 'valid';
   const reqs = manifest.providers ?? [];
   const providers = reqs.length > 0 ? await getProvidersByOrganizationId(ORG_ID) : [];
-  const cloudVirtuals =
+  const { virtuals: cloudVirtuals, slots: extensionSlots } =
     reqs.length > 0
-      ? await buildCloudVirtualProviders(providers, provenance, signed)
-      : [];
-  const matchable: MatchableProvider[] = [...providers, ...cloudVirtuals];
+      ? await buildCloudMatchContext(providers, manifest.id, provenance, signed)
+      : { virtuals: [], slots: {} };
   const existingBindings = existing
     ? await getExtensionProviderBindings(manifest.id)
     : [];
@@ -137,6 +143,12 @@ export async function stageExtensionInstall(
         resolveSlotRequirement(req, providers, orgTextModel, existingBindings)
       );
     } else {
+      // A catalog-declared slot serves a single cloud provider, so we need to restrict cloud matches to it.
+      const slot = extensionSlots[req.key];
+      const allowedCloud = slot
+        ? cloudVirtuals.filter((v) => v.baseUrl === slot.baseUrl)
+        : cloudVirtuals;
+      const matchable: MatchableProvider[] = [...providers, ...allowedCloud];
       requirements.push(resolveOptionsRequirement(req, matchable, existingBindings));
     }
   }
@@ -421,6 +433,12 @@ export async function commitExtensionInstall(
   const boundOptionsReqs = optionsReqs.filter(
     (req) => inputByKey.has(req.key) || !isOptionalRequirement(req)
   );
+
+  const orgProviders = await getProvidersByOrganizationId(ORG_ID);
+  const cloudProviderIds = new Set(
+    orgProviders.filter((p) => p.type === CLOUD_PROVIDER_TYPE).map((p) => p.id)
+  );
+
   for (const req of boundOptionsReqs) {
     if (!inputByKey.has(req.key)) {
       throw new Error(`Missing input for extension provider "${req.key}"`);
@@ -432,7 +450,9 @@ export async function commitExtensionInstall(
         `Extension provider "${req.key}": optionIndex ${input.optionIndex} is out of range`
       );
     }
-    if (opt.model && !input.modelKey) {
+    const boundToCloud =
+      input.kind === 'existing' && cloudProviderIds.has(input.providerId);
+    if (opt.model && !input.modelKey && !boundToCloud) {
       throw new Error(
         `Extension provider "${req.key}" declares a model but no modelKey was selected`
       );
@@ -670,8 +690,11 @@ export async function autoConfigureCloudEligibleExtensions(): Promise<void> {
   if (!cloudRow) return;
 
   let cloudProviders: CloudProvider[];
+  let extensionModels: Record<string, Record<string, CloudSlot>>;
   try {
-    ({ providers: cloudProviders } = await fetchCloudCatalog());
+    const catalog = await fetchCloudCatalog();
+    cloudProviders = catalog.providers;
+    extensionModels = catalog.extensionModels ?? {};
   } catch (err) {
     console.warn('auto-configure: failed to fetch cloud catalog', err);
     return;
@@ -682,7 +705,13 @@ export async function autoConfigureCloudEligibleExtensions(): Promise<void> {
   const bindings: CloudBinding[] = [];
   for (const extension of extensions) {
     if (!isCloudEligible(provenanceFromRow(extension), extension.signed)) continue;
-    await planCloudAutoConfigure(extension, cloudRow.id, cloudProviders, bindings);
+    await planCloudAutoConfigure(
+      extension,
+      cloudRow.id,
+      cloudProviders,
+      extensionModels,
+      bindings
+    );
   }
   if (bindings.length === 0) return;
 
@@ -693,37 +722,33 @@ async function planCloudAutoConfigure(
   extension: Extension,
   cloudProviderId: string,
   cloudProviders: CloudProvider[],
+  extensionModels: Record<string, Record<string, CloudSlot>>,
   bindings: CloudBinding[]
 ): Promise<void> {
+  const slots = extensionModels[extension.id];
+  if (!slots) return;
+
   const manifest = extension.manifest as ExtensionManifestV1;
-  const optionReqs = (manifest.providers ?? []).filter(
-    (r): r is ExtensionProviderRequirementOptions => !isUseSlotRequirement(r)
+  const optionKeys = new Set(
+    (manifest.providers ?? [])
+      .filter((r): r is ExtensionProviderRequirementOptions => !isUseSlotRequirement(r))
+      .map((r) => r.key)
   );
-  if (optionReqs.length === 0) return;
 
   const existing = await getExtensionProviderBindings(extension.id);
   const bound = new Set(existing.map((b) => b.providerKey));
 
-  for (const req of optionReqs) {
-    if (bound.has(req.key)) continue;
-    for (const opt of req.options) {
-      const url = optionURL(opt);
-      const cloud = cloudProviders.find((cp) =>
-        providerMatchesOriginAndAuth(
-          { baseUrl: cp.baseUrl, type: CLOUD_PROVIDER_TYPE, authShape: cp.auth },
-          url,
-          opt.auth
-        )
-      );
-      if (!cloud) continue;
-      bindings.push({
-        extensionId: extension.id,
-        providerKey: req.key,
-        providerId: cloudProviderId,
-        overrideBaseUrl: cloud.proxyBaseUrl,
-        modelKey: opt.model ?? null
-      });
-      break;
-    }
+  // the cloud catalog is authoritative for provider+model
+  for (const [providerKey, slot] of Object.entries(slots)) {
+    if (bound.has(providerKey) || !optionKeys.has(providerKey)) continue;
+    const cloud = cloudProviders.find((cp) => cp.baseUrl === slot.baseUrl);
+    if (!cloud) continue;
+    bindings.push({
+      extensionId: extension.id,
+      providerKey,
+      providerId: cloudProviderId,
+      overrideBaseUrl: cloud.proxyBaseUrl,
+      modelKey: null
+    });
   }
 }

@@ -150,6 +150,33 @@ fn cloud_role<'a>(
     Ok((provider, slot))
 }
 
+pub(crate) fn cloud_extension_slot<'a>(
+    catalog: &'a CloudCatalog,
+    extension_id: &str,
+    provider_key: &str,
+) -> Result<(&'a CloudProvider, &'a CloudSlot), String> {
+    let slot = catalog
+        .extension_models
+        .get(extension_id)
+        .and_then(|m| m.get(provider_key))
+        .ok_or_else(|| {
+            format!(
+                "cloud catalog has no slot for extension {extension_id:?} role {provider_key:?}"
+            )
+        })?;
+    let provider = catalog
+        .providers
+        .iter()
+        .find(|p| p.base_url == slot.base_url)
+        .ok_or_else(|| {
+            format!(
+                "cloud catalog extension slot {extension_id:?}/{provider_key:?} references unknown baseUrl {:?}",
+                slot.base_url
+            )
+        })?;
+    Ok((provider, slot))
+}
+
 fn cloud_provider_type(provider: &CloudProvider) -> String {
     provider_type_for_origin_and_auth(&provider.base_url, &provider.auth)
         .map(str::to_string)
@@ -188,7 +215,8 @@ pub async fn resolve_text_model_meta(
     role: &str,
 ) -> Result<TextModelMeta, String> {
     let mut conn = open_main_db_ro(app).await?;
-    let (ptype, model_key, reasoning, ..) = read_text_model_row(&mut conn, provider_model_id).await?;
+    let (ptype, model_key, reasoning, ..) =
+        read_text_model_row(&mut conn, provider_model_id).await?;
     let _ = conn.close().await;
 
     if ptype != CLOUD_PROVIDER_TYPE {
@@ -201,9 +229,13 @@ pub async fn resolve_text_model_meta(
 
     let catalog = app.state::<CloudState>().fetch_catalog().await?;
     let (provider, slot) = cloud_role(&catalog, role)?;
+    let model_key = slot
+        .model_key
+        .clone()
+        .ok_or_else(|| format!("cloud catalog slot for role {role:?} has no modelKey"))?;
     Ok(TextModelMeta {
         provider_type: cloud_provider_type(provider),
-        model_key: slot.model_key.clone(),
+        model_key,
         reasoning: slot.reasoning.clone(),
     })
 }
@@ -214,8 +246,17 @@ pub async fn resolve_text_model_transport(
     role: &str,
 ) -> Result<ResolvedProvider, String> {
     let mut conn = open_main_db_ro(app).await?;
-    let (ptype, _model_key, _reasoning, base_url, auth_shape, secret, secret_env_var, secret_priority, rpm_limit) =
-        read_text_model_row(&mut conn, provider_model_id).await?;
+    let (
+        ptype,
+        _model_key,
+        _reasoning,
+        base_url,
+        auth_shape,
+        secret,
+        secret_env_var,
+        secret_priority,
+        rpm_limit,
+    ) = read_text_model_row(&mut conn, provider_model_id).await?;
     let rpm_limit = rpm_limit
         .filter(|v| *v > 0)
         .and_then(|v| u32::try_from(v).ok());
@@ -251,24 +292,37 @@ pub async fn resolve_text_model_transport(
 }
 
 // pi-ai metadata for an extension "options" binding: a concrete provider type and
-// the upstream origin. Cloud-backed bindings are mapped through the catalog.
+// the upstream origin. Cloud-backed bindings are mapped through the catalog, which
+// also pins the model (`model_key`) and reasoning; BYO bindings leave those None.
 pub struct OptionsMeta {
     pub provider_type: String,
     pub base_url: String,
+    pub model_key: Option<String>,
+    pub reasoning: Option<String>,
 }
 
 pub async fn resolve_options_meta(
     app: &AppHandle,
+    extension_id: &str,
+    provider_key: &str,
     provider_type: &str,
     stored_base_url: Option<&str>,
     override_base_url: Option<&str>,
     auth_shape_json: &str,
 ) -> Result<OptionsMeta, String> {
     if provider_type == CLOUD_PROVIDER_TYPE {
+        let catalog = app.state::<CloudState>().fetch_catalog().await?;
+        if let Ok((provider, slot)) = cloud_extension_slot(&catalog, extension_id, provider_key) {
+            return Ok(OptionsMeta {
+                provider_type: cloud_provider_type(provider),
+                base_url: provider.base_url.clone(),
+                model_key: slot.model_key.clone(),
+                reasoning: slot.reasoning.clone(),
+            });
+        }
         let proxy = override_base_url
             .filter(|s| !s.is_empty())
             .ok_or_else(|| "cloud-bound options binding missing override_base_url".to_string())?;
-        let catalog = app.state::<CloudState>().fetch_catalog().await?;
         let provider = catalog
             .providers
             .iter()
@@ -277,6 +331,8 @@ pub async fn resolve_options_meta(
         return Ok(OptionsMeta {
             provider_type: cloud_provider_type(provider),
             base_url: provider.base_url.clone(),
+            model_key: None,
+            reasoning: None,
         });
     }
 
@@ -294,6 +350,8 @@ pub async fn resolve_options_meta(
     Ok(OptionsMeta {
         provider_type: resolved,
         base_url,
+        model_key: None,
+        reasoning: None,
     })
 }
 

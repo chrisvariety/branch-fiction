@@ -36,6 +36,8 @@ struct CachedCatalog {
 pub struct CloudCatalog {
     pub providers: Vec<CloudProvider>,
     pub slots: HashMap<String, CloudSlot>,
+    #[serde(rename = "extensionModels", default)]
+    pub extension_models: HashMap<String, HashMap<String, CloudSlot>>,
 }
 
 #[derive(Clone, Deserialize)]
@@ -51,8 +53,8 @@ pub struct CloudProvider {
 pub struct CloudSlot {
     #[serde(rename = "baseUrl")]
     pub base_url: String,
-    #[serde(rename = "modelKey")]
-    pub model_key: String,
+    #[serde(rename = "modelKey", default)]
+    pub model_key: Option<String>,
     #[serde(default)]
     pub reasoning: Option<String>,
 }

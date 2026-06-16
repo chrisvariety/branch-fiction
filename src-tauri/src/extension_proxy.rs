@@ -12,8 +12,8 @@ use crate::extension_auth::verify_path_token;
 use crate::provider_catalog::base_url_for_type;
 use crate::provider_proxy::{AuthShape, ResolvedProvider, forward_to_provider};
 use crate::provider_resolve::{
-    ManifestArea, parse_manifest_providers, resolve_secret, resolve_text_model_transport,
-    useslot_provider_model_id,
+    ManifestArea, cloud_extension_slot, parse_manifest_providers, resolve_secret,
+    resolve_text_model_transport, useslot_provider_model_id,
 };
 
 const DEFAULT_USER_ID: &str = "default";
@@ -174,27 +174,28 @@ async fn resolve_options_transport(
     let rpm_limit = row.6.filter(|v| *v > 0).and_then(|v| u32::try_from(v).ok());
 
     if provider_type == CLOUD_PROVIDER_TYPE {
-        let base_url = override_base_url
-            .filter(|s| !s.is_empty())
-            .ok_or_else(|| {
-                format!("extension_providers row for {extension_id}/{provider_key} bound to cloud is missing override_base_url")
-            })?;
         let external_id = external_id.filter(|s| !s.is_empty()).ok_or_else(|| {
             "user has no cloud externalId — link your cloud account first".to_string()
         })?;
         let cloud = app.state::<CloudState>();
-        // The cloud reads the JWT from the catalog-advertised auth shape's slot.
         let catalog = cloud.fetch_catalog().await?;
-        let auth = catalog
-            .providers
-            .iter()
-            .find(|p| p.proxy_base_url == base_url)
-            .map(|p| p.auth.clone())
-            .ok_or_else(|| format!("cloud catalog has no provider for proxy {base_url:?}"))?;
+        let provider = match cloud_extension_slot(&catalog, extension_id, provider_key) {
+            Ok((provider, _slot)) => provider,
+            Err(_) => {
+                let proxy = override_base_url.filter(|s| !s.is_empty()).ok_or_else(|| {
+                    format!("extension_providers row for {extension_id}/{provider_key} bound to cloud is missing override_base_url")
+                })?;
+                catalog
+                    .providers
+                    .iter()
+                    .find(|p| p.proxy_base_url == proxy)
+                    .ok_or_else(|| format!("cloud catalog has no provider for proxy {proxy:?}"))?
+            }
+        };
         let token = cloud.mint_or_get_jwt(&external_id).await?;
         return Ok(ResolvedProvider {
-            base_url,
-            auth,
+            base_url: provider.proxy_base_url.clone(),
+            auth: provider.auth.clone(),
             secret: Some(token),
             rpm_limit,
         });

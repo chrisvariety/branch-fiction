@@ -15,13 +15,15 @@ export type CloudProvider = {
 
 export type CloudSlot = {
   baseUrl: string;
-  modelKey: string;
+  modelKey?: string;
   reasoning?: ReasoningLevel;
 };
 
 export type CloudCatalogResponse = {
   providers: CloudProvider[];
   slots: Record<string, CloudSlot>;
+  // manifest id -> provider key
+  extensionModels?: Record<string, Record<string, CloudSlot>>;
 };
 
 export type CloudTokenResponse = {

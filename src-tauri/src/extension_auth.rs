@@ -313,7 +313,10 @@ async fn build_session_grant(
             } => {
                 let meta = resolve_text_model_meta(app, &provider_model_id, &role).await?;
                 entry.insert("baseURL".to_string(), Value::String(String::new()));
-                entry.insert("providerType".to_string(), Value::String(meta.provider_type));
+                entry.insert(
+                    "providerType".to_string(),
+                    Value::String(meta.provider_type),
+                );
                 entry.insert("modelKey".to_string(), Value::String(meta.model_key));
                 if let Some(r) = meta.reasoning {
                     entry.insert("reasoning".to_string(), Value::String(r));
@@ -330,6 +333,8 @@ async fn build_session_grant(
             } => {
                 let meta = resolve_options_meta(
                     app,
+                    extension_id,
+                    &key,
                     &provider_type,
                     base_url.as_deref(),
                     override_base_url.as_deref(),
@@ -337,9 +342,15 @@ async fn build_session_grant(
                 )
                 .await?;
                 entry.insert("baseURL".to_string(), Value::String(meta.base_url));
-                entry.insert("providerType".to_string(), Value::String(meta.provider_type));
-                if let Some(mk) = model_key {
+                entry.insert(
+                    "providerType".to_string(),
+                    Value::String(meta.provider_type),
+                );
+                if let Some(mk) = meta.model_key.or(model_key) {
                     entry.insert("modelKey".to_string(), Value::String(mk));
+                }
+                if let Some(r) = meta.reasoning {
+                    entry.insert("reasoning".to_string(), Value::String(r));
                 }
                 providers.insert(key, Value::Object(entry));
             }
