@@ -51,7 +51,7 @@
         {
           "baseURL": "https://api.reactor.inc",
           "auth": { "kind": "header", "header": "Reactor-API-Key" },
-          "credentialHelp": "Get an API key (rk_…) from your [Reactor dashboard](https://reactor.inc)"
+          "credentialHelp": "Get an API key (rk_…) from your [Reactor dashboard](https://www.reactor.inc/account/api-keys)"
         }
       ]
     }
