@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "ignorePatterns": ["chat-extension/**"],
+  "ignorePatterns": ["cyoa-extension/**"],
   "plugins": ["import", "typescript"],
   "categories": {},
   "rules": {

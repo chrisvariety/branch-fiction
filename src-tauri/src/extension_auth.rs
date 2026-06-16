@@ -377,7 +377,7 @@ mod tests {
         let state = ExtensionAuthState::default();
         let token = state
             .mint(
-                "@local/chat",
+                "@local/cyoa",
                 Some("book-1".into()),
                 provider_keys(&["text", "image_generation_chat"]),
                 Value::Null,
@@ -385,7 +385,7 @@ mod tests {
             )
             .unwrap();
         let claims = state.verify(&token).unwrap();
-        assert_eq!(claims.sub, "@local/chat");
+        assert_eq!(claims.sub, "@local/cyoa");
         assert_eq!(claims.book_id.as_deref(), Some("book-1"));
         assert!(claims.allows_provider("text"));
         assert!(!claims.allows_provider("segmentation"));
@@ -396,7 +396,7 @@ mod tests {
         let state = ExtensionAuthState::default();
         let token = state
             .mint(
-                "@local/chat",
+                "@local/cyoa",
                 None,
                 provider_keys(&["text"]),
                 Value::Null,
@@ -405,7 +405,7 @@ mod tests {
             .unwrap();
         assert!(state.verify(&token).is_ok());
         std::thread::sleep(std::time::Duration::from_millis(1100));
-        state.revoke_extension("@local/chat");
+        state.revoke_extension("@local/cyoa");
         match state.verify(&token) {
             Err(AuthError::Revoked) => {}
             other => panic!("expected Revoked, got {other:?}"),
@@ -417,7 +417,7 @@ mod tests {
         let state_a = ExtensionAuthState::default();
         let state_b = ExtensionAuthState::default();
         let token = state_a
-            .mint("@local/chat", None, provider_keys(&[]), Value::Null, 3600)
+            .mint("@local/cyoa", None, provider_keys(&[]), Value::Null, 3600)
             .unwrap();
         assert!(matches!(state_b.verify(&token), Err(AuthError::Invalid)));
     }

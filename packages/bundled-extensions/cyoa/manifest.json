@@ -1,11 +1,11 @@
 {
   "manifestVersion": "v1",
-  "id": "@local/chat",
-  "name": "Chat",
+  "id": "@local/cyoa",
+  "name": "Choose Your Own Adventure",
   "version": "0.1.0",
   "author": "Chris McC",
-  "description": "Pick characters and a setting from your book and chat with them. Pick characters and a setting from your book and chat with them. Pick characters and a setting from your book and chat with them. Pick characters and a setting from your book and chat with them.",
-  "repository": "https://github.com/chrisvariety/branch-fiction/tree/release/packages/bundled-extensions/chat",
+  "description": "Step into your book and shape the story. Pick characters and a setting, then chat your way through a Choose Your Own Adventure that unfolds however you steer it.",
+  "repository": "https://github.com/chrisvariety/branch-fiction/tree/release/packages/bundled-extensions/cyoa",
   "seed": "seed.db.gz",
   "bookData": [
     { "table": "first_launch_steps", "bookIdColumn": "book_id" },

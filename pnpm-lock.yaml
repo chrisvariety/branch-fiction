@@ -349,7 +349,7 @@ importers:
         specifier: 'catalog:'
         version: 8.0.16(@types/node@25.9.3)(jiti@2.7.0)(yaml@2.9.0)
 
-  packages/bundled-extensions/chat:
+  packages/bundled-extensions/cyoa:
     dependencies:
       '@base-ui/react':
         specifier: 'catalog:'
@@ -3019,7 +3019,6 @@ packages:
 
   openai@6.42.0:
     resolution: {integrity: sha512-1WFEt/uXMXOLhYRNkgJWo08Y2YNvNwpVU72K7ibrWgWpNOXd4VojXLbe6SQ4bLiUQ3Y8jz4IiyVkylJCL1DtZg==}
-    hasBin: true
     peerDependencies:
       ws: ^8.18.0
       zod: ^3.25 || ^4.0

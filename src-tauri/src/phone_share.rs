@@ -150,15 +150,15 @@ mod tests {
     #[test]
     fn slug_is_three_words() {
         let state = PhoneShareInner::default();
-        let slug = state.register(entry("@local/chat", "book-1"));
+        let slug = state.register(entry("@local/cyoa", "book-1"));
         assert_eq!(slug.split('-').count(), 3);
     }
 
     #[test]
     fn re_registering_same_extension_book_replaces() {
         let state = PhoneShareInner::default();
-        let s1 = state.register(entry("@local/chat", "book-1"));
-        let s2 = state.register(entry("@local/chat", "book-1"));
+        let s1 = state.register(entry("@local/cyoa", "book-1"));
+        let s2 = state.register(entry("@local/cyoa", "book-1"));
         assert!(state.lookup(&s1).is_none(), "old slug should be evicted");
         assert!(state.lookup(&s2).is_some());
     }
@@ -166,9 +166,9 @@ mod tests {
     #[test]
     fn revoke_for_extension_clears_all_books() {
         let state = PhoneShareInner::default();
-        let s1 = state.register(entry("@local/chat", "book-1"));
-        let s2 = state.register(entry("@local/chat", "book-2"));
-        state.revoke_for_extension("@local/chat");
+        let s1 = state.register(entry("@local/cyoa", "book-1"));
+        let s2 = state.register(entry("@local/cyoa", "book-2"));
+        state.revoke_for_extension("@local/cyoa");
         assert!(state.lookup(&s1).is_none());
         assert!(state.lookup(&s2).is_none());
     }
