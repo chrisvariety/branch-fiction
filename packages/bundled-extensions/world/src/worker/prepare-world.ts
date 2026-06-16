@@ -103,8 +103,12 @@ const runPrepareWorld = createWorkflowFunction<
       throw new Error('LLM did not return a <world_prompt>');
     }
 
+    console.log(`[world] ${model} prompt:\n${worldPrompt}`);
+    ctx.log.withMetadata({ model, worldPrompt }).info('World prompt generated');
+
     const seedImageUrl = await generateSeedImage(
       {
+        model,
         characterName: character.name,
         characterAppearance,
         placeName: place.name,
@@ -135,11 +139,13 @@ const runPrepareWorld = createWorkflowFunction<
 
 async function generateSeedImage(
   {
+    model,
     characterName,
     characterAppearance,
     placeName,
     placeAppearance
   }: {
+    model: WorldModel;
     characterName: string;
     characterAppearance: string;
     placeName: string;
@@ -147,6 +153,12 @@ async function generateSeedImage(
   },
   ctx: WorkflowContext
 ): Promise<string> {
+  // The seed conditions the world model, so match each model's preferred framing.
+  const framing =
+    model === 'lingbot'
+      ? `Third-person over-the-shoulder view following ${characterName}, with ${characterName} centered in frame and seen from behind, the world opening up ahead. Pose ${characterName} in the way that fits what they are — a winged creature or dragon airborne with wings spread, a rider mounted, an ordinary person on foot — never an unnatural stance.`
+      : `Establishing shot of ${characterName} present in the environment, ${characterName} facing the camera (front-facing or three-quarter).`;
+
   const prompt = dedent`
     A cinematic establishing scene: ${characterName} within ${placeName}.
 
@@ -155,11 +167,14 @@ async function generateSeedImage(
     ${characterName}: ${characterAppearance}
 
     Requirements:
-    - Show ${characterName} present in the environment, framed as a world-entry establishing shot.
+    - ${framing}
     - Rendered in a ${resolveArtStyle(null)}.
     - Do not include any text, labels, or names.`;
 
-  ctx.log.withMetadata({ placeName, characterName }).info('Generating seed image');
+  console.log(`[world] seed image prompt:\n${prompt}`);
+  ctx.log
+    .withMetadata({ placeName, characterName, prompt })
+    .info('Generating seed image');
 
   const { data, mimeType } = await generateOneShotImage(
     getProvider('image_generation_seed'),

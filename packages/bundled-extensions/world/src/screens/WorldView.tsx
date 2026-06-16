@@ -6,6 +6,7 @@ import {
 } from '@reactor-team/js-sdk';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { transformImageUrl } from '@/lib/media/transform-url';
 import { fetchSeedImageBlob, getReactorJwt, MODEL_NAMES } from '@/lib/reactor';
 import type { PrepareWorldResult } from '@/worker/prepare-world';
 
@@ -60,10 +61,12 @@ function WorldStage({
   const [error, setError] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
   const [playing, setPlaying] = useState(false);
+  const [currentPrompt, setCurrentPrompt] = useState(world.prompt);
 
   const conditionedRef = useRef(false);
   const startSentRef = useRef(false);
   const stageRef = useRef<HTMLDivElement>(null);
+  const seedSrc = transformImageUrl(world.seedImageUrl);
 
   // WKWebView blocks programmatic autoplay; force-mute and play the element.
   const tryPlay = useCallback(async () => {
@@ -149,6 +152,14 @@ function WorldStage({
 
       <div ref={stageRef} className="relative flex-1 bg-black">
         <ReactorView className="h-full w-full" videoObjectFit="contain" />
+        <img
+          src={seedSrc}
+          alt=""
+          aria-hidden
+          className={`pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover blur-2xl transition-opacity duration-1000 ${
+            playing ? 'opacity-0' : 'opacity-100'
+          }`}
+        />
         {!started && (
           <div className="absolute inset-0 grid place-items-center px-8 text-center text-sm text-white/80">
             {error ? (
@@ -170,7 +181,11 @@ function WorldStage({
 
       {started &&
         (world.model === 'helios' ? (
-          <HeliosControls sendCommand={sendCommand} />
+          <HeliosControls
+            sendCommand={sendCommand}
+            currentPrompt={currentPrompt}
+            onEvolved={setCurrentPrompt}
+          />
         ) : (
           <LingbotControls sendCommand={sendCommand} />
         ))}

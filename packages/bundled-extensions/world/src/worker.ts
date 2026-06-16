@@ -2,4 +2,5 @@
 
 import './lib/env-soft';
 
+export { evolveHeliosPrompt } from './worker/evolve-helios-prompt';
 export { prepareWorld } from './worker/prepare-world';

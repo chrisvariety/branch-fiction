@@ -36,10 +36,11 @@ A strong opening prompt does the heavy lifting in a single pass. Cover all five,
 2. **Environment** — layer the place by depth: near, mid, and far. Use only details grounded in the place description.
 3. **Lighting** — describe how light actually falls on surfaces (e.g. "warm light catching the edge of her jaw"), not generic labels.
 4. **Mood** — convey through posture and action, not abstract feeling words.
-5. **Camera** — always specify framing and any motion (e.g. "medium close-up, slow push-in").
+5. **Camera** — Helios works best when the subject faces the camera and the shot type is explicit. End the prompt with a concrete shot-type sentence (e.g. "Medium shot focused on {{ character.name }}, facing the camera." or "Close-up of {{ character.name }} looking toward the camera, slow push-in."). Always name the framing (close-up / medium shot / wide shot) and keep {{ character.name }} oriented toward the viewer.
 
 ## Rules
 - Present tense. One coherent establishing shot — do NOT describe a sequence of events.
+- {{ character.name }} must face the camera (front-facing or three-quarter), not turned away.
 - Name the visual aesthetic once (e.g. "cinematic, painterly realism").
 - Stay under ~500 tokens; tighter is better. No proper nouns beyond the character and place names.
 - Do not invent details that contradict the descriptions.
