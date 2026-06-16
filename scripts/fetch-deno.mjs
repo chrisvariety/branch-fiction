@@ -11,20 +11,20 @@ import {
 import { resolve } from 'node:path';
 
 // Pin to a known-good version. Bump deliberately and re-test.
-const DENO_VERSION = 'v2.8.1';
+const DENO_VERSION = 'v2.8.3';
 
 // Pinned zip SHA-256s from denoland/deno's .sha256sum files; regenerate on version bump.
 const DENO_SHA256 = {
   'aarch64-apple-darwin':
-    '8154e2de0ee8c1cae31fa88e078724aaef0295fab9fd2ad6f8520389cee908f6',
+    '88b350be928fdba0e5d8142ff7c101a17133426371e3cf5ed0e0f74e62476f6c',
   'x86_64-apple-darwin':
-    '47473845e0522ba11dd279e3dd318e2d84ee200c56b8280594e0ae0b0f827460',
+    '4254ec12123cfcf88b87703d7acf092a1ea024bdf9be8dd3cd9d4474761cb74e',
   'x86_64-unknown-linux-gnu':
-    '2d7bb6195226ac832e0bf7109a115f0af65ee69ac797a4bbde5b27a06cc242d9',
+    '30455b845ffa6082209c3590269c910ad3b7efdf28c9879afd4006c47ae54197',
   'aarch64-unknown-linux-gnu':
-    '67e9df91870fd0af700df924173e3009ea7ff6956e2c3c3bb86065d6070d0fd6',
+    '5acc74a4b1a191a88a9ce0b66cfa7e077b50352c124629d5186c5711df462415',
   'x86_64-pc-windows-msvc':
-    '5fb5bac71f609fb91ec8960fb290885aadc27eeb22f07a8eca0c3db6be38b11a'
+    '32fb9ce419b4e36bfb56d2d38978266beea4353e43f384a680f9d26bd85b576f'
 };
 
 const skipIfExists = process.argv.includes('--skip-if-exists');
