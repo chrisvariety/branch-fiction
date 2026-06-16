@@ -89,8 +89,8 @@ use tauri::Manager;
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 use test_provider::{TestProviderState, test_provider_config};
 use window_commands::{
-    get_path_phone_url, open_book_window, open_import_window, open_new_book_window,
-    open_path_window, open_settings_window,
+    close_path_window, get_path_phone_url, open_book_window, open_import_window,
+    open_new_book_window, open_path_window, open_settings_window,
 };
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
@@ -188,6 +188,7 @@ pub fn run() {
             extension_dev_client_revoke,
             set_extension_sdk_source,
             open_path_window,
+            close_path_window,
             link_cloud_account,
             commit_extension_install,
             remove_provider,

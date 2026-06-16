@@ -77,7 +77,11 @@ function PathHost() {
 
   const extensionQuery = useQuery({
     queryKey: ['path', 'extension', extensionId],
-    queryFn: () => getExtensionById(extensionId),
+    queryFn: async () => {
+      const found = await getExtensionById(extensionId);
+      if (!found) throw new Error('This extension is no longer installed.');
+      return found;
+    },
     enabled: tauri
   });
 

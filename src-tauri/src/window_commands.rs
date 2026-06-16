@@ -329,3 +329,15 @@ pub async fn open_path_window(
 
     Ok(())
 }
+
+#[tauri::command(rename_all = "camelCase")]
+pub async fn close_path_window(app_handle: AppHandle, extension_id: String) -> Result<(), String> {
+    if extension_id.is_empty() {
+        return Err("extensionId is required".to_string());
+    }
+    let label = path_label(&extension_id);
+    if let Some(existing) = app_handle.get_webview_window(&label) {
+        existing.destroy().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}

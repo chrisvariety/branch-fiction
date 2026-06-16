@@ -12,3 +12,7 @@ export async function openExtensionPath(args: OpenPathArgs): Promise<void> {
     dark: document.documentElement.classList.contains('dark')
   });
 }
+
+export async function closeExtensionPath(extensionId: string): Promise<void> {
+  await invoke('close_path_window', { extensionId });
+}

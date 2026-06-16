@@ -15,6 +15,7 @@ import {
   type ExtensionUpdateResult
 } from '@/extensions/install';
 import type { ExtensionManifestV1 } from '@/extensions/manifest';
+import { closeExtensionPath } from '@/extensions/open-path';
 import type { Extension as DbExtension } from '@/lib/db/types';
 
 export type InstalledExtension = Omit<DbExtension, 'manifest'> & {
@@ -114,6 +115,7 @@ export function useUninstallExtension() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      await closeExtensionPath(id);
       await uninstallExtension(id);
     },
     onSuccess: () => {
