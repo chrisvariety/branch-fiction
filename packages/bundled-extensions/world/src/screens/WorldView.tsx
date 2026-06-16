@@ -139,18 +139,21 @@ function WorldStage({
   }, [started, tryPlay]);
 
   return (
-    <div className="flex h-screen flex-col">
-      <header className="flex items-center justify-between border-b px-4 py-2">
-        <div className="min-w-0">
-          <span className="text-sm font-medium capitalize">{world.model} world</span>
-          <span className="ml-2 text-xs opacity-60">{phaseLabel(status, phase)}</span>
-        </div>
-        <button className="rounded-md border px-3 py-1 text-sm" onClick={onExit}>
-          Exit
+    <div className="flex h-screen flex-col gap-2 bg-neutral-950 p-3">
+      <div className="flex justify-end">
+        <button
+          aria-label="Exit"
+          className="grid h-8 w-8 place-items-center rounded-full border border-white/20 bg-black/40 text-lg leading-none text-white/80 transition-colors hover:bg-black/60 hover:text-white"
+          onClick={onExit}
+        >
+          ✕
         </button>
-      </header>
+      </div>
 
-      <div ref={stageRef} className="relative flex-1 bg-black">
+      <div
+        ref={stageRef}
+        className="relative flex-1 overflow-hidden rounded-2xl bg-black"
+      >
         <ReactorView className="h-full w-full" videoObjectFit="contain" />
         <img
           src={seedSrc}
@@ -160,45 +163,45 @@ function WorldStage({
             playing ? 'opacity-0' : 'opacity-100'
           }`}
         />
-        {!started && (
-          <div className="absolute inset-0 grid place-items-center px-8 text-center text-sm text-white/80">
+
+        {!playing && (
+          <div className="absolute inset-0 grid place-items-center px-8 text-center">
             {error ? (
-              <span className="text-red-400">{error}</span>
+              <span className="text-sm text-red-400">{error}</span>
+            ) : started ? (
+              <button
+                className="text-sm font-medium text-white drop-shadow"
+                onClick={() => void tryPlay()}
+              >
+                ▶ Tap to enter your world
+              </button>
             ) : (
-              'Generating your world…'
+              <span className="text-sm text-white/80 drop-shadow">
+                {statusMessage(status, phase)}
+              </span>
             )}
           </div>
         )}
-        {started && !playing && (
-          <button
-            className="absolute inset-0 grid place-items-center bg-black/40 text-sm font-medium text-white"
-            onClick={() => void tryPlay()}
-          >
-            ▶ Tap to enter your world
-          </button>
-        )}
-      </div>
 
-      {started &&
-        (world.model === 'helios' ? (
-          <HeliosControls
-            sendCommand={sendCommand}
-            currentPrompt={currentPrompt}
-            onEvolved={setCurrentPrompt}
-          />
-        ) : (
-          <LingbotControls sendCommand={sendCommand} />
-        ))}
+        {playing &&
+          (world.model === 'helios' ? (
+            <HeliosControls
+              sendCommand={sendCommand}
+              currentPrompt={currentPrompt}
+              onEvolved={setCurrentPrompt}
+            />
+          ) : (
+            <LingbotControls sendCommand={sendCommand} />
+          ))}
+      </div>
     </div>
   );
 }
 
-function phaseLabel(status: string, phase: Phase): string {
-  if (phase === 'error') return 'error';
-  if (status === 'connecting') return 'connecting…';
-  if (status === 'waiting') return 'waiting for GPU…';
-  if (phase === 'conditioning') return 'sending scene…';
-  if (phase === 'starting') return 'starting stream…';
-  if (phase === 'live') return 'live';
-  return status;
+function statusMessage(status: string, phase: Phase): string {
+  if (status === 'connecting') return 'Connecting…';
+  if (status === 'waiting') return 'Waiting for GPU…';
+  if (phase === 'conditioning') return 'Generating your world…';
+  if (phase === 'starting') return 'Starting stream…';
+  return 'Generating your world…';
 }

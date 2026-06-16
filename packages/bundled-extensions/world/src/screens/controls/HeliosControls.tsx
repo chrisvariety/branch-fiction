@@ -38,37 +38,39 @@ export function HeliosControls({
   }
 
   return (
-    <div className="flex items-end gap-2 border-t p-3">
-      <label className="flex flex-1 flex-col gap-1">
-        <span className="text-xs opacity-60">
-          {error ? (
-            <span className="text-red-500">{error}</span>
-          ) : busy ? (
-            'Evolving the scene…'
-          ) : (
-            'Evolve the scene — type an intent (e.g. “breath of flame”); we weave it into the shot.'
-          )}
-        </span>
-        <textarea
-          className="min-h-[3rem] resize-none rounded-md border bg-transparent p-2 text-sm"
-          value={text}
-          placeholder="breath of flame"
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              void evolve();
-            }
-          }}
-        />
-      </label>
-      <button
-        className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-white dark:text-black"
-        disabled={!text.trim() || busy}
-        onClick={evolve}
-      >
-        Evolve
-      </button>
+    <div className="absolute inset-x-0 bottom-4 flex justify-center px-4">
+      <div className="w-full max-w-2xl">
+        {(error || busy) && (
+          <div className="mb-1 text-center text-xs drop-shadow">
+            {error ? (
+              <span className="text-red-400">{error}</span>
+            ) : (
+              <span className="text-white/80">Evolving the scene…</span>
+            )}
+          </div>
+        )}
+        <div className="flex items-end gap-2 rounded-xl border border-white/15 bg-black/30 p-2 backdrop-blur-md">
+          <textarea
+            className="min-h-[2.5rem] flex-1 resize-none bg-transparent p-1 text-sm text-white placeholder-white/40 outline-none"
+            value={text}
+            placeholder="Evolve the scene — e.g. “breath of flame”"
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                void evolve();
+              }
+            }}
+          />
+          <button
+            className="rounded-lg bg-white/90 px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-white disabled:opacity-40"
+            disabled={!text.trim() || busy}
+            onClick={evolve}
+          >
+            Evolve
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
