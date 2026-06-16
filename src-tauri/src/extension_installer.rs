@@ -191,19 +191,18 @@ pub struct InstallPlan {
 #[tauri::command(rename_all = "camelCase")]
 pub async fn commit_extension_install(app: AppHandle, plan: InstallPlan) -> Result<(), String> {
     // Re-derive signature authoritatively; invalid = tamper signal, absent = third-party, valid = Cloud-eligible.
-    let signed = match crate::extension_signature::check_extension_signature(Path::new(
-        &plan.source_path,
-    )) {
-        SignatureStatus::Valid => true,
-        SignatureStatus::Absent => false,
-        SignatureStatus::Invalid => {
-            return Err(
-                "extension carries a signature that does not verify; refusing to install \
+    let signed =
+        match crate::extension_signature::check_extension_signature(Path::new(&plan.source_path)) {
+            SignatureStatus::Valid => true,
+            SignatureStatus::Absent => false,
+            SignatureStatus::Invalid => {
+                return Err(
+                    "extension carries a signature that does not verify; refusing to install \
                  (the files may have been modified after signing)"
-                    .to_string(),
-            );
-        }
-    };
+                        .to_string(),
+                );
+            }
+        };
 
     let dest_path = if plan.copy_files {
         install_extension_files_impl(&app, &plan.source_path, &plan.extension_id)?

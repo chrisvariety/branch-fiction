@@ -452,13 +452,12 @@ async fn book_import_completed(app: &AppHandle, book_import_id: &str) -> bool {
     else {
         return false;
     };
-    let status: Option<(String,)> =
-        sqlx::query_as("SELECT status FROM book_imports WHERE id = ?1")
-            .bind(book_import_id)
-            .fetch_optional(&mut conn)
-            .await
-            .ok()
-            .flatten();
+    let status: Option<(String,)> = sqlx::query_as("SELECT status FROM book_imports WHERE id = ?1")
+        .bind(book_import_id)
+        .fetch_optional(&mut conn)
+        .await
+        .ok()
+        .flatten();
     let _ = conn.close().await;
     matches!(status, Some((s,)) if s == "completed")
 }

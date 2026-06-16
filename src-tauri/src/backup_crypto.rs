@@ -16,8 +16,7 @@ const CHUNK: usize = 64 * 1024;
 pub(crate) fn generate_recovery_phrase() -> Result<String, String> {
     let mut entropy = [0u8; 16];
     getrandom::fill(&mut entropy).map_err(|e| format!("entropy: {e}"))?;
-    let mnemonic =
-        bip39::Mnemonic::from_entropy(&entropy).map_err(|e| format!("mnemonic: {e}"))?;
+    let mnemonic = bip39::Mnemonic::from_entropy(&entropy).map_err(|e| format!("mnemonic: {e}"))?;
     Ok(mnemonic.to_string())
 }
 
@@ -77,7 +76,9 @@ pub(crate) fn encrypt_file(src: &Path, dest: &Path, phrase: &str) -> Result<(), 
     let mut writer =
         BufWriter::new(File::create(dest).map_err(|e| format!("create {}: {e}", dest.display()))?);
     writer.write_all(MAGIC).map_err(|e| format!("write: {e}"))?;
-    writer.write_all(&nonce).map_err(|e| format!("write: {e}"))?;
+    writer
+        .write_all(&nonce)
+        .map_err(|e| format!("write: {e}"))?;
 
     let mut cur = vec![0u8; CHUNK];
     let mut cur_len = read_full(&mut reader, &mut cur)?;

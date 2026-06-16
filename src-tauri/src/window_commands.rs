@@ -154,10 +154,7 @@ pub fn open_new_book_window_impl(app_handle: &AppHandle, dark: bool) -> Result<(
 }
 
 #[tauri::command]
-pub async fn open_new_book_window(
-    app_handle: AppHandle,
-    dark: Option<bool>,
-) -> Result<(), String> {
+pub async fn open_new_book_window(app_handle: AppHandle, dark: Option<bool>) -> Result<(), String> {
     open_new_book_window_impl(&app_handle, dark.unwrap_or(false))
 }
 

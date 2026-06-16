@@ -50,7 +50,6 @@ use cloud_backup::{
 use cloud_link::link_cloud_account;
 use cloud_state::CloudState;
 use epub_reader::read_epub_entries;
-use html_to_markdown::convert_html_to_markdown;
 use extension_auth::{
     ExtensionAuth, mint_extension_session_token, new_state as new_extension_auth_state,
     revoke_extension_session_tokens,
@@ -70,6 +69,7 @@ use extension_runtime::{ExtensionRuntimeState, cancel_extension_task, start_exte
 use extension_sdk::{ExtensionSdkState, set_extension_sdk_source};
 use extension_signature::verify_extension_signature_cmd;
 use extension_slots::{auto_configure_cloud_extensions, set_extension_provider_model};
+use html_to_markdown::convert_html_to_markdown;
 use http_server::{HttpPortState, get_http_port};
 use import_db::{
     ensure_import_db, read_model_projection, read_pipeline_step_usages_for_import,

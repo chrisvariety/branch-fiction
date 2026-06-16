@@ -69,7 +69,8 @@ pub async fn create_app_backup(app: AppHandle, dest_path: String) -> Result<(), 
 /// Builds a full backup zip at dest; caller is responsible for the import-running check.
 pub(crate) async fn build_backup_zip(app: &AppHandle, dest: &Path) -> Result<(), String> {
     let data = data_dir(app)?;
-    let staging = std::env::temp_dir().join(format!("branch-fiction-backup-{}", std::process::id()));
+    let staging =
+        std::env::temp_dir().join(format!("branch-fiction-backup-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&staging);
     std::fs::create_dir_all(&staging).map_err(|e| format!("mkdir staging: {e}"))?;
 
@@ -86,7 +87,9 @@ async fn build_backup(data: &Path, staging: &Path, dest: &Path) -> Result<(), St
     vacuum_into(&main_db, &staging.join(MAIN_DB)).await?;
     strip_provider_data(&staging.join(MAIN_DB)).await?;
 
-    copy_tree(&data.join("storage"), &staging.join("storage"), &mut |_| CopyAction::Copy)?;
+    copy_tree(&data.join("storage"), &staging.join("storage"), &mut |_| {
+        CopyAction::Copy
+    })?;
     copy_tree(
         &data.join("extension-data-pending"),
         &staging.join("extension-data-pending"),
@@ -107,7 +110,11 @@ async fn build_backup(data: &Path, staging: &Path, dest: &Path) -> Result<(), St
             }
         },
     )?;
-    collect_db_snapshots(&data.join("extension-data"), &staging.join("extension-data"), &mut db_snapshots)?;
+    collect_db_snapshots(
+        &data.join("extension-data"),
+        &staging.join("extension-data"),
+        &mut db_snapshots,
+    )?;
     for (src, dest_db) in db_snapshots {
         vacuum_into(&src, &dest_db).await?;
     }
@@ -320,7 +327,8 @@ fn extract_backup(archive: &mut zip::ZipArchive<File>, dest: &Path) -> Result<()
         }
         let target = dest.join(&rel);
         if let Some(parent) = target.parent() {
-            std::fs::create_dir_all(parent).map_err(|e| format!("mkdir {}: {e}", parent.display()))?;
+            std::fs::create_dir_all(parent)
+                .map_err(|e| format!("mkdir {}: {e}", parent.display()))?;
         }
         let mut out =
             File::create(&target).map_err(|e| format!("create {}: {e}", target.display()))?;

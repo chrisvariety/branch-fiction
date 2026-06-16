@@ -105,8 +105,7 @@ async fn prepare_extension_db_at(
         match crate::book_seeds::materialize_seed_db(&seed_path) {
             Ok((db_file, is_temp)) => {
                 let assets_dir = data_dir.join("assets");
-                if let Err(e) = apply_manifest_seed(&mut conn, &name, &db_file, &assets_dir).await
-                {
+                if let Err(e) = apply_manifest_seed(&mut conn, &name, &db_file, &assets_dir).await {
                     eprintln!("extension seed {name}: {e}");
                 }
                 if is_temp {
@@ -232,13 +231,12 @@ async fn apply_book_payload_inner(
             continue;
         };
 
-        let exists: Option<(String,)> = sqlx::query_as(
-            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?1",
-        )
-        .bind(table)
-        .fetch_optional(&mut *tx)
-        .await
-        .map_err(|e| format!("check table {table}: {e}"))?;
+        let exists: Option<(String,)> =
+            sqlx::query_as("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?1")
+                .bind(table)
+                .fetch_optional(&mut *tx)
+                .await
+                .map_err(|e| format!("check table {table}: {e}"))?;
         if exists.is_none() {
             tx.execute(create_sql.as_str())
                 .await
@@ -292,7 +290,9 @@ async fn apply_book_payload_inner(
     }
 
     crate::book_seeds::extract_seed_assets(&mut tx, assets_dir).await?;
-    tx.commit().await.map_err(|e| format!("commit payload tx: {e}"))?;
+    tx.commit()
+        .await
+        .map_err(|e| format!("commit payload tx: {e}"))?;
     Ok(())
 }
 
@@ -378,7 +378,9 @@ async fn manifest_seed_source(app: &AppHandle, extension_id: &str) -> Option<(St
     let rel = manifest.get("seed")?.as_str()?;
     // TODO: evaluate opening seeds up to all extensions; bundled-only is policy (format freedom), not a security boundary.
     if provenance_type != "bundled" {
-        eprintln!("extension {extension_id}: ignoring seed (only bundled extensions may declare one)");
+        eprintln!(
+            "extension {extension_id}: ignoring seed (only bundled extensions may declare one)"
+        );
         return None;
     }
     let rel_path = Path::new(rel);
@@ -392,7 +394,10 @@ async fn manifest_seed_source(app: &AppHandle, extension_id: &str) -> Option<(St
     }
     let abs = Path::new(&install_path).join(rel_path);
     if !abs.is_file() {
-        eprintln!("extension {extension_id}: seed file missing: {}", abs.display());
+        eprintln!(
+            "extension {extension_id}: seed file missing: {}",
+            abs.display()
+        );
         return None;
     }
     // Resolve symlinks and require containment; the installer already rejects symlinks, this is a backstop.
@@ -461,24 +466,25 @@ async fn apply_manifest_seed_inner(
     .await
     .map_err(|e| format!("list seed tables: {e}"))?;
 
-    let mut tx = conn.begin().await.map_err(|e| format!("begin seed tx: {e}"))?;
+    let mut tx = conn
+        .begin()
+        .await
+        .map_err(|e| format!("begin seed tx: {e}"))?;
     tx.execute("PRAGMA defer_foreign_keys = ON")
         .await
         .map_err(|e| format!("defer fks: {e}"))?;
 
     let mut copied: Vec<String> = Vec::new();
     for (table, create_sql) in tables {
-        if table.starts_with("sqlite_") || table.starts_with('_') || skip.contains(table.as_str())
-        {
+        if table.starts_with("sqlite_") || table.starts_with('_') || skip.contains(table.as_str()) {
             continue;
         }
-        let exists: Option<(String,)> = sqlx::query_as(
-            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?1",
-        )
-        .bind(&table)
-        .fetch_optional(&mut *tx)
-        .await
-        .map_err(|e| format!("check table {table}: {e}"))?;
+        let exists: Option<(String,)> =
+            sqlx::query_as("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?1")
+                .bind(&table)
+                .fetch_optional(&mut *tx)
+                .await
+                .map_err(|e| format!("check table {table}: {e}"))?;
         if exists.is_none() {
             tx.execute(create_sql.as_str())
                 .await
@@ -522,13 +528,12 @@ async fn apply_manifest_seed_inner(
         if !copied.contains(&tbl_name) {
             continue;
         }
-        let exists: Option<(String,)> = sqlx::query_as(
-            "SELECT name FROM sqlite_master WHERE type = 'index' AND name = ?1",
-        )
-        .bind(&idx_name)
-        .fetch_optional(&mut *tx)
-        .await
-        .map_err(|e| format!("check index {idx_name}: {e}"))?;
+        let exists: Option<(String,)> =
+            sqlx::query_as("SELECT name FROM sqlite_master WHERE type = 'index' AND name = ?1")
+                .bind(&idx_name)
+                .fetch_optional(&mut *tx)
+                .await
+                .map_err(|e| format!("check index {idx_name}: {e}"))?;
         if exists.is_none() {
             // Best-effort: an index that no longer matches the table shouldn't sink the seed.
             if let Err(e) = tx.execute(create_sql.as_str()).await {
@@ -544,7 +549,9 @@ async fn apply_manifest_seed_inner(
         .execute(&mut *tx)
         .await
         .map_err(|e| format!("record seed: {e}"))?;
-    tx.commit().await.map_err(|e| format!("commit seed tx: {e}"))?;
+    tx.commit()
+        .await
+        .map_err(|e| format!("commit seed tx: {e}"))?;
     Ok(())
 }
 

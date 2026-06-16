@@ -44,10 +44,7 @@ fn safe_ident(name: &str) -> bool {
 fn asset_rel_path(url: &str) -> Option<String> {
     let rel = url.strip_prefix("file://")?;
     let path = Path::new(rel);
-    let safe = path.is_relative()
-        && path
-            .components()
-            .all(|c| matches!(c, Component::Normal(_)));
+    let safe = path.is_relative() && path.components().all(|c| matches!(c, Component::Normal(_)));
     (safe && !rel.is_empty()).then(|| rel.to_string())
 }
 
@@ -230,9 +227,11 @@ async fn pack_cover(
         eprintln!("cover not found, skipping: {}", abs.display());
         return Ok(());
     };
-    conn.execute("CREATE TABLE IF NOT EXISTS _seed_assets (path text PRIMARY KEY, data blob NOT NULL)")
-        .await
-        .map_err(|e| format!("create _seed_assets: {e}"))?;
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS _seed_assets (path text PRIMARY KEY, data blob NOT NULL)",
+    )
+    .await
+    .map_err(|e| format!("create _seed_assets: {e}"))?;
     sqlx::query("INSERT OR REPLACE INTO _seed_assets (path, data) VALUES (?1, ?2)")
         .bind(rel)
         .bind(data)
@@ -356,23 +355,28 @@ async fn build_extension_payload(
             || !safe_ident(&decl.book_id_column)
             || decl.asset_columns.iter().any(|c| !safe_ident(c))
         {
-            eprintln!("extension {ext_id}: invalid bookData identifiers for {}", decl.table);
+            eprintln!(
+                "extension {ext_id}: invalid bookData identifiers for {}",
+                decl.table
+            );
             continue;
         }
         if reserved.contains(decl.table.as_str()) {
-            eprintln!("extension {ext_id}: bookData table {} is host-managed", decl.table);
+            eprintln!(
+                "extension {ext_id}: bookData table {} is host-managed",
+                decl.table
+            );
             continue;
         }
         let table = &decl.table;
         let col = &decl.book_id_column;
 
-        let ddl: Option<(Option<String>,)> = sqlx::query_as(
-            "SELECT sql FROM ext.sqlite_master WHERE type = 'table' AND name = ?1",
-        )
-        .bind(table)
-        .fetch_optional(&mut conn)
-        .await
-        .map_err(|e| format!("read ddl for {table}: {e}"))?;
+        let ddl: Option<(Option<String>,)> =
+            sqlx::query_as("SELECT sql FROM ext.sqlite_master WHERE type = 'table' AND name = ?1")
+                .bind(table)
+                .fetch_optional(&mut conn)
+                .await
+                .map_err(|e| format!("read ddl for {table}: {e}"))?;
         let Some((Some(create_sql),)) = ddl else {
             continue;
         };
@@ -461,8 +465,7 @@ async fn build_extension_payload(
 }
 
 fn gzip_file(src: &Path, dest: &Path) -> Result<(), String> {
-    let mut input =
-        std::fs::File::open(src).map_err(|e| format!("open {}: {e}", src.display()))?;
+    let mut input = std::fs::File::open(src).map_err(|e| format!("open {}: {e}", src.display()))?;
     let output =
         std::fs::File::create(dest).map_err(|e| format!("create {}: {e}", dest.display()))?;
     let mut encoder = flate2::write::GzEncoder::new(output, flate2::Compression::best());
@@ -476,12 +479,13 @@ fn materialize_archive(path: &Path) -> Result<(PathBuf, bool), String> {
     let mut file =
         std::fs::File::open(path).map_err(|e| format!("open {}: {e}", path.display()))?;
     let mut magic = [0u8; 2];
-    let n = file.read(&mut magic).map_err(|e| format!("read {}: {e}", path.display()))?;
+    let n = file
+        .read(&mut magic)
+        .map_err(|e| format!("read {}: {e}", path.display()))?;
     if n < 2 || magic != [0x1f, 0x8b] {
         return Ok((path.to_path_buf(), false));
     }
-    let file =
-        std::fs::File::open(path).map_err(|e| format!("open {}: {e}", path.display()))?;
+    let file = std::fs::File::open(path).map_err(|e| format!("open {}: {e}", path.display()))?;
     let mut decoder = flate2::read::GzDecoder::new(file);
     let tmp = temp_path("archive");
     let mut out =
@@ -527,7 +531,10 @@ async fn inspect_archive_db(app: &AppHandle, db_file: &Path) -> Result<ArchiveIn
         .map_err(|_| "not a Branch Fiction book file".to_string())?;
 
     let meta = read_archive_meta(&mut conn).await?;
-    let book_id = meta.get("book_id").cloned().ok_or("archive missing book_id")?;
+    let book_id = meta
+        .get("book_id")
+        .cloned()
+        .ok_or("archive missing book_id")?;
     let title = meta.get("title").cloned().unwrap_or_default();
     check_schema_version(&meta)?;
 
@@ -546,7 +553,11 @@ async fn inspect_archive_db(app: &AppHandle, db_file: &Path) -> Result<ArchiveIn
                 .map_err(|e| format!("list payloads: {e}"))?;
         for (id, name) in rows {
             let installed = extension_db_file(app, &id).is_ok_and(|p| p.exists());
-            extensions.push(ArchiveExtension { id, name, installed });
+            extensions.push(ArchiveExtension {
+                id,
+                name,
+                installed,
+            });
         }
     }
     let _ = conn.close().await;
@@ -589,7 +600,10 @@ fn check_schema_version(meta: &HashMap<String, String>) -> Result<(), String> {
         .ok_or("archive missing schema_version")?;
     let current_version = MAIN_MIGRATIONS.last().map(|m| m.version).unwrap_or(0);
     if schema_version > current_version {
-        return Err("this file was exported by a newer version of the app — update the app to import it".into());
+        return Err(
+            "this file was exported by a newer version of the app — update the app to import it"
+                .into(),
+        );
     }
     Ok(())
 }
@@ -676,7 +690,10 @@ async fn import_archive_inner(
     replace: bool,
 ) -> Result<ImportedBook, String> {
     let meta = read_archive_meta_attached(conn).await?;
-    let book_id = meta.get("book_id").cloned().ok_or("archive missing book_id")?;
+    let book_id = meta
+        .get("book_id")
+        .cloned()
+        .ok_or("archive missing book_id")?;
     let title = meta.get("title").cloned().unwrap_or_default();
     check_schema_version(&meta)?;
 
@@ -802,8 +819,7 @@ async fn apply_payload_to_installed(
 ) -> Result<(), String> {
     let mut conn = open_extension_conn(ext_db).await?;
     let result =
-        apply_book_payload_file(&mut conn, payload_path, &extension_assets_dir(app, ext_id)?)
-            .await;
+        apply_book_payload_file(&mut conn, payload_path, &extension_assets_dir(app, ext_id)?).await;
     let _ = conn.close().await;
     result
 }

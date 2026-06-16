@@ -127,8 +127,7 @@ pub(crate) fn materialize_seed_db(path: &Path) -> Result<(PathBuf, bool), String
     if path.extension().is_none_or(|e| e != "gz") {
         return Ok((path.to_path_buf(), false));
     }
-    let file =
-        std::fs::File::open(path).map_err(|e| format!("open {}: {e}", path.display()))?;
+    let file = std::fs::File::open(path).map_err(|e| format!("open {}: {e}", path.display()))?;
     let mut decoder = flate2::read::GzDecoder::new(file);
     let tmp = std::env::temp_dir().join(format!(
         "branch-fiction-seed-{}-{}",

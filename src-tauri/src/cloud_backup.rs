@@ -53,17 +53,18 @@ fn phrase_entry(app: &AppHandle) -> Result<Entry, String> {
 
 fn stored_phrase(app: &AppHandle) -> Result<Option<String>, String> {
     match phrase_entry(app)?.get_secret() {
-        Ok(bytes) => Ok(Some(
-            String::from_utf8(bytes).map_err(|_| "stored recovery key is corrupted".to_string())?,
-        )),
+        Ok(bytes) => {
+            Ok(Some(String::from_utf8(bytes).map_err(|_| {
+                "stored recovery key is corrupted".to_string()
+            })?))
+        }
         Err(KeyringError::NoEntry) => Ok(None),
         Err(e) => Err(e.to_string()),
     }
 }
 
 fn require_phrase(app: &AppHandle) -> Result<String, String> {
-    stored_phrase(app)?
-        .ok_or_else(|| "no recovery key set — create or enter one first".to_string())
+    stored_phrase(app)?.ok_or_else(|| "no recovery key set — create or enter one first".to_string())
 }
 
 fn recovery_key(phrase: String) -> Result<RecoveryKey, String> {
@@ -104,7 +105,9 @@ async fn cloud_jwt(app: &AppHandle) -> Result<String, String> {
     let mut conn = open_main_db_ro(app).await?;
     let external_id = cloud_external_id(&mut conn).await;
     let _ = conn.close().await;
-    app.state::<CloudState>().mint_or_get_jwt(&external_id?).await
+    app.state::<CloudState>()
+        .mint_or_get_jwt(&external_id?)
+        .await
 }
 
 fn check_backup_id(id: &str) -> Result<(), String> {
@@ -393,5 +396,7 @@ async fn download_file(
             total,
         });
     }
-    out.flush().await.map_err(|e| format!("flush download: {e}"))
+    out.flush()
+        .await
+        .map_err(|e| format!("flush download: {e}"))
 }

@@ -19,8 +19,8 @@ use crate::db_path::open_main_db_ro;
 use crate::extension_auth::verify_path_token;
 use crate::extension_data_proxy::inject_proxy_base_urls;
 use crate::extension_runtime::{
-    ExtensionTaskEvent, RunExtensionTaskRequest, cancel_task_by_id, claim_singleton,
-    register_task, release_singletons_for_task, run_extension_task_internal, unregister_task,
+    ExtensionTaskEvent, RunExtensionTaskRequest, cancel_task_by_id, claim_singleton, register_task,
+    release_singletons_for_task, run_extension_task_internal, unregister_task,
 };
 use crate::http_server::HttpPortState;
 
@@ -85,10 +85,7 @@ pub async fn start_task_handler(
             claims.book_id.as_deref().unwrap_or("")
         );
         if !claim_singleton(&app, &claim_key, &task_id) {
-            return Err((
-                StatusCode::CONFLICT,
-                format!("task already running: {key}"),
-            ));
+            return Err((StatusCode::CONFLICT, format!("task already running: {key}")));
         }
     }
 

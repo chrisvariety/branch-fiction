@@ -4,8 +4,7 @@ use sha2::{Digest, Sha256};
 use ssh_key::{PublicKey, SshSig};
 
 // First-party public key baked into the binary; sole trust anchor for first-party extensions.
-const FIRST_PARTY_PUBKEY: &str =
-    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIANlDwdXvn8qrUDs95iiNCaXdr3kZpU9yw6d1tho5ggv branch-fiction";
+const FIRST_PARTY_PUBKEY: &str = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIANlDwdXvn8qrUDs95iiNCaXdr3kZpU9yw6d1tho5ggv branch-fiction";
 
 // SSHSIG namespace; must match the `-n` passed to `ssh-keygen -Y sign`.
 const SIG_NAMESPACE: &str = "branch-fiction-extension";
