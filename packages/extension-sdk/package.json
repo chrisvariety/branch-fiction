@@ -2,16 +2,13 @@
   "name": "@branch-fiction/extension-sdk",
   "version": "0.1.0",
   "description": "SDK and dev tooling for building Branch Fiction extensions.",
+  "homepage": "https://github.com/chrisvariety/branch-fiction/tree/main/packages/extension-sdk",
   "license": "MIT",
   "author": "Chris McC",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/chrisvariety/branch-fiction.git",
     "directory": "packages/extension-sdk"
-  },
-  "homepage": "https://github.com/chrisvariety/branch-fiction/tree/main/packages/extension-sdk",
-  "publishConfig": {
-    "access": "public"
   },
   "bin": {
     "branch-fiction-extension-dev": "./dist/dev-cli.js"
@@ -63,6 +60,9 @@
       "types": "./dist/db/boolean-plugin.d.ts",
       "default": "./dist/db/boolean-plugin.js"
     }
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsdown && pnpm vendor:bundle",
