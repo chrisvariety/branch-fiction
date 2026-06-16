@@ -36,12 +36,37 @@ export async function prepareWorld(
   return runPrepareWorld({ executionId: uuidv7(), payload });
 }
 
-// First isolated appearance arc is the self-contained snapshot to drive a standalone scene.
-function isolatedAppearance(
-  arcs: Array<{ content: string }>,
+interface AppearanceSnapshot {
+  id: string;
+  title: string;
+  chapterRange: string;
+  content: string;
+}
+
+interface ArcRow {
+  friendlyId: string;
+  title: string | null;
+  startChapterIdx?: number | null;
+  endChapterIdx?: number | null;
+  content: string;
+}
+
+// All isolated appearance snapshots become options the LLM picks from to fit the place.
+function buildAppearanceSnapshots(
+  arcs: ArcRow[],
   fallback: string | null
-): string {
-  return arcs[0]?.content || fallback || '';
+): AppearanceSnapshot[] {
+  if (arcs.length > 0) {
+    return arcs.map((a) => ({
+      id: a.friendlyId,
+      title: a.title || 'Untitled',
+      chapterRange: `${a.startChapterIdx ?? '?'}-${a.endChapterIdx ?? '?'}`,
+      content: a.content
+    }));
+  }
+  return fallback
+    ? [{ id: 'fallback', title: 'Description', chapterRange: '?-?', content: fallback }]
+    : [];
 }
 
 const runPrepareWorld = createWorkflowFunction<
@@ -76,17 +101,28 @@ const runPrepareWorld = createWorkflowFunction<
       getBookArcsByBookIdAndTypesAndEntityIds(bookId, ['APPEARANCE_ISOLATED'], [placeId])
     ]);
 
-    const characterAppearance = isolatedAppearance(characterArcs, character.description);
-    const placeAppearance = isolatedAppearance(placeArcs, place.description);
+    const characterAppearances = buildAppearanceSnapshots(
+      characterArcs,
+      character.description
+    );
+    const placeAppearances = buildAppearanceSnapshots(placeArcs, place.description);
+    if (characterAppearances.length === 0) {
+      throw new UnrecoverableError(`No appearance data for ${character.name}`);
+    }
 
     ctx.log
-      .withMetadata({ character: character.name, place: place.name, model })
-      .info('Augmenting isolated appearance arcs into world prompt');
+      .withMetadata({
+        character: character.name,
+        place: place.name,
+        model,
+        characterAppearanceOptions: characterAppearances.length
+      })
+      .info('Selecting place-appropriate appearance and augmenting into world prompt');
 
     const template = model === 'helios' ? heliosWorld : lingbotWorld;
     const promptText = template.render({
-      character: { name: character.name, appearance: characterAppearance },
-      place: { name: place.name, appearance: placeAppearance }
+      character: { name: character.name, appearances: characterAppearances },
+      place: { name: place.name, appearances: placeAppearances }
     });
 
     const { model: piModel, apiKey, reasoning } = ctx.getPiModel('text');
@@ -98,21 +134,31 @@ const runPrepareWorld = createWorkflowFunction<
     ctx.trackUsage(message);
 
     const text = getAssistantText(message);
-    const worldPrompt = getText(querySelector(parse(text), 'world_prompt')).trim();
+    const ast = parse(text);
+    const worldPrompt = getText(querySelector(ast, 'world_prompt')).trim();
     if (!worldPrompt) {
       throw new Error('LLM did not return a <world_prompt>');
     }
 
-    console.log(`[world] ${model} prompt:\n${worldPrompt}`);
-    ctx.log.withMetadata({ model, worldPrompt }).info('World prompt generated');
+    // Reuse the LLM's chosen appearance for the seed image so prompt and image agree.
+    const selectedId = getText(querySelector(ast, 'selected_appearance_id')).trim();
+    const selectedAppearance =
+      characterAppearances.find((a) => a.id === selectedId) ?? characterAppearances[0];
+
+    console.log(
+      `[world] ${model} prompt (appearance ${selectedAppearance.id} "${selectedAppearance.title}"):\n${worldPrompt}`
+    );
+    ctx.log
+      .withMetadata({ model, worldPrompt, selectedAppearanceId: selectedAppearance.id })
+      .info('World prompt generated');
 
     const seedImageUrl = await generateSeedImage(
       {
         model,
         characterName: character.name,
-        characterAppearance,
+        characterAppearance: selectedAppearance.content,
         placeName: place.name,
-        placeAppearance
+        placeAppearance: placeAppearances[0]?.content ?? place.description ?? ''
       },
       ctx
     );
