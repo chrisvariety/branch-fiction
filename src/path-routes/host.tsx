@@ -86,6 +86,14 @@ function PathHost() {
 
   useWindowTitle(boot?.title);
 
+  const extension = extensionQuery.data;
+  const manifest = extension?.manifest as
+    | { author?: string; path?: { entry?: string } }
+    | undefined;
+  const name = extension?.name;
+  const entry = manifest?.path?.entry;
+  const author = manifest?.author ?? null;
+
   useEffect(() => {
     if (!tauri) {
       const phone = readPhoneBoot();
@@ -103,23 +111,17 @@ function PathHost() {
       return;
     }
 
-    const extension = extensionQuery.data;
-    if (!extension) return;
+    if (!name) return;
+    if (!entry) {
+      setBootError('Extension has no path entry.');
+      return;
+    }
 
     let cancelled = false;
     void (async () => {
       try {
         const { token } = await mintSession({ extensionId, bookId });
         if (cancelled) return;
-        const manifest = extension.manifest as {
-          author?: string;
-          path?: { entry?: string };
-        };
-        const entry = manifest.path?.entry;
-        if (!entry) {
-          setBootError('Extension has no path entry.');
-          return;
-        }
         // The embedded axum server is responsible for serving assets from /extension-assets
         const port = await getHttpPort();
         if (cancelled) return;
@@ -127,8 +129,8 @@ function PathHost() {
         const src = `${origin}/extension-assets/${encodeURIComponent(extensionId)}/${entry}?token=${encodeURIComponent(token)}`;
         setBoot({
           src: withDark(src, darkRef.current),
-          title: extension.name,
-          author: manifest.author ?? null
+          title: name,
+          author
         });
       } catch (e) {
         if (cancelled) return;
@@ -140,7 +142,7 @@ function PathHost() {
       cancelled = true;
       void revokeSession(extensionId);
     };
-  }, [tauri, extensionQuery.data, extensionId, bookId]);
+  }, [tauri, extensionId, bookId, name, entry, author]);
 
   if (bootError) return <PathError message={bootError} />;
   if (tauri && extensionQuery.isError)
