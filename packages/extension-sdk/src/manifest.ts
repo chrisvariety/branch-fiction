@@ -144,7 +144,8 @@ export type ExtensionManifestV1 = {
   net?: string[];
 };
 
-export const NET_ALLOWLIST_ENTRY_REGEX = /^[a-z0-9.-]+(:\d+)?$/;
+// Bare host or host:port, with an optional single leading-label wildcard (*.example.com).
+export const NET_ALLOWLIST_ENTRY_REGEX = /^(\*\.)?[a-z0-9.-]+(:\d+)?$/;
 
 // Identity helper for type-checked manifest authoring.
 //   export default defineManifest({ ... });
@@ -414,7 +415,7 @@ export function validateManifest(m: ExtensionManifestV1): void {
       }
       if (!NET_ALLOWLIST_ENTRY_REGEX.test(entry)) {
         throw new Error(
-          `${where}: must be a bare host or host:port — no scheme, path, or wildcards (got ${JSON.stringify(entry)})`
+          `${where}: must be a bare host or host:port, with an optional leading "*." wildcard — no scheme or path (got ${JSON.stringify(entry)})`
         );
       }
       if (seenNet.has(entry)) {

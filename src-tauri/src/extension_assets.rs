@@ -47,15 +47,22 @@ pub async fn assets_handler(
         .and_then(|v| v.to_str().ok())
         .unwrap_or("http");
     let self_origin = format!("{scheme}://{host}");
+    // Manifest `net` hosts widen the iframe's CSP egress (WebRTC signaling, HLS).
+    let net_hosts = read_manifest_net(&canonical_root).await;
+    let mut net_sources = String::new();
+    for h in &net_hosts {
+        net_sources.push_str(&format!(" https://{h} wss://{h}"));
+    }
     let csp = format!(
         "default-src {origin} data: blob:; \
          script-src {origin} 'unsafe-inline' 'unsafe-eval'; \
          style-src {origin} 'unsafe-inline'; \
-         img-src {origin} data: blob:; \
-         media-src {origin} data: blob:; \
+         img-src {origin} data: blob:{net}; \
+         media-src {origin} data: blob:{net}; \
          font-src {origin} data:; \
-         connect-src {origin}",
-        origin = self_origin
+         connect-src {origin}{net}",
+        origin = self_origin,
+        net = net_sources
     );
     if let Ok(v) = HeaderValue::from_str(&csp) {
         headers.insert(header::CONTENT_SECURITY_POLICY, v);
@@ -73,6 +80,41 @@ async fn lookup_install_dir(app: &AppHandle, extension_id: &str) -> Option<PathB
             .ok()?;
     let _ = conn.close().await;
     row.and_then(|(p,)| p).map(PathBuf::from)
+}
+
+async fn read_manifest_net(install_root: &Path) -> Vec<String> {
+    let raw = match fs::read_to_string(install_root.join("manifest.json")).await {
+        Ok(s) => s,
+        Err(_) => return Vec::new(),
+    };
+    let parsed: serde_json::Value = match serde_json::from_str(&raw) {
+        Ok(v) => v,
+        Err(_) => return Vec::new(),
+    };
+    parsed
+        .get("net")
+        .and_then(|v| v.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str())
+                .filter(|h| is_valid_net_host(h))
+                .map(str::to_string)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+// Bare host or host:port with an optional leading "*." wildcard (mirrors manifest validation).
+fn is_valid_net_host(s: &str) -> bool {
+    if s.is_empty() || s != s.to_ascii_lowercase() {
+        return false;
+    }
+    let body = s.strip_prefix("*.").unwrap_or(s);
+    !body.is_empty()
+        && !body.contains('*')
+        && body
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'-' | b':'))
 }
 
 fn has_traversal(s: &str) -> bool {

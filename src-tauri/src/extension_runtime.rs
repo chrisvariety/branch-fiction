@@ -73,8 +73,11 @@ fn is_valid_net_entry(s: &str) -> bool {
         Some((h, p)) => (h, Some(p)),
         None => (s, None),
     };
-    if host.is_empty()
-        || !host
+    // Permit a single leading-label wildcard (*.example.com); Deno --allow-net supports it.
+    let host_body = host.strip_prefix("*.").unwrap_or(host);
+    if host_body.is_empty()
+        || host_body.contains('*')
+        || !host_body
             .bytes()
             .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'.' || b == b'-')
     {
