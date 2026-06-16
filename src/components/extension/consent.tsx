@@ -1279,14 +1279,16 @@ function ConfigField({
   const stringValue = typeof value === 'string' ? value : '';
 
   if (field.type === 'boolean') {
+    const checkboxId = `config-${field.key}`;
     return (
       <Field orientation="horizontal">
         <Checkbox
+          id={checkboxId}
           checked={value === true}
           onCheckedChange={(v) => onChange(v === true)}
         />
         <div className="flex flex-col gap-0.5">
-          <FieldLabel>{field.label}</FieldLabel>
+          <FieldLabel htmlFor={checkboxId}>{field.label}</FieldLabel>
           {field.description && (
             <FieldDescription className="text-[11px]" onLinkClick={openExternalLink}>
               {field.description}
