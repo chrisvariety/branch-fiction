@@ -19,7 +19,7 @@ use tower_http::services::ServeDir;
 use crate::extension_assets::assets_handler;
 use crate::extension_data_proxy::{
     context_handler, db_query_handler, fs_list_handler, fs_read_handler, fs_write_handler,
-    public_asset_handler,
+    open_external_handler, public_asset_handler, save_file_handler,
 };
 use crate::extension_dev::{pair_handler, prepare_db_handler};
 use crate::extension_proxy::{proxy_handler, proxy_handler_no_rest};
@@ -121,6 +121,11 @@ async fn run(
         .route("/extension-data/{token}/fs/read", post(fs_read_handler))
         .route("/extension-data/{token}/fs/write", post(fs_write_handler))
         .route("/extension-data/{token}/fs/list", post(fs_list_handler))
+        .route(
+            "/extension-data/{token}/open-external",
+            post(open_external_handler),
+        )
+        .route("/extension-data/{token}/save-file", post(save_file_handler))
         .route("/extension-data/{token}/context", get(context_handler))
         .route(
             "/extension-data/{token}/task/start",

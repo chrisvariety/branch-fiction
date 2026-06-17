@@ -46,6 +46,8 @@ function extensionSdkClient() {
 
   const dataBase = `${hostOrigin.replace(/\/+$/, '')}/extension-data/${token}`;
   const logPrefix = '[extension]';
+  // Embedded = host's sandboxed iframe (bridge native actions); top-level = dev browser.
+  const embedded = window.self !== window.top;
 
   const readyListeners: Array<(ctx: Ctx) => void> = [];
   let context: Ctx | null = null;
@@ -251,6 +253,31 @@ function extensionSdkClient() {
     },
     log(...args: unknown[]) {
       console.log(logPrefix, ...args);
+    },
+    async openExternal(url: string) {
+      if (embedded) {
+        await postJson<unknown>('/open-external', { url });
+        return;
+      }
+      window.open(url, '_blank', 'noopener,noreferrer');
+    },
+    async saveFile(filename: string, bytes: Uint8Array, mimeType?: string) {
+      if (embedded) {
+        await postJson<unknown>('/save-file', {
+          filename,
+          bytesBase64: bytesToBase64(bytes)
+        });
+        return;
+      }
+      const blob = new Blob([bytes], mimeType ? { type: mimeType } : {});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
     }
   };
 
@@ -335,6 +362,10 @@ export interface ExtensionSDK {
     ): WorkerSpawnHandle<T>;
   };
   log(...args: unknown[]): void;
+  // Opens a URL in the user's external browser (sandboxed iframes can't do this directly).
+  openExternal(url: string): Promise<void>;
+  // Saves bytes to disk via the host's native save dialog (sandboxed iframes can't download).
+  saveFile(filename: string, bytes: Uint8Array, mimeType?: string): Promise<void>;
 }
 
 export interface ExtensionHost {

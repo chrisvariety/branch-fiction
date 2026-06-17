@@ -15,6 +15,8 @@ use serde_json::{Map, Value};
 use sqlx::sqlite::SqliteConnectOptions;
 use sqlx::{Column, ConnectOptions, Connection, Row, SqliteConnection, TypeInfo, ValueRef};
 use tauri::{AppHandle, Manager};
+use tauri_plugin_dialog::DialogExt;
+use tauri_plugin_opener::OpenerExt;
 use tokio::fs;
 
 use crate::extension_auth::verify_path_token;
@@ -239,6 +241,69 @@ pub async fn fs_write_handler(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("write: {e}")))?;
     Ok(Json(serde_json::json!({ "ok": true })))
+}
+
+#[derive(Deserialize)]
+pub struct OpenExternalBody {
+    pub url: String,
+}
+
+// Opens a URL in the user's default browser; sandboxed extension iframes can't do this.
+pub async fn open_external_handler(
+    State(app): State<AppHandle>,
+    AxumPath(token): AxumPath<String>,
+    Json(body): Json<OpenExternalBody>,
+) -> Result<impl IntoResponse, (StatusCode, String)> {
+    verify_path_token(&app, &token)?;
+    if !body.url.starts_with("http://") && !body.url.starts_with("https://") {
+        return Err((StatusCode::BAD_REQUEST, "only http(s) URLs are allowed".into()));
+    }
+    app.opener()
+        .open_url(body.url, None::<&str>)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("open: {e}")))?;
+    Ok(Json(serde_json::json!({ "ok": true })))
+}
+
+#[derive(Deserialize)]
+pub struct SaveFileBody {
+    pub filename: String,
+    #[serde(rename = "bytesBase64")]
+    pub bytes_base64: String,
+}
+
+// Prompts a native Save dialog and writes the bytes; sandboxed iframes can't download.
+pub async fn save_file_handler(
+    State(app): State<AppHandle>,
+    AxumPath(token): AxumPath<String>,
+    Json(body): Json<SaveFileBody>,
+) -> Result<impl IntoResponse, (StatusCode, String)> {
+    verify_path_token(&app, &token)?;
+    let bytes = B64
+        .decode(body.bytes_base64.as_bytes())
+        .map_err(|e| (StatusCode::BAD_REQUEST, format!("base64: {e}")))?;
+
+    let dialog_app = app.clone();
+    let filename = body.filename;
+    let chosen = tokio::task::spawn_blocking(move || {
+        dialog_app
+            .dialog()
+            .file()
+            .set_file_name(filename)
+            .blocking_save_file()
+    })
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("dialog: {e}")))?;
+
+    let Some(file_path) = chosen else {
+        return Ok(Json(serde_json::json!({ "saved": false })));
+    };
+    let path = file_path
+        .into_path()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("path: {e}")))?;
+    fs::write(&path, bytes)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("write: {e}")))?;
+    Ok(Json(serde_json::json!({ "saved": true })))
 }
 
 #[derive(Deserialize, Default)]
