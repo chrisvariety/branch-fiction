@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// One-off: FAL_KEY=... node generate-art-style-refs.mjs — writes src/screens/art-styles/<id>.png
+// One-off: FAL_KEY=... node generate-art-style-refs.mjs — writes 512px JPEG src/screens/art-styles/<id>.jpg
 
-import { writeFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -95,7 +96,22 @@ for (const [id, style] of STYLES) {
   process.stdout.write(`Generating ${id}… `);
   try {
     const buf = await generate(prompt);
-    await writeFile(join(OUT_DIR, `${id}.png`), buf);
+    const tmp = join(OUT_DIR, `${id}.png.tmp`);
+    await writeFile(tmp, buf);
+    execFileSync('sips', [
+      '-Z',
+      '512',
+      '-s',
+      'format',
+      'jpeg',
+      '-s',
+      'formatOptions',
+      '80',
+      tmp,
+      '--out',
+      join(OUT_DIR, `${id}.jpg`)
+    ]);
+    await rm(tmp);
     console.log('done');
   } catch (e) {
     console.log(`FAILED: ${e.message}`);

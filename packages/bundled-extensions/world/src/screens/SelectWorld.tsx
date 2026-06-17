@@ -7,7 +7,7 @@ import type { PrepareWorldPayload, PrepareWorldResult } from '@/worker/prepare-w
 
 import { ModelStep } from './ModelStep';
 
-const ART_STYLE_IMAGES = import.meta.glob('./art-styles/*.png', {
+const ART_STYLE_IMAGES = import.meta.glob('./art-styles/*.jpg', {
   eager: true,
   import: 'default'
 }) as Record<string, string>;
@@ -74,7 +74,7 @@ const ART_STYLES: { id: string; label: string; prompt: string }[] = [
 ];
 
 function artImage(id: string): string | undefined {
-  return ART_STYLE_IMAGES[`./art-styles/${id}.png`];
+  return ART_STYLE_IMAGES[`./art-styles/${id}.jpg`];
 }
 
 const STEPS = [
