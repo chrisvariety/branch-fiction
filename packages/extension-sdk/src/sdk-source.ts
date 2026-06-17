@@ -269,7 +269,7 @@ function extensionSdkClient() {
         });
         return;
       }
-      const blob = new Blob([bytes], mimeType ? { type: mimeType } : {});
+      const blob = new Blob([bytes as BufferSource], mimeType ? { type: mimeType } : {});
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
