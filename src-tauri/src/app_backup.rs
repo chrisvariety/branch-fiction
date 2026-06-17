@@ -47,7 +47,8 @@ fn move_path(src: &Path, dest: &Path) -> Result<(), String> {
     if let Some(parent) = dest.parent() {
         std::fs::create_dir_all(parent).map_err(|e| format!("mkdir {}: {e}", parent.display()))?;
     }
-    let meta = std::fs::symlink_metadata(src).map_err(|e| format!("stat {}: {e}", src.display()))?;
+    let meta =
+        std::fs::symlink_metadata(src).map_err(|e| format!("stat {}: {e}", src.display()))?;
     if meta.is_dir() {
         copy_tree(src, dest, &mut |_| CopyAction::Copy)?;
         std::fs::remove_dir_all(src).map_err(|e| format!("remove {}: {e}", src.display()))?;
@@ -108,7 +109,12 @@ pub(crate) async fn build_backup_zip(app: &AppHandle, dest: &Path) -> Result<(),
     result
 }
 
-async fn build_backup(data: &Path, db_dir: &Path, staging: &Path, dest: &Path) -> Result<(), String> {
+async fn build_backup(
+    data: &Path,
+    db_dir: &Path,
+    staging: &Path,
+    dest: &Path,
+) -> Result<(), String> {
     let main_db = db_dir.join(MAIN_DB);
     if !main_db.exists() {
         return Err("main database not found".into());

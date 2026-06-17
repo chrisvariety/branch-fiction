@@ -58,14 +58,17 @@ pub fn setup(app: &AppHandle) -> tauri::Result<()> {
         .select_all()
         .build()?;
 
+    // GTK filters minimize/maximize out of predefined menus, leaving an empty submenu on Linux.
+    #[cfg(not(target_os = "linux"))]
     let window_menu = SubmenuBuilder::new(app, "Window")
         .minimize()
         .maximize()
         .build()?;
 
-    let menu = MenuBuilder::new(app)
-        .items(&[&app_menu, &file_menu, &edit_menu, &window_menu])
-        .build()?;
+    let menu_builder = MenuBuilder::new(app).items(&[&app_menu, &file_menu, &edit_menu]);
+    #[cfg(not(target_os = "linux"))]
+    let menu_builder = menu_builder.item(&window_menu);
+    let menu = menu_builder.build()?;
 
     app.set_menu(menu)?;
 
