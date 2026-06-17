@@ -68,7 +68,7 @@ function WorldStage({
   const stageRef = useRef<HTMLDivElement>(null);
   const seedSrc = transformImageUrl(world.seedImageUrl);
 
-  // WKWebView blocks programmatic autoplay; force-mute and play the element.
+  // Force-mute to satisfy WKWebView autoplay; the playing/pause listeners own `playing`.
   const tryPlay = useCallback(async () => {
     const video = stageRef.current?.querySelector('video');
     if (!video) return;
@@ -77,7 +77,7 @@ function WorldStage({
       await video.play();
       setPlaying(true);
     } catch {
-      setPlaying(false);
+      // ReactorView re-attached the stream mid-play; the retry effect recovers.
     }
   }, []);
 
@@ -134,9 +134,26 @@ function WorldStage({
     });
   }, [status, condition]);
 
+  // Reconcile `playing` with the element's real state, whoever wins the play race.
   useEffect(() => {
-    if (started) void tryPlay();
-  }, [started, tryPlay]);
+    const video = stageRef.current?.querySelector('video');
+    if (!video) return;
+    const sync = () => setPlaying(!video.paused);
+    video.addEventListener('playing', sync);
+    video.addEventListener('pause', sync);
+    return () => {
+      video.removeEventListener('playing', sync);
+      video.removeEventListener('pause', sync);
+    };
+  }, []);
+
+  // A single play() can be aborted by a stream re-attach; retry until it sticks.
+  useEffect(() => {
+    if (!started || playing) return;
+    void tryPlay();
+    const id = setInterval(() => void tryPlay(), 800);
+    return () => clearInterval(id);
+  }, [started, playing, tryPlay]);
 
   return (
     <div className="flex h-screen items-center justify-center bg-neutral-950 p-3">
