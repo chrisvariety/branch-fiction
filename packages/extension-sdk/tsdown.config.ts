@@ -47,6 +47,18 @@ export default defineConfig({
   sourcemap: true,
   dts: true,
   clean: true,
+  // dts pass fakes .d.ts as JS without a sourcemap; the SOURCEMAP_BROKEN warning is noise.
+  inputOptions: {
+    onLog(level, log, handler) {
+      if (
+        log.code === 'SOURCEMAP_BROKEN' &&
+        log.plugin === 'rolldown-plugin-dts:fake-js'
+      ) {
+        return;
+      }
+      handler(level, log);
+    }
+  },
   outputOptions: {
     entryFileNames: '[name].js'
   }
