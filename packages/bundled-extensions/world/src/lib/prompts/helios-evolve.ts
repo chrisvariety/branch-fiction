@@ -12,30 +12,50 @@ const meta: PromptMeta<typeof InputSchema> = {
   input: InputSchema
 };
 
-const prompt = `You are evolving the prompt for Helios, a real-time video generation model. The scene is already live. The user has typed a short steering intent; rewrite the CURRENT prompt into a new full prompt that applies that intent as a single new beat.
+const prompt = `You are evolving the prompt for Helios, a real-time video generation model. The scene is already live. The user has typed a short steering intent, and your task is to rewrite the CURRENT prompt into a new full prompt that folds that intent in as a single new beat.
 
+Here is the current prompt:
 <current_prompt>
 {{ currentPrompt }}
 </current_prompt>
 
+Here is the user's steering intent:
 <user_intent>
 {{ userIntent }}
 </user_intent>
 
-## How to evolve
-- Keep the SAME subject, environment, lighting, visual aesthetic, and camera/shot type as the current prompt. Continuity is essential — this is the next moment of the same shot, not a new scene.
-- Fold the user's intent in as ONE new action or change to the subject or scene. Express it concretely and visually.
-- Let the change ripple naturally into the environment if it makes sense (e.g. light, particles, reactions), but do not introduce unrelated new elements.
-- Preserve the closing shot-type sentence (framing + facing the camera). Keep the subject oriented toward the viewer.
+## How to Evolve the Prompt
 
-## Rules
-- Present tense. One coherent moment — do NOT describe a sequence of events.
-- Rewrite the WHOLE prompt as flowing prose, similar length to the current one. Do not output a diff or only the new part.
-- No proper nouns beyond those already in the current prompt. Do not contradict established details.
+- **Preserve continuity**: Keep the SAME subject, environment, lighting, visual aesthetic, and camera/shot type as the current prompt. This is the next moment of the same shot, not a new scene.
+- **Apply the intent as ONE change**: Fold the user's intent in as a single new action or change to the subject or scene. Express it concretely and visually.
+- **Let it ripple naturally**: Allow the change to affect the environment where it makes sense (light, particles, reactions, swaying foliage), but do not introduce unrelated new elements.
+- **Keep the camera locked**: Preserve the closing shot-type sentence (framing + facing the camera) and keep the subject oriented toward the viewer.
 
-Output ONLY this, nothing else:
+## Constraints and Requirements
+
+- Write in present tense
+- Describe one coherent moment - do NOT describe a sequence of events or actions
+- Rewrite the WHOLE prompt as flowing prose, similar in length to the current one. Do not output a diff or only the changed part.
+- Do not use proper nouns beyond those already in the current prompt
+- Do not contradict details established in the current prompt
+
+## Output Format
+
+Provide your final output in this exact format, and nothing else:
+
 <world_prompt>
 [the evolved prompt]
+</world_prompt>
+
+## Example (different scene/intent — match the continuity and structure, not the content)
+
+Current prompt: "A young ranger with windswept auburn hair and a weathered green hooded cloak stands among the moss-draped roots of an ancient forest, a worn leather quiver slung across her back and a silver-handled bow held loosely at her side. Mushroom-dotted roots and ferns crowd the foreground, towering gnarled oaks wound with glowing blue vines rise through the middle distance, and far behind her a mist-wreathed valley opens toward jagged snow-capped peaks. Shafts of golden afternoon light slant through the canopy, catching the loose strands of her hair and glinting off the bow's polished handle. She stands relaxed and alert, one hand resting on the strap of her quiver, chin lifted with quiet confidence. Painterly cinematic fantasy 3D render with rich environmental depth and warm saturated colors. Medium shot focused on the ranger, facing the camera."
+
+User intent: "a fox appears"
+
+Output:
+<world_prompt>
+A young ranger with windswept auburn hair and a weathered green hooded cloak stands among the moss-draped roots of an ancient forest, a worn leather quiver slung across her back and a silver-handled bow held loosely at her side. A small russet fox slips out from the mushroom-dotted ferns in the foreground, padding lightly toward her as she turns her gaze down to meet it, the corner of her mouth lifting. The disturbed ferns and glowing blue vines on the gnarled oaks tremble softly in the fox's wake, while the mist-wreathed valley and snow-capped peaks hold steady far behind her. Shafts of golden afternoon light slant through the canopy, catching the loose strands of her hair and glinting off the bow's polished handle and the fox's bright fur. Painterly cinematic fantasy 3D render with rich environmental depth and warm saturated colors. Medium shot focused on the ranger, facing the camera.
 </world_prompt>`;
 
 export default createPrompt(meta, prompt);

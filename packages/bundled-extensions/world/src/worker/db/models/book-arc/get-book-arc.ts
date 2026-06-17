@@ -15,14 +15,17 @@ export async function getBookArcsByBookIdAndTypesAndEntityIds(
   if (entityIds.length === 0) return [];
   return (trx || getDb())
     .selectFrom('bookArcs')
-    .selectAll()
-    .where('bookId', '=', bookId)
-    .where('type', 'in', types)
+    .innerJoin('chapters as startChapter', 'startChapter.id', 'bookArcs.startChapterId')
+    .innerJoin('chapters as endChapter', 'endChapter.id', 'bookArcs.endChapterId')
+    .selectAll('bookArcs')
+    .select(['startChapter.idx as startChapterIdx', 'endChapter.idx as endChapterIdx'])
+    .where('bookArcs.bookId', '=', bookId)
+    .where('bookArcs.type', 'in', types)
     .where(
       env.DATABASE_DIALECT === 'sqlite'
         ? sql<boolean>`EXISTS (SELECT 1 FROM json_each(book_arcs.book_entity_ids) WHERE value IN (${sql.join(entityIds)}))`
         : sql<boolean>`book_arcs.book_entity_ids && ARRAY[${sql.join(entityIds)}::uuid]`
     )
-    .orderBy('friendlyIdIdx', 'asc')
+    .orderBy('bookArcs.friendlyIdIdx', 'asc')
     .execute();
 }

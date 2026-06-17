@@ -583,9 +583,6 @@ importers:
       css-select:
         specifier: 'catalog:'
         version: 7.0.0
-      dedent:
-        specifier: 'catalog:'
-        version: 1.7.2
       dom-serializer:
         specifier: 'catalog:'
         version: 3.1.1

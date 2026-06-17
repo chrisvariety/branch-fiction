@@ -1,4 +1,3 @@
-import dedent from 'dedent';
 import { v7 as uuidv7 } from 'uuid';
 
 import type { WorldModel } from '@/lib/db/types';
@@ -11,6 +10,7 @@ import { generateOneShotImage } from '@/lib/media/generate-one-shot-image';
 import { buildAssetUrl, parseAssetUrl } from '@/lib/media/transform-url';
 import heliosWorld from '@/lib/prompts/helios-world';
 import lingbotWorld from '@/lib/prompts/lingbot-world';
+import worldSeed from '@/lib/prompts/world-seed';
 import { ensureDbReady, getDb } from '@/worker/db';
 import { getBookArcsByBookIdAndTypesAndEntityIds } from '@/worker/db/models/book-arc/get-book-arc';
 import { getBookEntityById } from '@/worker/db/models/book-entity/get-book-entity';
@@ -233,6 +233,7 @@ const runPrepareWorld = createWorkflowFunction<
       {
         model,
         artStyle,
+        worldPrompt,
         characterName: character.name,
         characterAppearance: selectedAppearance.standalone,
         placeName: place.name,
@@ -265,6 +266,7 @@ async function generateSeedImage(
   {
     model,
     artStyle,
+    worldPrompt,
     characterName,
     characterAppearance,
     placeName,
@@ -272,6 +274,7 @@ async function generateSeedImage(
   }: {
     model: WorldModel;
     artStyle: string;
+    worldPrompt: string;
     characterName: string;
     characterAppearance: string;
     placeName: string;
@@ -280,22 +283,13 @@ async function generateSeedImage(
   ctx: WorkflowContext
 ): Promise<string> {
   // The seed conditions the world model, so match each model's preferred framing.
-  const framing =
-    model === 'lingbot'
-      ? `Third-person over-the-shoulder view following ${characterName}, with ${characterName} centered in frame and seen from behind, the world opening up ahead. Pose ${characterName} in the way that fits what they are, e.g. a winged creature or dragon airborne with wings spread, an ordinary person on foot, a sprite floating in the air, etc.`
-      : `Establishing shot of ${characterName} present in the environment, ${characterName} facing the camera (front-facing or three-quarter).`;
-
-  const prompt = dedent`
-    A cinematic establishing scene: ${characterName} within ${placeName}.
-
-    ${placeName}: ${placeAppearance}
-
-    ${characterName}: ${characterAppearance}
-
-    Requirements:
-    - ${framing}
-    - Rendered in a ${resolveArtStyle(artStyle)}.
-    - Do not include any text, labels, or names.`;
+  const prompt = worldSeed.render({
+    model,
+    artStyle: resolveArtStyle(artStyle),
+    worldPrompt,
+    character: { name: characterName, appearance: characterAppearance },
+    place: { name: placeName, appearance: placeAppearance }
+  });
 
   console.log(`[world] seed image prompt:\n${prompt}`);
   ctx.log
