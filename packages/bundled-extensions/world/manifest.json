@@ -1,0 +1,65 @@
+{
+  "manifestVersion": "v1",
+  "id": "@local/world",
+  "name": "Explore the World",
+  "version": "0.1.0",
+  "author": "Chris McC",
+  "description": "Step inside your book as a living, explorable world. Pick a character and a place, choose a world model, and roam a real-time generated scene built from the book's own descriptions.",
+  "repository": "https://github.com/chrisvariety/branch-fiction/tree/release/packages/bundled-extensions/world",
+  "bookData": [
+    { "table": "worlds", "bookIdColumn": "book_id", "assetColumns": ["seed_image_url"] }
+  ],
+  "path": {
+    "phoneCompatible": false,
+    "entry": "dist/index.html",
+    "worker": "dist/worker.js",
+    "window": { "width": 1280, "height": 860 }
+  },
+  "providers": [
+    {
+      "key": "text",
+      "role": "Prompt augmentation (LLM)",
+      "useSlot": "piText"
+    },
+    {
+      "key": "image_generation_seed",
+      "role": "Seed image generation",
+      "options": [
+        {
+          "baseURL": "https://generativelanguage.googleapis.com/v1beta",
+          "auth": { "kind": "header", "header": "x-goog-api-key" },
+          "model": "gemini-3.1-flash-image-preview",
+          "credentialHelp": "Get an API key from [Google AI Studio](https://aistudio.google.com)"
+        },
+        {
+          "baseURL": "https://api.openai.com/v1",
+          "auth": { "kind": "bearer" },
+          "model": "gpt-image-2"
+        },
+        {
+          "baseURL": "https://fal.run",
+          "auth": { "kind": "bearer", "headerPrefix": "Key" },
+          "model": "fal-ai/nano-banana-2",
+          "credentialHelp": "Get an API key from [Fal](https://fal.ai/dashboard/keys)"
+        }
+      ]
+    },
+    {
+      "key": "reactor_token",
+      "role": "Reactor API Key",
+      "options": [
+        {
+          "baseURL": "https://api.reactor.inc",
+          "auth": { "kind": "header", "header": "Reactor-API-Key" },
+          "credentialHelp": "Get an API key (rk_…) from your [Reactor dashboard](https://www.reactor.inc/account/api-keys)"
+        }
+      ]
+    }
+  ],
+  "config": [],
+  "net": [
+    "api.reactor.inc",
+    "*.s3.us-west-2.amazonaws.com",
+    "*.s3.us-east-2.amazonaws.com"
+  ]
+}

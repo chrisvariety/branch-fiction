@@ -1,0 +1,50 @@
+{
+  "name": "@local/world-extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build && tsdown",
+    "dev": "branch-fiction-extension-dev",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "@earendil-works/pi-agent-core": "catalog:",
+    "@earendil-works/pi-ai": "catalog:",
+    "@google/genai": "^2.8.0",
+    "@huggingface/jinja": "catalog:",
+    "@reactor-team/js-sdk": "^2.12.0",
+    "@stablelib/base64": "catalog:",
+    "@tabler/icons-react": "catalog:",
+    "@tanstack/react-query": "catalog:",
+    "class-variance-authority": "catalog:",
+    "clsx": "catalog:",
+    "css-select": "catalog:",
+    "dom-serializer": "catalog:",
+    "domhandler": "catalog:",
+    "domutils": "catalog:",
+    "htmlparser2": "catalog:",
+    "kysely": "catalog:",
+    "kysely-plugin-serialize": "catalog:",
+    "openai": "^6.42.0",
+    "p-retry": "^8.0.0",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "tailwind-merge": "catalog:",
+    "uuid": "catalog:",
+    "valibot": "catalog:",
+    "zustand": "^5.0.6"
+  },
+  "devDependencies": {
+    "@branch-fiction/extension-sdk": "workspace:*",
+    "@tailwindcss/vite": "catalog:",
+    "@types/deno": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "tailwindcss": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  }
+}
