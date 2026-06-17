@@ -102,6 +102,46 @@ pub(crate) fn encrypt_file(src: &Path, dest: &Path, phrase: &str) -> Result<(), 
     writer.flush().map_err(|e| format!("flush: {e}"))
 }
 
+pub(crate) fn decrypt_file(src: &Path, dest: &Path, phrase: &str) -> Result<(), String> {
+    let cipher = cipher(phrase)?;
+    let mut reader =
+        BufReader::new(File::open(src).map_err(|e| format!("open {}: {e}", src.display()))?);
+
+    let mut magic = [0u8; MAGIC.len()];
+    let mut nonce = [0u8; NONCE_LEN];
+    if read_full(&mut reader, &mut magic)? != magic.len()
+        || &magic != MAGIC
+        || read_full(&mut reader, &mut nonce)? != nonce.len()
+    {
+        return Err("not an encrypted Branch Fiction backup".into());
+    }
+    let mut dec = DecryptorBE32::from_aead(cipher, (&nonce).into());
+
+    let mut writer =
+        BufWriter::new(File::create(dest).map_err(|e| format!("create {}: {e}", dest.display()))?);
+    let bad_key = || "wrong recovery key or corrupted backup".to_string();
+
+    let mut cur = vec![0u8; CHUNK + TAG_LEN];
+    let mut cur_len = read_full(&mut reader, &mut cur)?;
+    loop {
+        let mut next = vec![0u8; CHUNK + TAG_LEN];
+        let next_len = read_full(&mut reader, &mut next)?;
+        if cur_len < TAG_LEN {
+            return Err(bad_key());
+        }
+        if next_len == 0 {
+            let pt = dec.decrypt_last(&cur[..cur_len]).map_err(|_| bad_key())?;
+            writer.write_all(&pt).map_err(|e| format!("write: {e}"))?;
+            break;
+        }
+        let pt = dec.decrypt_next(&cur[..cur_len]).map_err(|_| bad_key())?;
+        writer.write_all(&pt).map_err(|e| format!("write: {e}"))?;
+        cur = next;
+        cur_len = next_len;
+    }
+    writer.flush().map_err(|e| format!("flush: {e}"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -145,44 +185,4 @@ mod tests {
         );
         assert!(normalize_recovery_phrase("not a real phrase").is_err());
     }
-}
-
-pub(crate) fn decrypt_file(src: &Path, dest: &Path, phrase: &str) -> Result<(), String> {
-    let cipher = cipher(phrase)?;
-    let mut reader =
-        BufReader::new(File::open(src).map_err(|e| format!("open {}: {e}", src.display()))?);
-
-    let mut magic = [0u8; MAGIC.len()];
-    let mut nonce = [0u8; NONCE_LEN];
-    if read_full(&mut reader, &mut magic)? != magic.len()
-        || &magic != MAGIC
-        || read_full(&mut reader, &mut nonce)? != nonce.len()
-    {
-        return Err("not an encrypted Branch Fiction backup".into());
-    }
-    let mut dec = DecryptorBE32::from_aead(cipher, (&nonce).into());
-
-    let mut writer =
-        BufWriter::new(File::create(dest).map_err(|e| format!("create {}: {e}", dest.display()))?);
-    let bad_key = || "wrong recovery key or corrupted backup".to_string();
-
-    let mut cur = vec![0u8; CHUNK + TAG_LEN];
-    let mut cur_len = read_full(&mut reader, &mut cur)?;
-    loop {
-        let mut next = vec![0u8; CHUNK + TAG_LEN];
-        let next_len = read_full(&mut reader, &mut next)?;
-        if cur_len < TAG_LEN {
-            return Err(bad_key());
-        }
-        if next_len == 0 {
-            let pt = dec.decrypt_last(&cur[..cur_len]).map_err(|_| bad_key())?;
-            writer.write_all(&pt).map_err(|e| format!("write: {e}"))?;
-            break;
-        }
-        let pt = dec.decrypt_next(&cur[..cur_len]).map_err(|_| bad_key())?;
-        writer.write_all(&pt).map_err(|e| format!("write: {e}"))?;
-        cur = next;
-        cur_len = next_len;
-    }
-    writer.flush().map_err(|e| format!("flush: {e}"))
 }
