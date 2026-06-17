@@ -26,6 +26,7 @@ mod html_to_markdown;
 mod http_server;
 mod import_db;
 mod keepawake;
+mod langsmith;
 mod migrations;
 mod phone_share;
 mod pipeline_bridge;

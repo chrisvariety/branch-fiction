@@ -102,7 +102,17 @@ pub async fn system_proxy_handler(
             (StatusCode::BAD_GATEWAY, e)
         })?;
 
-    forward_to_provider(&slot, resolved, &rest, method, uri.query(), headers, body).await
+    forward_to_provider(
+        &slot,
+        false,
+        resolved,
+        &rest,
+        method,
+        uri.query(),
+        headers,
+        body,
+    )
+    .await
 }
 
 #[derive(Serialize)]

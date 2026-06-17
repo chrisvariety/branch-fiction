@@ -80,6 +80,7 @@ pub async fn test_provider_proxy_handler(
     };
     forward_to_provider(
         "test-provider",
+        false,
         resolved,
         &rest,
         method,
