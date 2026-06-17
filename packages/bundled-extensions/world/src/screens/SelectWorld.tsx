@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { getCharacters, getPlaces, type PickableEntity } from '@/iframe/db/entities';
 import type { WorldModel } from '@/lib/db/types';
 import type { PrepareWorldPayload, PrepareWorldResult } from '@/worker/prepare-world';
+
+import { ModelStep } from './ModelStep';
 
 const ART_STYLE_IMAGES = import.meta.glob('./art-styles/*.png', {
   eager: true,
@@ -74,19 +76,6 @@ const ART_STYLES: { id: string; label: string; prompt: string }[] = [
 function artImage(id: string): string | undefined {
   return ART_STYLE_IMAGES[`./art-styles/${id}.png`];
 }
-
-const MODELS: { value: WorldModel; label: string; blurb: string }[] = [
-  {
-    value: 'helios',
-    label: 'Helios',
-    blurb: 'Prompt-steered cinematic stream. Evolve the scene by typing new beats.'
-  },
-  {
-    value: 'lingbot',
-    label: 'LingBot',
-    blurb: 'Walkable world. Move with WASD and look with the arrow keys.'
-  }
-];
 
 const STEPS = [
   {
@@ -270,6 +259,7 @@ export function SelectWorld({
     queryFn: () => getPlaces(bookId)
   });
 
+  const rootRef = useRef<HTMLDivElement>(null);
   const [step, setStep] = useState(0);
   const [characterId, setCharacterId] = useState('');
   const [placeId, setPlaceId] = useState('');
@@ -279,6 +269,17 @@ export function SelectWorld({
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let el: HTMLElement | null = rootRef.current?.parentElement ?? null;
+    while (el) {
+      if (el.scrollHeight > el.clientHeight) {
+        el.scrollTo({ top: 0 });
+        return;
+      }
+      el = el.parentElement;
+    }
+  }, [step]);
 
   const artStyle =
     artStyleId === 'custom'
@@ -311,7 +312,10 @@ export function SelectWorld({
   const current = STEPS[step];
 
   return (
-    <div className="flex flex-1 flex-col items-center gap-6 px-10 pt-12 pb-10">
+    <div
+      ref={rootRef}
+      className="flex flex-1 flex-col items-center gap-6 px-10 pt-12 pb-10"
+    >
       <div className="flex flex-col items-center gap-3 text-center">
         <p className="text-[10px] tracking-[0.3em] text-muted-foreground uppercase">
           {current.eyebrow}
@@ -354,19 +358,7 @@ export function SelectWorld({
         />
       )}
 
-      {step === 3 && (
-        <ChoiceGrid
-          label={current.title}
-          loading={false}
-          choices={MODELS.map((m) => ({
-            id: m.value,
-            title: m.label,
-            subtitle: m.blurb
-          }))}
-          selectedId={model}
-          onSelect={(id) => setModel(id as WorldModel)}
-        />
-      )}
+      {step === 3 && <ModelStep model={model} onSelect={setModel} />}
 
       <div className="flex flex-col items-center gap-2">
         <div className="flex gap-2">
