@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
-import { getCharacters, getPlaces } from '@/iframe/db/entities';
+import { getCharacters, getPlaces, type PickableEntity } from '@/iframe/db/entities';
 import type { WorldModel } from '@/lib/db/types';
 import type { PrepareWorldPayload, PrepareWorldResult } from '@/worker/prepare-world';
 
@@ -17,6 +17,73 @@ const MODELS: { value: WorldModel; label: string; blurb: string }[] = [
     blurb: 'Walkable world. Move with WASD and look with the arrow keys.'
   }
 ];
+
+interface Choice {
+  id: string;
+  title: string;
+  subtitle: string | null;
+}
+
+function entityChoices(entities: PickableEntity[] | undefined): Choice[] {
+  return (entities ?? []).map((e) => ({
+    id: e.id,
+    title: e.name,
+    subtitle: e.identityTag
+  }));
+}
+
+function ChoiceGrid({
+  title,
+  loading,
+  choices,
+  selectedId,
+  onSelect
+}: {
+  title: string;
+  loading: boolean;
+  choices: Choice[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <section className="flex flex-col gap-3">
+      <h2 className="text-sm font-semibold tracking-wide uppercase opacity-60">
+        {title}
+      </h2>
+      {loading ? (
+        <p className="text-sm opacity-60">Loading…</p>
+      ) : choices.length === 0 ? (
+        <p className="text-sm opacity-60">Nothing available.</p>
+      ) : (
+        <div
+          role="radiogroup"
+          aria-label={title}
+          className="grid grid-cols-2 gap-3 sm:grid-cols-3"
+        >
+          {choices.map((c) => {
+            const selected = c.id === selectedId;
+            return (
+              <button
+                key={c.id}
+                role="radio"
+                aria-checked={selected}
+                onClick={() => onSelect(c.id)}
+                className={`flex flex-col gap-1 rounded-xl border p-4 text-left transition-colors ${
+                  selected
+                    ? 'border-black bg-black/5 dark:border-white dark:bg-white/10'
+                    : 'border-black/15 hover:border-black/40 dark:border-white/15 dark:hover:border-white/40'
+                }`}
+              >
+                <span className="font-medium">{c.title}</span>
+                {c.subtitle && <span className="text-sm opacity-60">{c.subtitle}</span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
 
 export function SelectWorld({
   bookId,
@@ -34,6 +101,7 @@ export function SelectWorld({
     queryFn: () => getPlaces(bookId)
   });
 
+  const [step, setStep] = useState(0);
   const [characterId, setCharacterId] = useState('');
   const [placeId, setPlaceId] = useState('');
   const [model, setModel] = useState<WorldModel>('helios');
@@ -42,12 +110,13 @@ export function SelectWorld({
   const [busy, setBusy] = useState(false);
 
   const canSubmit = characterId && placeId && !busy;
+  const stepReady = [Boolean(characterId), Boolean(placeId), true][step];
+  const isLastStep = step === 2;
 
   async function enter() {
     if (!canSubmit) return;
     setBusy(true);
     setError(null);
-    setStatus('Preparing your world…');
     try {
       const payload: PrepareWorldPayload = { characterId, placeId, model };
       const result = await window.extensionSDK.worker
@@ -62,80 +131,70 @@ export function SelectWorld({
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 p-8">
+    <div className="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 p-8">
       <header>
         <h1 className="text-2xl font-semibold">Explore the World</h1>
         <p className="mt-1 text-sm opacity-70">
-          Pick a character and a place, choose a world model, and step inside.
+          Step {step + 1} of 3 — choose a character, a place, and a world model.
         </p>
       </header>
 
-      <label className="flex flex-col gap-1">
-        <span className="text-sm font-medium">Character</span>
-        <select
-          className="rounded-md border bg-transparent p-2"
-          value={characterId}
-          onChange={(e) => setCharacterId(e.target.value)}
-        >
-          <option value="">
-            {characters.isLoading ? 'Loading…' : 'Select a character'}
-          </option>
-          {characters.data?.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      {step === 0 && (
+        <ChoiceGrid
+          title="Select character"
+          loading={characters.isLoading}
+          choices={entityChoices(characters.data)}
+          selectedId={characterId}
+          onSelect={setCharacterId}
+        />
+      )}
 
-      <label className="flex flex-col gap-1">
-        <span className="text-sm font-medium">Place</span>
-        <select
-          className="rounded-md border bg-transparent p-2"
-          value={placeId}
-          onChange={(e) => setPlaceId(e.target.value)}
-        >
-          <option value="">{places.isLoading ? 'Loading…' : 'Select a place'}</option>
-          {places.data?.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      {step === 1 && (
+        <ChoiceGrid
+          title="Select place"
+          loading={places.isLoading}
+          choices={entityChoices(places.data)}
+          selectedId={placeId}
+          onSelect={setPlaceId}
+        />
+      )}
 
-      <fieldset className="flex flex-col gap-2">
-        <span className="text-sm font-medium">World model</span>
-        {MODELS.map((m) => (
-          <label
-            key={m.value}
-            className="flex cursor-pointer items-start gap-3 rounded-md border p-3"
+      {step === 2 && (
+        <ChoiceGrid
+          title="Select world model"
+          loading={false}
+          choices={MODELS.map((m) => ({
+            id: m.value,
+            title: m.label,
+            subtitle: m.blurb
+          }))}
+          selectedId={model}
+          onSelect={(id) => setModel(id as WorldModel)}
+        />
+      )}
+
+      <div className="sticky bottom-0 flex flex-col gap-2 bg-gradient-to-t from-white via-white pt-2 pb-1 dark:from-neutral-950 dark:via-neutral-950">
+        <div className="flex gap-2">
+          {step > 0 && (
+            <button
+              className="rounded-md border px-4 py-2 font-medium disabled:opacity-40"
+              disabled={busy}
+              onClick={() => setStep((s) => s - 1)}
+            >
+              Back
+            </button>
+          )}
+          <button
+            className="flex-1 rounded-md bg-black px-4 py-2 font-medium text-white disabled:opacity-40 dark:bg-white dark:text-black"
+            disabled={isLastStep ? !canSubmit : !stepReady}
+            onClick={() => (isLastStep ? void enter() : setStep((s) => s + 1))}
           >
-            <input
-              type="radio"
-              name="model"
-              className="mt-1"
-              checked={model === m.value}
-              onChange={() => setModel(m.value)}
-            />
-            <span>
-              <span className="block font-medium">{m.label}</span>
-              <span className="block text-sm opacity-70">{m.blurb}</span>
-            </span>
-          </label>
-        ))}
-      </fieldset>
-
-      <button
-        className="rounded-md bg-black px-4 py-2 font-medium text-white disabled:opacity-40 dark:bg-white dark:text-black"
-        disabled={!canSubmit}
-        onClick={enter}
-      >
-        {busy ? 'Preparing…' : 'Enter the world'}
-      </button>
-
-      {status && busy && <p className="text-sm opacity-70">{status}</p>}
-      {error && <p className="text-sm text-red-500">{error}</p>}
+            {isLastStep ? (busy ? 'Preparing…' : 'Enter the world') : 'Continue'}
+          </button>
+        </div>
+        {status && busy && <p className="text-sm opacity-70">{status}</p>}
+        {error && <p className="text-sm text-red-500">{error}</p>}
+      </div>
     </div>
   );
 }

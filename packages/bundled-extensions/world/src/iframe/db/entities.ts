@@ -5,6 +5,7 @@ import { getDb } from './index';
 export interface PickableEntity {
   id: string;
   name: string;
+  identityTag: string | null;
 }
 
 // Only entities with a self-contained APPEARANCE_ISOLATED arc can seed a standalone scene.
@@ -14,7 +15,7 @@ async function getEntitiesByType(
 ): Promise<PickableEntity[]> {
   return getDb()
     .selectFrom('bookEntities')
-    .select(['id', 'name'])
+    .select(['id', 'name', 'identityTag'])
     .where('bookId', '=', bookId)
     .where('type', '=', type)
     .where(
