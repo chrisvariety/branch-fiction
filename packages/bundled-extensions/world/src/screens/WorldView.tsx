@@ -20,13 +20,19 @@ export function WorldView({
   world: PrepareWorldResult;
   onExit: () => void;
 }) {
+  const [attempt, setAttempt] = useState(0);
   return (
     <ReactorProvider
+      key={attempt}
       modelName={MODEL_NAMES[world.model]}
       getJwt={getReactorJwt}
       connectOptions={{ autoConnect: true }}
     >
-      <WorldStage world={world} onExit={onExit} />
+      <WorldStage
+        world={world}
+        onExit={onExit}
+        onReconnect={() => setAttempt((a) => a + 1)}
+      />
     </ReactorProvider>
   );
 }
@@ -41,15 +47,19 @@ interface ReactorMsg {
     has_image?: boolean;
     command?: string;
     reason?: string;
+    action?: string;
+    message?: string;
   };
 }
 
 function WorldStage({
   world,
-  onExit
+  onExit,
+  onReconnect
 }: {
   world: PrepareWorldResult;
   onExit: () => void;
+  onReconnect: () => void;
 }) {
   const { status, sendCommand, uploadFile } = useReactor((s) => ({
     status: s.status,
@@ -59,6 +69,7 @@ function WorldStage({
 
   const [phase, setPhase] = useState<Phase>('connecting');
   const [error, setError] = useState<string | null>(null);
+  const [terminated, setTerminated] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState(world.prompt);
@@ -83,6 +94,14 @@ function WorldStage({
 
   // Events are the source of truth: start only once conditions_ready confirms commit.
   useReactorMessage((msg: ReactorMsg) => {
+    if (msg.type === 'moderation' && msg.data?.action === 'terminate') {
+      setTerminated(
+        msg.data?.message ?? 'Your session ended due to a content policy violation.'
+      );
+      setPlaying(false);
+      setStarted(false);
+      return;
+    }
     if (msg.type === 'command_error') {
       setError(
         `${msg.data?.command ?? 'command'} failed: ${msg.data?.reason ?? 'unknown'}`
@@ -180,7 +199,25 @@ function WorldStage({
 
         {!playing && (
           <div className="absolute inset-0 grid place-items-center px-8 text-center">
-            {error ? (
+            {terminated ? (
+              <div className="flex max-w-sm flex-col items-center gap-3">
+                <span className="text-sm text-white/90 drop-shadow">{terminated}</span>
+                <div className="flex gap-2">
+                  <button
+                    className="rounded-full bg-white px-4 py-1.5 text-sm font-medium text-black transition-colors hover:bg-white/90"
+                    onClick={onReconnect}
+                  >
+                    Reconnect
+                  </button>
+                  <button
+                    className="rounded-full border border-white/30 px-4 py-1.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/10"
+                    onClick={onExit}
+                  >
+                    Exit
+                  </button>
+                </div>
+              </div>
+            ) : error ? (
               <span className="text-sm text-red-400">{error}</span>
             ) : started ? (
               <button

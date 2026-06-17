@@ -49,14 +49,15 @@ export function HeliosControls({
             )}
           </div>
         )}
-        <div className="flex items-end gap-2 rounded-xl border border-white/15 bg-black/30 p-2 backdrop-blur-md">
-          <textarea
-            className="min-h-[2.5rem] flex-1 resize-none bg-transparent p-1 text-sm text-white placeholder-white/40 outline-none"
+        <div className="flex items-center gap-2 rounded-full border border-white/15 bg-black/30 py-1 pr-1 pl-3 backdrop-blur-md">
+          <input
+            type="text"
+            className="h-9 flex-1 bg-transparent text-sm text-white placeholder-white/40 outline-none"
             value={text}
             placeholder="Evolve the scene — e.g. “breath of flame”"
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
+              if (e.key === 'Enter') {
                 e.preventDefault();
                 void evolve();
               }
@@ -64,7 +65,7 @@ export function HeliosControls({
           />
           <button
             aria-label="Evolve the scene"
-            className="grid h-9 w-9 place-items-center rounded-lg text-lg leading-none text-white/70 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-lg leading-none text-white/70 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent"
             disabled={!text.trim() || busy}
             onClick={evolve}
           >

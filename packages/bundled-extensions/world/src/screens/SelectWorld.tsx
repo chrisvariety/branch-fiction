@@ -132,11 +132,24 @@ export function SelectWorld({
 
   return (
     <div className="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 p-8">
-      <header>
+      <header className="flex flex-col gap-3">
         <h1 className="text-2xl font-semibold">Explore the World</h1>
-        <p className="mt-1 text-sm opacity-70">
-          Step {step + 1} of 3 — choose a character, a place, and a world model.
-        </p>
+        <div
+          className="flex gap-1.5"
+          role="progressbar"
+          aria-valuenow={step + 1}
+          aria-valuemin={1}
+          aria-valuemax={3}
+        >
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              className={`h-0.5 flex-1 rounded-full transition-colors ${
+                i <= step ? 'bg-black dark:bg-white' : 'bg-black/15 dark:bg-white/15'
+              }`}
+            />
+          ))}
+        </div>
       </header>
 
       {step === 0 && (
