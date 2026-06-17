@@ -8,16 +8,16 @@ use sqlx::sqlite::SqliteConnectOptions;
 use sqlx::{ConnectOptions, Connection, Executor};
 use tauri::{AppHandle, Manager};
 
+use crate::db_path::main_db_dir;
 use crate::migrations::MAIN_MIGRATIONS;
 use crate::pipeline_worker::PipelineWorkerState;
 
 const BACKUP_META: &str = "backup-meta.json";
 const MAIN_DB: &str = "branch-fiction.db";
-/// Data-dir entries swapped wholesale on restore; book-imports is transient scratch.
-const RESTORED_ENTRIES: &[&str] = &[
-    MAIN_DB,
-    "branch-fiction.db-wal",
-    "branch-fiction.db-shm",
+/// DB trio lives in main_db_dir (config dir on Linux); rest are data-dir entries.
+const MAIN_DB_ENTRIES: &[&str] = &[MAIN_DB, "branch-fiction.db-wal", "branch-fiction.db-shm"];
+/// book-imports is transient scratch.
+const DATA_ENTRIES: &[&str] = &[
     "storage",
     "extension-data",
     "extension-data-pending",
@@ -28,6 +28,34 @@ fn data_dir(app: &AppHandle) -> Result<PathBuf, String> {
     app.path()
         .app_data_dir()
         .map_err(|e| format!("app_data_dir: {e}"))
+}
+
+/// Base dir a backup entry restores into: config dir for the DB trio, data dir otherwise.
+fn entry_base<'a>(name: &str, data: &'a Path, db_dir: &'a Path) -> &'a Path {
+    if MAIN_DB_ENTRIES.contains(&name) {
+        db_dir
+    } else {
+        data
+    }
+}
+
+/// Move src to dest, falling back to copy+remove across filesystems (config vs data dir).
+fn move_path(src: &Path, dest: &Path) -> Result<(), String> {
+    if std::fs::rename(src, dest).is_ok() {
+        return Ok(());
+    }
+    if let Some(parent) = dest.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| format!("mkdir {}: {e}", parent.display()))?;
+    }
+    let meta = std::fs::symlink_metadata(src).map_err(|e| format!("stat {}: {e}", src.display()))?;
+    if meta.is_dir() {
+        copy_tree(src, dest, &mut |_| CopyAction::Copy)?;
+        std::fs::remove_dir_all(src).map_err(|e| format!("remove {}: {e}", src.display()))?;
+    } else {
+        std::fs::copy(src, dest).map_err(|e| format!("copy {}: {e}", src.display()))?;
+        std::fs::remove_file(src).map_err(|e| format!("remove {}: {e}", src.display()))?;
+    }
+    Ok(())
 }
 
 pub(crate) fn ensure_no_imports_running(app: &AppHandle) -> Result<(), String> {
@@ -74,13 +102,14 @@ pub(crate) async fn build_backup_zip(app: &AppHandle, dest: &Path) -> Result<(),
     let _ = std::fs::remove_dir_all(&staging);
     std::fs::create_dir_all(&staging).map_err(|e| format!("mkdir staging: {e}"))?;
 
-    let result = build_backup(&data, &staging, dest).await;
+    let db_dir = main_db_dir(app)?;
+    let result = build_backup(&data, &db_dir, &staging, dest).await;
     let _ = std::fs::remove_dir_all(&staging);
     result
 }
 
-async fn build_backup(data: &Path, staging: &Path, dest: &Path) -> Result<(), String> {
-    let main_db = data.join(MAIN_DB);
+async fn build_backup(data: &Path, db_dir: &Path, staging: &Path, dest: &Path) -> Result<(), String> {
+    let main_db = db_dir.join(MAIN_DB);
     if !main_db.exists() {
         return Err("main database not found".into());
     }
@@ -343,6 +372,9 @@ pub fn apply_pending_restore(app: &AppHandle) {
     let Ok(data) = data_dir(app) else {
         return;
     };
+    let Ok(db_dir) = main_db_dir(app) else {
+        return;
+    };
     let staging = data.join("restore-staging");
     if !staging.join(MAIN_DB).is_file() {
         return;
@@ -355,10 +387,10 @@ pub fn apply_pending_restore(app: &AppHandle) {
         return;
     }
 
-    for name in RESTORED_ENTRIES {
-        let current = data.join(name);
+    for name in MAIN_DB_ENTRIES.iter().chain(DATA_ENTRIES) {
+        let current = entry_base(name, &data, &db_dir).join(name);
         if current.exists()
-            && let Err(e) = std::fs::rename(&current, parked.join(name))
+            && let Err(e) = move_path(&current, &parked.join(name))
         {
             eprintln!("restore: park {name}: {e}");
             return;
@@ -368,12 +400,14 @@ pub fn apply_pending_restore(app: &AppHandle) {
     match std::fs::read_dir(&staging) {
         Ok(entries) => {
             for entry in entries.filter_map(|e| e.ok()) {
-                if entry.file_name() == BACKUP_META {
+                let name = entry.file_name();
+                if name == BACKUP_META {
                     continue;
                 }
-                let target = data.join(entry.file_name());
-                if let Err(e) = std::fs::rename(entry.path(), &target) {
-                    eprintln!("restore: move {}: {e}", entry.file_name().to_string_lossy());
+                let base = entry_base(&name.to_string_lossy(), &data, &db_dir);
+                let target = base.join(&name);
+                if let Err(e) = move_path(&entry.path(), &target) {
+                    eprintln!("restore: move {}: {e}", name.to_string_lossy());
                 }
             }
         }
