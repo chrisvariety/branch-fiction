@@ -6,20 +6,25 @@ export type {
   ExtensionConfigField,
   ExtensionPath,
   ExtensionManifestV1,
+  ExtensionPermission,
   ExtensionProviderOption,
   ExtensionProviderRequirement,
   ExtensionProviderRequirementOptions,
   ExtensionProviderRequirementSlot
 } from './manifest';
 export {
+  ALWAYS_ALLOWED_FEATURES,
+  buildExtensionIframeAllow,
   defaultsFromManifest,
   defineManifest,
+  GATED_PERMISSIONS,
   hasMissingConfigFields,
   isOptionalRequirement,
   isUseSlotRequirement,
   NET_ALLOWLIST_ENTRY_REGEX,
   optionExpectsUserURL,
   optionURL,
+  PERMISSION_LABELS,
   requirementHasModel,
   validateManifest
 } from './manifest';

@@ -16,6 +16,7 @@ mod extension_db;
 mod extension_dev;
 mod extension_fetcher;
 mod extension_installer;
+mod extension_ports;
 mod extension_proxy;
 mod extension_runtime;
 mod extension_sdk;
@@ -66,6 +67,7 @@ use extension_installer::{
     commit_extension_install, install_extension_files, read_extension_manifest_at,
     uninstall_extension,
 };
+use extension_ports::allocate_extension_port;
 use extension_runtime::{ExtensionRuntimeState, cancel_extension_task, start_extension_task};
 use extension_sdk::{ExtensionSdkState, set_extension_sdk_source};
 use extension_signature::verify_extension_signature_cmd;
@@ -141,6 +143,7 @@ pub fn run() {
             open_book_window,
             get_path_phone_url,
             get_http_port,
+            allocate_extension_port,
             get_or_create_secret_key,
             prevent_sleep,
             allow_sleep,

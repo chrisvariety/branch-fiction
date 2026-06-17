@@ -3,11 +3,18 @@ import { createRoute } from '@tanstack/react-router';
 import { useEffect, useRef, useState } from 'react';
 
 import { type Theme, useTheme } from '../components/theme-provider';
+import {
+  allocateExtensionPort,
+  scrubExtensionOrigin
+} from '../extensions/extension-port';
+import {
+  buildExtensionIframeAllow,
+  type ExtensionPermission
+} from '../extensions/manifest';
 import { mintSession, revokeSession } from '../extensions/session-tokens';
 import { useWindowTitle } from '../hooks/use-window-title';
 import { getBookById } from '../lib/db/models/book/get-book';
 import { getExtensionById } from '../lib/db/models/extension/get-extension';
-import { getHttpPort } from '../lib/media/transform-url';
 import { rootRoute } from './__root';
 
 export const hostRoute = createRoute({
@@ -37,6 +44,8 @@ type IframeBoot = {
   src: string;
   title: string;
   author: string | null;
+  allow: string;
+  sandbox: string;
 };
 
 function isTauriContext(): boolean {
@@ -102,11 +111,12 @@ function PathHost() {
 
   const extension = extensionQuery.data;
   const manifest = extension?.manifest as
-    | { author?: string; path?: { entry?: string } }
+    | { author?: string; path?: { entry?: string }; permissions?: ExtensionPermission[] }
     | undefined;
   const name = extension?.name;
   const entry = manifest?.path?.entry;
   const author = manifest?.author ?? null;
+  const permissions = manifest?.permissions;
 
   useEffect(() => {
     if (!tauri) {
@@ -120,7 +130,9 @@ function PathHost() {
       setBoot({
         src: withDark(src, darkRef.current),
         title: phone.name || extensionId,
-        author: null
+        author: null,
+        allow: buildExtensionIframeAllow(undefined),
+        sandbox: 'allow-scripts'
       });
       return;
     }
@@ -136,15 +148,19 @@ function PathHost() {
       try {
         const { token } = await mintSession({ extensionId, bookId });
         if (cancelled) return;
-        // The embedded axum server is responsible for serving assets from /extension-assets
-        const port = await getHttpPort();
+        // Each extension gets its own loopback origin so allow-same-origin storage stays isolated.
+        const { port, needsClear } = await allocateExtensionPort(extensionId);
+        if (cancelled) return;
+        if (needsClear) await scrubExtensionOrigin(port);
         if (cancelled) return;
         const origin = `http://127.0.0.1:${port}`;
         const src = `${origin}/extension-assets/${encodeURIComponent(extensionId)}/${entry}?token=${encodeURIComponent(token)}`;
         setBoot({
           src: withDark(src, darkRef.current),
           title: name,
-          author
+          author,
+          allow: buildExtensionIframeAllow(permissions),
+          sandbox: 'allow-scripts allow-same-origin'
         });
       } catch (e) {
         if (cancelled) return;
@@ -156,7 +172,7 @@ function PathHost() {
       cancelled = true;
       void revokeSession(extensionId);
     };
-  }, [tauri, extensionId, bookId, name, entry, author]);
+  }, [tauri, extensionId, bookId, name, entry, author, permissions]);
 
   if (bootError) return <PathError message={bootError} />;
   if (tauri && extensionQuery.isError)
@@ -169,8 +185,8 @@ function PathHost() {
       <iframe
         src={boot.src}
         title={boot.title}
-        sandbox="allow-scripts"
-        allow="screen-wake-lock; fullscreen; gamepad; autoplay"
+        sandbox={boot.sandbox}
+        allow={boot.allow}
         className="flex-1 border-0 bg-transparent"
       />
     </div>
