@@ -257,7 +257,10 @@ pub async fn open_external_handler(
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
     verify_path_token(&app, &token)?;
     if !body.url.starts_with("http://") && !body.url.starts_with("https://") {
-        return Err((StatusCode::BAD_REQUEST, "only http(s) URLs are allowed".into()));
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "only http(s) URLs are allowed".into(),
+        ));
     }
     app.opener()
         .open_url(body.url, None::<&str>)
