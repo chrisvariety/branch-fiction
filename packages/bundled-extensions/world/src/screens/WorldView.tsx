@@ -239,6 +239,7 @@ function WorldStage({
             <HeliosControls
               sendCommand={sendCommand}
               currentPrompt={currentPrompt}
+              suggestedActions={world.suggestedActions}
               onEvolved={setCurrentPrompt}
             />
           ) : (

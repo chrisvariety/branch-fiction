@@ -90,6 +90,16 @@ Your opening prompt must include all five of these elements, woven together as f
    - "Close-up of {{ character.name }} looking toward the camera, slow push-in."
    - "Wide shot with {{ character.name }} in three-quarter view toward the viewer."
 
+### Step 3: Suggest Interactive Actions
+
+The scene is live and steerable — the user can type a short intent that nudges the scene forward. Propose 3-5 actions the user might take, as short imperative phrases (3-6 words each). These must be SPECIFIC to who this character is and where they are — derive them from the chosen appearance and the place, not generic filler.
+
+- A dragon → "open mouth and breathe fire", "spread wings wide"
+- A character carrying a sword → "pull out the sword", "raise the blade overhead"
+- A character at a campfire → "warm hands by the fire"
+
+Favor actions the character could plausibly perform from their current pose and surroundings. Avoid actions that would break continuity or require leaving the scene.
+
 ### Constraints and Requirements
 
 Your opening prompt must follow these rules:
@@ -110,12 +120,23 @@ Provide your final output in this exact format, and nothing else:
 <world_prompt>
 [your complete opening prompt for Helios]
 </world_prompt>
+<suggested_actions>
+<action>[short imperative phrase]</action>
+<action>[short imperative phrase]</action>
+<action>[short imperative phrase]</action>
+</suggested_actions>
 
 ## Example Output (different character/place — match the five-element style and structure, not the content)
 
 <selected_appearance_id>A-X-1</selected_appearance_id>
 <world_prompt>
 A young ranger with windswept auburn hair and a weathered green hooded cloak stands among the moss-draped roots of an ancient forest, a worn leather quiver slung across her back and a silver-handled bow held loosely at her side. Mushroom-dotted roots and ferns crowd the foreground, towering gnarled oaks wound with glowing blue vines rise through the middle distance, and far behind her a mist-wreathed valley opens toward jagged snow-capped peaks. Shafts of golden afternoon light slant through the canopy, catching the loose strands of her hair and glinting off the bow's polished handle. She stands relaxed and alert, one hand resting on the strap of her quiver, chin lifted with quiet confidence. Painterly cinematic fantasy 3D render with rich environmental depth and warm saturated colors. Medium shot focused on the ranger, facing the camera.
-</world_prompt>`;
+</world_prompt>
+<suggested_actions>
+<action>draw an arrow from the quiver</action>
+<action>raise the bow and take aim</action>
+<action>pull the hood back</action>
+<action>kneel down to read a track</action>
+</suggested_actions>`;
 
 export default createPrompt(meta, prompt);

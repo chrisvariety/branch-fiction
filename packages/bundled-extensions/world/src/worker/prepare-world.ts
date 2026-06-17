@@ -4,7 +4,7 @@ import type { WorldModel } from '@/lib/db/types';
 import { UnrecoverableError } from '@/lib/error-types';
 import { convertArcFriendlyIdPrefixToIsolated } from '@/lib/lit/arc-types';
 import { completeOrThrow, getAssistantText } from '@/lib/llm/agent';
-import { getText, parse, querySelector } from '@/lib/llm/xml';
+import { getText, parse, querySelector, querySelectorAll } from '@/lib/llm/xml';
 import { resolveArtStyle } from '@/lib/media/art-style';
 import { generateOneShotImage } from '@/lib/media/generate-one-shot-image';
 import { buildAssetUrl, parseAssetUrl } from '@/lib/media/transform-url';
@@ -29,6 +29,7 @@ export interface PrepareWorldResult {
   model: WorldModel;
   prompt: string;
   seedImageUrl: string;
+  suggestedActions: string[];
 }
 
 export async function prepareWorld(
@@ -222,9 +223,13 @@ const runPrepareWorld = createWorkflowFunction<
     const selectedAppearance =
       characterAppearances.find((a) => a.id === selectedId) ?? characterAppearances[0];
 
-    console.log(
-      `[world] ${model} prompt (appearance ${selectedAppearance.id} "${selectedAppearance.title}"):\n${worldPrompt}`
-    );
+    const suggestedActions = querySelectorAll(ast, 'suggested_actions action')
+      .map((node) => getText(node).trim())
+      .filter(Boolean);
+
+    // console.log(
+    //   `[world] ${model} prompt (appearance ${selectedAppearance.id} "${selectedAppearance.title}"):\n${worldPrompt}`
+    // );
     ctx.log
       .withMetadata({ model, worldPrompt, selectedAppearanceId: selectedAppearance.id })
       .info('World prompt generated');
@@ -258,7 +263,7 @@ const runPrepareWorld = createWorkflowFunction<
 
     ctx.log.withMetadata({ worldId, seedImageUrl }).info('World prepared');
 
-    return { worldId, model, prompt: worldPrompt, seedImageUrl };
+    return { worldId, model, prompt: worldPrompt, seedImageUrl, suggestedActions };
   }
 );
 
@@ -291,7 +296,7 @@ async function generateSeedImage(
     place: { name: placeName, appearance: placeAppearance }
   });
 
-  console.log(`[world] seed image prompt:\n${prompt}`);
+  // console.log(`[world] seed image prompt:\n${prompt}`);
   ctx.log
     .withMetadata({ placeName, characterName, prompt })
     .info('Generating seed image');
