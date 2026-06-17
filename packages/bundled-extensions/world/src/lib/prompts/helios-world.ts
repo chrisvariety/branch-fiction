@@ -46,9 +46,11 @@ You are given {{ character.name }} and the place {{ place.name }}. {{ character.
 </place>
 
 ## Step 1 — choose the appearance that fits the place
-{{ place.name }} is the scene anchor. From {{ character.name }}'s appearance options above, SELECT THE SINGLE ONE whose outfit, grooming, and physical state most plausibly belong at {{ place.name }} (e.g. a ballroom → the formal-gown appearance; a battlefield → the armored, battle-worn appearance; a bedroom at night → sleepwear). When the place snapshots and an appearance snapshot describe the same moment or setting, that is a strong match. Use ONLY the chosen appearance's details to describe {{ character.name }} — do NOT blend in clothing or features from the other appearance options.
+{{ place.name }} is the scene anchor. The appearances read in the flow of the story, so use them to understand which story-moment each one is, then SELECT THE SINGLE appearance whose outfit, grooming, and physical state most plausibly belong at {{ place.name }} (e.g. a ballroom → the formal-gown appearance; a battlefield → the armored, battle-worn appearance; a bedroom at night → sleepwear). When the place snapshots and an appearance describe the same moment or setting, that is a strong match.
 
 ## Step 2 — write the opening prompt
+Describe {{ character.name }} using ONLY the chosen appearance, and write a self-contained visual description of what is true now — do NOT carry over change-over-time phrasing from the arc ("now older", "her hair, once long…") or blend in details from the other appearance options.
+
 A strong opening prompt does the heavy lifting in a single pass. Cover all five, woven into flowing prose (not a bulleted list):
 1. **Subject** — {{ character.name }}'s concrete physical characteristics (face, hair, build, distinctive features, clothing) drawn from the chosen appearance.
 2. **Environment** — layer {{ place.name }} by depth: near, mid, and far. Use only details grounded in the place snapshots.

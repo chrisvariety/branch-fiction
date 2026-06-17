@@ -3,6 +3,7 @@ import { v7 as uuidv7 } from 'uuid';
 
 import type { WorldModel } from '@/lib/db/types';
 import { UnrecoverableError } from '@/lib/error-types';
+import { convertArcFriendlyIdPrefixToIsolated } from '@/lib/lit/arc-types';
 import { completeOrThrow, getAssistantText } from '@/lib/llm/agent';
 import { getText, parse, querySelector } from '@/lib/llm/xml';
 import { resolveArtStyle } from '@/lib/media/art-style';
@@ -36,13 +37,6 @@ export async function prepareWorld(
   return runPrepareWorld({ executionId: uuidv7(), payload });
 }
 
-interface AppearanceSnapshot {
-  id: string;
-  title: string;
-  chapterRange: string;
-  content: string;
-}
-
 interface ArcRow {
   friendlyId: string;
   title: string | null;
@@ -51,16 +45,82 @@ interface ArcRow {
   content: string;
 }
 
-// All isolated appearance snapshots become options the LLM picks from to fit the place.
-function buildAppearanceSnapshots(
-  arcs: ArcRow[],
+// LLM selects on the cumulative narrative; we render/image from the isolated standalone.
+interface CharacterAppearance {
+  id: string;
+  title: string;
+  chapterRange: string;
+  narrative: string;
+  standalone: string;
+}
+
+interface PlaceAppearance {
+  id: string;
+  title: string;
+  chapterRange: string;
+  content: string;
+}
+
+const chapterRange = (a: ArcRow) =>
+  `${a.startChapterIdx ?? '?'}-${a.endChapterIdx ?? '?'}`;
+
+// Pair each cumulative arc to its isolated sibling (A-… → AI-…).
+function buildCharacterAppearances(
+  cumulativeArcs: ArcRow[],
+  isolatedArcs: ArcRow[],
   fallback: string | null
-): AppearanceSnapshot[] {
-  if (arcs.length > 0) {
-    return arcs.map((a) => ({
+): CharacterAppearance[] {
+  const isolatedByFriendlyId = new Map(
+    isolatedArcs.map((a) => [a.friendlyId, a.content])
+  );
+
+  if (cumulativeArcs.length > 0) {
+    return cumulativeArcs.map((a) => {
+      const standalone =
+        isolatedByFriendlyId.get(convertArcFriendlyIdPrefixToIsolated(a.friendlyId)) ??
+        a.content;
+      return {
+        id: a.friendlyId,
+        title: a.title || 'Untitled',
+        chapterRange: chapterRange(a),
+        narrative: a.content,
+        standalone
+      };
+    });
+  }
+
+  // No cumulative arcs: fall back to isolated arcs directly, then the entity description.
+  if (isolatedArcs.length > 0) {
+    return isolatedArcs.map((a) => ({
       id: a.friendlyId,
       title: a.title || 'Untitled',
-      chapterRange: `${a.startChapterIdx ?? '?'}-${a.endChapterIdx ?? '?'}`,
+      chapterRange: chapterRange(a),
+      narrative: a.content,
+      standalone: a.content
+    }));
+  }
+  return fallback
+    ? [
+        {
+          id: 'fallback',
+          title: 'Description',
+          chapterRange: '?-?',
+          narrative: fallback,
+          standalone: fallback
+        }
+      ]
+    : [];
+}
+
+function buildPlaceAppearances(
+  isolatedArcs: ArcRow[],
+  fallback: string | null
+): PlaceAppearance[] {
+  if (isolatedArcs.length > 0) {
+    return isolatedArcs.map((a) => ({
+      id: a.friendlyId,
+      title: a.title || 'Untitled',
+      chapterRange: chapterRange(a),
       content: a.content
     }));
   }
@@ -92,20 +152,28 @@ const runPrepareWorld = createWorkflowFunction<
       throw new UnrecoverableError('Selected place not found');
     }
 
-    const [characterArcs, placeArcs] = await Promise.all([
-      getBookArcsByBookIdAndTypesAndEntityIds(
-        bookId,
-        ['APPEARANCE_ISOLATED'],
-        [characterId]
-      ),
-      getBookArcsByBookIdAndTypesAndEntityIds(bookId, ['APPEARANCE_ISOLATED'], [placeId])
-    ]);
+    const [characterCumulativeArcs, characterIsolatedArcs, placeArcs] = await Promise.all(
+      [
+        getBookArcsByBookIdAndTypesAndEntityIds(bookId, ['APPEARANCE'], [characterId]),
+        getBookArcsByBookIdAndTypesAndEntityIds(
+          bookId,
+          ['APPEARANCE_ISOLATED'],
+          [characterId]
+        ),
+        getBookArcsByBookIdAndTypesAndEntityIds(
+          bookId,
+          ['APPEARANCE_ISOLATED'],
+          [placeId]
+        )
+      ]
+    );
 
-    const characterAppearances = buildAppearanceSnapshots(
-      characterArcs,
+    const characterAppearances = buildCharacterAppearances(
+      characterCumulativeArcs,
+      characterIsolatedArcs,
       character.description
     );
-    const placeAppearances = buildAppearanceSnapshots(placeArcs, place.description);
+    const placeAppearances = buildPlaceAppearances(placeArcs, place.description);
     if (characterAppearances.length === 0) {
       throw new UnrecoverableError(`No appearance data for ${character.name}`);
     }
@@ -121,7 +189,15 @@ const runPrepareWorld = createWorkflowFunction<
 
     const template = model === 'helios' ? heliosWorld : lingbotWorld;
     const promptText = template.render({
-      character: { name: character.name, appearances: characterAppearances },
+      character: {
+        name: character.name,
+        appearances: characterAppearances.map((a) => ({
+          id: a.id,
+          title: a.title,
+          chapterRange: a.chapterRange,
+          content: a.narrative
+        }))
+      },
       place: { name: place.name, appearances: placeAppearances }
     });
 
@@ -140,7 +216,7 @@ const runPrepareWorld = createWorkflowFunction<
       throw new Error('LLM did not return a <world_prompt>');
     }
 
-    // Reuse the LLM's chosen appearance for the seed image so prompt and image agree.
+    // Reuse the LLM's chosen appearance (isolated standalone text) for the seed image.
     const selectedId = getText(querySelector(ast, 'selected_appearance_id')).trim();
     const selectedAppearance =
       characterAppearances.find((a) => a.id === selectedId) ?? characterAppearances[0];
@@ -156,7 +232,7 @@ const runPrepareWorld = createWorkflowFunction<
       {
         model,
         characterName: character.name,
-        characterAppearance: selectedAppearance.content,
+        characterAppearance: selectedAppearance.standalone,
         placeName: place.name,
         placeAppearance: placeAppearances[0]?.content ?? place.description ?? ''
       },

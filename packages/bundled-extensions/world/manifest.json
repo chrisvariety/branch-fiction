@@ -57,5 +57,9 @@
     }
   ],
   "config": [],
-  "net": ["api.reactor.inc", "*.s3.us-west-2.amazonaws.com"]
+  "net": [
+    "api.reactor.inc",
+    "*.s3.us-west-2.amazonaws.com",
+    "*.s3.us-east-2.amazonaws.com"
+  ]
 }
