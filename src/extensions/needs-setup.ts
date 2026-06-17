@@ -2,7 +2,6 @@ import {
   hasMissingConfigFields,
   isOptionalRequirement,
   isUseSlotRequirement,
-  requirementHasModel,
   type ExtensionManifestV1
 } from './manifest';
 
@@ -16,9 +15,6 @@ export function extensionNeedsSetup(
   const bound = new Set(bindings.map((b) => b.providerKey));
   return (manifest.providers ?? []).some(
     (req) =>
-      !isUseSlotRequirement(req) &&
-      requirementHasModel(req) &&
-      !isOptionalRequirement(req) &&
-      !bound.has(req.key)
+      !isUseSlotRequirement(req) && !isOptionalRequirement(req) && !bound.has(req.key)
   );
 }
