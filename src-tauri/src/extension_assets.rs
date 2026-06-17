@@ -1,6 +1,7 @@
 use std::path::{Component, Path, PathBuf};
 
 use axum::{
+    Extension,
     extract::{Path as AxumPath, State},
     http::{HeaderMap, HeaderValue, StatusCode, header},
     response::IntoResponse,
@@ -10,12 +11,17 @@ use tauri::AppHandle;
 use tokio::fs;
 
 use crate::db_path::open_main_db_ro;
+use crate::extension_ports::{OwnerPort, port_owns_extension};
 
 pub async fn assets_handler(
     State(app): State<AppHandle>,
+    owner: Option<Extension<OwnerPort>>,
     AxumPath((extension_id, rest)): AxumPath<(String, String)>,
     req_headers: HeaderMap,
 ) -> Result<impl IntoResponse, StatusCode> {
+    if !port_owns_extension(&app, owner, &extension_id) {
+        return Err(StatusCode::FORBIDDEN);
+    }
     if has_traversal(&rest) {
         return Err(StatusCode::BAD_REQUEST);
     }

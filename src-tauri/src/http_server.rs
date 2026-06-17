@@ -22,6 +22,7 @@ use crate::extension_data_proxy::{
     open_external_handler, public_asset_handler, save_file_handler,
 };
 use crate::extension_dev::{pair_handler, prepare_db_handler};
+use crate::extension_ports::{EXTENSION_PORT_POOL, ExtensionPortState, OwnerPort, cleanup_handler};
 use crate::extension_proxy::{proxy_handler, proxy_handler_no_rest};
 use crate::extension_sdk::{ExtensionSdkState, sdk_handler};
 use crate::extension_task_sse::{cancel_task_handler, start_task_handler};
@@ -78,10 +79,27 @@ pub fn spawn(app: &AppHandle) -> Result<u16, String> {
     #[cfg(debug_assertions)]
     let dist_dir: Option<PathBuf> = None;
 
+    // Loopback origins for extension iframes, bound up front so each is reachable on demand.
+    let mut pool_listeners = Vec::with_capacity(EXTENSION_PORT_POOL);
+    let mut pool_ports = Vec::with_capacity(EXTENSION_PORT_POOL);
+    for _ in 0..EXTENSION_PORT_POOL {
+        let l =
+            StdTcpListener::bind("127.0.0.1:0").map_err(|e| format!("pool bind failed: {e}"))?;
+        l.set_nonblocking(true)
+            .map_err(|e| format!("pool set_nonblocking failed: {e}"))?;
+        let p = l
+            .local_addr()
+            .map_err(|e| format!("pool local_addr failed: {e}"))?
+            .port();
+        pool_listeners.push(l);
+        pool_ports.push(p);
+    }
+    app.manage(ExtensionPortState::new(pool_ports));
+
     let app_handle = app.clone();
-    tauri::async_runtime::spawn(
-        async move { run(listener, storage_dir, dist_dir, app_handle).await },
-    );
+    tauri::async_runtime::spawn(async move {
+        run(listener, pool_listeners, storage_dir, dist_dir, app_handle).await
+    });
 
     Ok(port)
 }
@@ -95,6 +113,7 @@ fn resolve_dist_dir(app: &AppHandle) -> Result<PathBuf, String> {
 
 async fn run(
     listener: StdTcpListener,
+    pool_listeners: Vec<StdTcpListener>,
     storage_dir: PathBuf,
     dist_dir: Option<PathBuf>,
     app: AppHandle,
@@ -155,10 +174,40 @@ async fn run(
         .route("/assets/{bucket}/{*key}", get(serve_asset))
         .with_state(state);
 
-    let phone_share_router: Router = Router::new()
+    // Extension-facing surface, served on the main port and on each loopback pool port.
+    let extension_router: Router = Router::new()
         .merge(extension_routes)
         .merge(sdk_router)
-        .merge(assets_router);
+        .merge(assets_router)
+        .route("/__cleanup", get(cleanup_handler));
+
+    for pool_listener in pool_listeners {
+        let port = match pool_listener.local_addr() {
+            Ok(a) => a.port(),
+            Err(e) => {
+                eprintln!("http server: pool listener local_addr failed: {e}");
+                continue;
+            }
+        };
+        // OwnerPort confines this origin to its assigned extension's assets.
+        let pool_router = extension_router
+            .clone()
+            .layer(axum::Extension(OwnerPort(port)))
+            .layer(cors.clone());
+        match tokio::net::TcpListener::from_std(pool_listener) {
+            Ok(l) => {
+                tauri::async_runtime::spawn(async move {
+                    let svc = pool_router.into_make_service_with_connect_info::<SocketAddr>();
+                    if let Err(e) = axum::serve(l, svc).await {
+                        eprintln!("http server: pool serve error: {e}");
+                    }
+                });
+            }
+            Err(e) => eprintln!("http server: could not adopt pool listener: {e}"),
+        }
+    }
+
+    let phone_share_router: Router = extension_router;
 
     #[cfg(not(debug_assertions))]
     let phone_share_router = match dist_dir {

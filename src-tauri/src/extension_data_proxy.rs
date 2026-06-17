@@ -3,7 +3,7 @@ use std::path::{Component, Path, PathBuf};
 use std::str::FromStr;
 
 use axum::{
-    Json,
+    Extension, Json,
     extract::{Path as AxumPath, State},
     http::{HeaderMap, HeaderValue, StatusCode, header},
     response::IntoResponse,
@@ -21,6 +21,7 @@ use tokio::fs;
 
 use crate::extension_auth::verify_path_token;
 use crate::extension_db::extension_assets_dir;
+use crate::extension_ports::{OwnerPort, port_owns_extension};
 
 fn extension_db_path(app: &AppHandle, extension_id: &str) -> Result<PathBuf, String> {
     let dir = app
@@ -419,11 +420,15 @@ fn urlencoding_simple(s: &str) -> String {
 /// token-less because the contents under assets dir are freely read by the extension.
 pub async fn public_asset_handler(
     State(app): State<AppHandle>,
+    owner: Option<Extension<OwnerPort>>,
     AxumPath((extension_id, rest)): AxumPath<(String, String)>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
     // Reject non-`@scope/name` ids to avoid accidentally matching a JWT.
     if !extension_id.starts_with('@') || !extension_id.contains('/') {
         return Err((StatusCode::NOT_FOUND, "not found".to_string()));
+    }
+    if !port_owns_extension(&app, owner, &extension_id) {
+        return Err((StatusCode::FORBIDDEN, "forbidden".to_string()));
     }
     let path = resolve_in_assets(&app, &extension_id, &rest)?;
     let bytes = fs::read(&path)
