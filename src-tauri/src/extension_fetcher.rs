@@ -303,8 +303,15 @@ fn extract_zip(archive: &mut zip::ZipArchive<Cursor<&[u8]>>, dest: &Path) -> Res
 
 const MAX_MANIFEST_BYTES: usize = 256 * 1024;
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ManifestCheck {
+    pub found: bool,
+    pub manifest: Option<String>,
+}
+
 #[tauri::command]
-pub async fn check_github_manifest(url: String) -> Result<String, String> {
+pub async fn check_github_manifest(url: String) -> Result<ManifestCheck, String> {
     let parsed = parse_github_url(&url)?;
     if let Some(sub) = parsed.subdir.as_ref() {
         for part in sub.split('/') {
@@ -330,11 +337,12 @@ pub async fn check_github_manifest(url: String) -> Result<String, String> {
         .map_err(|e| format!("fetch manifest: {e}"))?;
     let status = resp.status();
     if !status.is_success() {
+        // A 404 means nothing is published here: it's benign, distinct from a fetch failure.
         if status.as_u16() == 404 {
-            return Err(format!(
-                "manifest.json not found at {}/{}@{ref_used}/{path}",
-                parsed.owner, parsed.repo
-            ));
+            return Ok(ManifestCheck {
+                found: false,
+                manifest: None,
+            });
         }
         return Err(format!("manifest fetch returned HTTP {}", status.as_u16()));
     }
@@ -348,7 +356,12 @@ pub async fn check_github_manifest(url: String) -> Result<String, String> {
             body.len()
         ));
     }
-    String::from_utf8(body.to_vec()).map_err(|e| format!("manifest is not valid UTF-8: {e}"))
+    let manifest = String::from_utf8(body.to_vec())
+        .map_err(|e| format!("manifest is not valid UTF-8: {e}"))?;
+    Ok(ManifestCheck {
+        found: true,
+        manifest: Some(manifest),
+    })
 }
 
 #[tauri::command]

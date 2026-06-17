@@ -217,17 +217,30 @@ type FetchedExtensionPayload = {
   provenance: ExtensionProvenance;
 };
 
-export async function checkGithubManifest(url: string): Promise<ExtensionManifestV1> {
-  const raw = await invoke<string>('check_github_manifest', { url });
+// Returns null when nothing is published at the URL (HTTP 404); throws on genuine failures.
+export async function fetchRemoteManifest(
+  url: string
+): Promise<ExtensionManifestV1 | null> {
+  const res = await invoke<{ found: boolean; manifest: string | null }>(
+    'check_github_manifest',
+    { url }
+  );
+  if (!res.found || res.manifest === null) return null;
   let parsed: ExtensionManifestV1;
   try {
-    parsed = JSON.parse(raw) as ExtensionManifestV1;
+    parsed = JSON.parse(res.manifest) as ExtensionManifestV1;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     throw new Error(`remote manifest.json is not valid JSON: ${message}`);
   }
   validateManifest(parsed);
   return parsed;
+}
+
+export async function checkGithubManifest(url: string): Promise<ExtensionManifestV1> {
+  const manifest = await fetchRemoteManifest(url);
+  if (!manifest) throw new Error(`No manifest.json found at ${url}`);
+  return manifest;
 }
 
 export async function stageExtensionInstallFromGithub(
@@ -275,7 +288,9 @@ export async function checkExtensionUpdate(
   const url = updateSourceUrl(extension);
   if (!url) return { kind: 'up-to-date', version: extension.version };
   try {
-    const manifest = await checkGithubManifest(url);
+    const manifest = await fetchRemoteManifest(url);
+    // Nothing published at the source yet
+    if (!manifest) return { kind: 'up-to-date', version: extension.version };
     if (manifest.id !== extension.id) {
       return {
         kind: 'error',
