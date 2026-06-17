@@ -31,7 +31,15 @@ Here is the user's steering intent:
 - **Let it ripple naturally**: Allow the change to affect the environment where it makes sense (light, particles, reactions, swaying foliage), but do not introduce unrelated new elements.
 - **Keep the camera locked**: Preserve the closing shot-type sentence (framing + facing the camera) and keep the subject oriented toward the viewer.
 
-After rewriting the prompt, also propose 3-5 fresh actions the user might take NEXT, as short imperative phrases (3-6 words each). Base them on the NEW scene state you just wrote — they should reflect whatever just changed (e.g. if a fox just appeared, "reach out to the fox" becomes plausible). Keep them specific to who the character is and where they are, plausible from their current pose, and continuity-safe.
+After rewriting the prompt, also propose 3-5 fresh actions the user might take NEXT, as short imperative phrases (3-6 words each). Base them on the NEW scene state you just wrote — they should reflect whatever just changed. Keep them specific to who the character is and where they are.
+
+The model handles SMALL, self-contained changes best — but small does NOT mean timid. Make them lively and expressive. Favor two kinds:
+- **Expressive body movements or expressions** the character can perform in place: "break into a grin", "laugh", "dance in place", "jump for joy", "throw the head back laughing", "wink at the camera", "blow a kiss", "strike a dramatic pose", "draw the sword", "breathe a plume of fire", "spread the wings wide". Lean into the character's personality and emotion — give them energy.
+- **A small new element appearing** that fits the context: for a dog scene "a cat wanders into frame"; for a tavern "a stranger sits down nearby"; for a forest "a bird lands on a branch".
+
+Avoid two failure modes:
+- **Boring micro-adjustments** that barely read on camera: "shift weight to one hip", "tilt head slightly", "rest hands on hips", "adjust posture". These are dull — prefer a clear, expressive beat with real emotional or physical energy.
+- **Things the model can't render**: locomotion, climbing, multi-step sequences, or manipulating the environment (e.g. "pull herself up the rope", "plant a foot on the rock", "reach for the next handhold", "walk down the path"). Keep each action to a single, immediate beat the character does without leaving frame.
 
 ## Constraints and Requirements
 
@@ -65,10 +73,10 @@ Output:
 A young ranger with windswept auburn hair and a weathered green hooded cloak stands among the moss-draped roots of an ancient forest, a worn leather quiver slung across her back and a silver-handled bow held loosely at her side. A small russet fox slips out from the mushroom-dotted ferns in the foreground, padding lightly toward her as she turns her gaze down to meet it, the corner of her mouth lifting. The disturbed ferns and glowing blue vines on the gnarled oaks tremble softly in the fox's wake, while the mist-wreathed valley and snow-capped peaks hold steady far behind her. Shafts of golden afternoon light slant through the canopy, catching the loose strands of her hair and glinting off the bow's polished handle and the fox's bright fur. Painterly cinematic fantasy 3D render with rich environmental depth and warm saturated colors. Medium shot focused on the ranger, facing the camera.
 </world_prompt>
 <suggested_actions>
-<action>kneel and offer a hand</action>
-<action>let the fox come closer</action>
-<action>lower the bow slowly</action>
-<action>follow the fox into the trees</action>
+<action>kneel down and laugh</action>
+<action>scoop up the fox</action>
+<action>spin around in delight</action>
+<action>a second fox appears</action>
 </suggested_actions>`;
 
 export default createPrompt(meta, prompt);
