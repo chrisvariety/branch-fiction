@@ -117,6 +117,35 @@ export type ExtensionPath = {
   phoneCompatible?: boolean;
 };
 
+// Non-sensitive Permissions-Policy features always delegated to the extension iframe.
+export const ALWAYS_ALLOWED_FEATURES = [
+  'fullscreen',
+  'autoplay',
+  'gamepad',
+  'screen-wake-lock'
+] as const;
+
+// Capture-class features delegated only when declared in `permissions` and consented.
+export const GATED_PERMISSIONS = ['microphone', 'camera', 'display-capture'] as const;
+
+export type ExtensionPermission = (typeof GATED_PERMISSIONS)[number];
+
+export const PERMISSION_LABELS: Record<ExtensionPermission, string> = {
+  microphone: 'Microphone',
+  camera: 'Camera',
+  'display-capture': 'Screen capture'
+};
+
+// Builds the iframe `allow` attribute: always-on features plus any consented capture permissions.
+export function buildExtensionIframeAllow(
+  permissions: ExtensionPermission[] | undefined
+): string {
+  const gated = (permissions ?? []).filter((p): p is ExtensionPermission =>
+    (GATED_PERMISSIONS as readonly string[]).includes(p)
+  );
+  return [...ALWAYS_ALLOWED_FEATURES, ...gated].join('; ');
+}
+
 export type ExtensionManifestV1 = {
   manifestVersion: 'v1';
   // "@scope/name", lowercase kebab-case.
@@ -142,6 +171,8 @@ export type ExtensionManifestV1 = {
   // Extra outbound hosts the worker is allowed to reach
   // (provider baseURLs do NOT belong here as those are reached through the local proxy)
   net?: string[];
+  // Capture-class iframe features (microphone/camera/screen) the extension needs.
+  permissions?: ExtensionPermission[];
 };
 
 // Bare host or host:port, with an optional single leading-label wildcard (*.example.com).
@@ -422,6 +453,29 @@ export function validateManifest(m: ExtensionManifestV1): void {
         throw new Error(`${where}: duplicate entry ${JSON.stringify(entry)}`);
       }
       seenNet.add(entry);
+    }
+  }
+
+  if (m.permissions !== undefined) {
+    if (!Array.isArray(m.permissions)) {
+      throw new Error(`Extension ${m.id}: permissions must be an array of strings`);
+    }
+    const seenPerms = new Set<string>();
+    for (let i = 0; i < m.permissions.length; i++) {
+      const entry = m.permissions[i];
+      const where = `Extension ${m.id}, permissions[${i}]`;
+      if (
+        typeof entry !== 'string' ||
+        !(GATED_PERMISSIONS as readonly string[]).includes(entry)
+      ) {
+        throw new Error(
+          `${where}: must be one of ${GATED_PERMISSIONS.join(', ')} (got ${JSON.stringify(entry)})`
+        );
+      }
+      if (seenPerms.has(entry)) {
+        throw new Error(`${where}: duplicate entry ${JSON.stringify(entry)}`);
+      }
+      seenPerms.add(entry);
     }
   }
 

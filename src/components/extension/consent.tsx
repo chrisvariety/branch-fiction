@@ -34,7 +34,9 @@ import {
   isOptionalRequirement,
   optionExpectsUserURL,
   optionURL,
+  PERMISSION_LABELS,
   requirementHasModel,
+  type ExtensionPermission,
   type ExtensionProvenance,
   type ExtensionConfigField,
   type ExtensionProviderOption,
@@ -435,6 +437,7 @@ export function ConsentScreen({
     });
 
   const hasNetEntries = (manifest.net?.length ?? 0) > 0;
+  const permissions: ExtensionPermission[] = manifest.permissions ?? [];
   const isConfigure = staged.mode === 'configure';
   const installLabel = staged.isReinstall ? 'Reinstall extension' : 'Install extension';
   const headingVerb = isConfigure
@@ -775,6 +778,20 @@ export function ConsentScreen({
             <ul className="mt-1 ml-4 list-disc font-mono text-muted-foreground">
               {manifest.net!.map((h) => (
                 <li key={h}>{h}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {permissions.length > 0 && (
+          <div className="border border-border p-3">
+            <h4 className="pt-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+              Device access
+            </h4>
+            <p className="mt-1 mb-2">May use the following devices:</p>
+            <ul className="mt-1 ml-4 list-disc text-muted-foreground">
+              {permissions.map((p) => (
+                <li key={p}>{PERMISSION_LABELS[p]}</li>
               ))}
             </ul>
           </div>

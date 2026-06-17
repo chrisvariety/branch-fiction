@@ -1,4 +1,5 @@
 export {
+  buildExtensionIframeAllow,
   defaultsFromManifest,
   defineManifest,
   hasMissingConfigFields,
@@ -7,6 +8,7 @@ export {
   NET_ALLOWLIST_ENTRY_REGEX,
   optionExpectsUserURL,
   optionURL,
+  PERMISSION_LABELS,
   requirementHasModel,
   validateManifest
 } from '@branch-fiction/extension-sdk';
@@ -15,6 +17,7 @@ export type {
   ExtensionConfigField,
   ExtensionPath,
   ExtensionManifestV1,
+  ExtensionPermission,
   ExtensionProviderOption,
   ExtensionProviderRequirement,
   ExtensionProviderRequirementOptions,

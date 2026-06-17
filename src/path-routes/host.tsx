@@ -3,6 +3,10 @@ import { createRoute } from '@tanstack/react-router';
 import { useEffect, useRef, useState } from 'react';
 
 import { type Theme, useTheme } from '../components/theme-provider';
+import {
+  buildExtensionIframeAllow,
+  type ExtensionPermission
+} from '../extensions/manifest';
 import { mintSession, revokeSession } from '../extensions/session-tokens';
 import { useWindowTitle } from '../hooks/use-window-title';
 import { getBookById } from '../lib/db/models/book/get-book';
@@ -37,6 +41,7 @@ type IframeBoot = {
   src: string;
   title: string;
   author: string | null;
+  allow: string;
 };
 
 function isTauriContext(): boolean {
@@ -102,11 +107,12 @@ function PathHost() {
 
   const extension = extensionQuery.data;
   const manifest = extension?.manifest as
-    | { author?: string; path?: { entry?: string } }
+    | { author?: string; path?: { entry?: string }; permissions?: ExtensionPermission[] }
     | undefined;
   const name = extension?.name;
   const entry = manifest?.path?.entry;
   const author = manifest?.author ?? null;
+  const permissions = manifest?.permissions;
 
   useEffect(() => {
     if (!tauri) {
@@ -120,7 +126,8 @@ function PathHost() {
       setBoot({
         src: withDark(src, darkRef.current),
         title: phone.name || extensionId,
-        author: null
+        author: null,
+        allow: buildExtensionIframeAllow(undefined)
       });
       return;
     }
@@ -144,7 +151,8 @@ function PathHost() {
         setBoot({
           src: withDark(src, darkRef.current),
           title: name,
-          author
+          author,
+          allow: buildExtensionIframeAllow(permissions)
         });
       } catch (e) {
         if (cancelled) return;
@@ -156,7 +164,7 @@ function PathHost() {
       cancelled = true;
       void revokeSession(extensionId);
     };
-  }, [tauri, extensionId, bookId, name, entry, author]);
+  }, [tauri, extensionId, bookId, name, entry, author, permissions]);
 
   if (bootError) return <PathError message={bootError} />;
   if (tauri && extensionQuery.isError)
@@ -170,7 +178,7 @@ function PathHost() {
         src={boot.src}
         title={boot.title}
         sandbox="allow-scripts"
-        allow="screen-wake-lock; fullscreen; gamepad; autoplay"
+        allow={boot.allow}
         className="flex-1 border-0 bg-transparent"
       />
     </div>
