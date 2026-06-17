@@ -1,3 +1,14 @@
+import {
+  getText,
+  parse,
+  querySelector,
+  querySelectorAll
+} from '@branch-fiction/extension-sdk/llm/xml';
+import { watchAgent } from '@branch-fiction/extension-sdk/pi-ai';
+import {
+  RecoverableError,
+  UnrecoverableError
+} from '@branch-fiction/extension-sdk/worker/error-types';
 import { Agent } from '@earendil-works/pi-agent-core';
 import { v7 as uuidv7 } from 'uuid';
 import * as v from 'valibot';
@@ -17,7 +28,6 @@ import {
   getChapterByBookIdAndChapterIdx,
   getMaxChapterIdxByBookId
 } from '@/lib/db/models/chapter/get-chapter';
-import { RecoverableError, UnrecoverableError } from '@/lib/error-types';
 import { parseChapterRange } from '@/lib/lit/chapter-range';
 import { SignificanceTier } from '@/lib/lit/entity-significance';
 import { isolateArcs } from '@/lib/lit/isolate-arcs';
@@ -26,9 +36,7 @@ import {
   getRelatedEntitiesFromArcs
 } from '@/lib/lit/related-entities';
 import { clusterCharactersByHub } from '@/lib/lit/relationship-graph';
-import { watchAgent } from '@/lib/llm/agent';
 import { estimateTokens } from '@/lib/llm/estimate-tokens';
-import { getText, parse, querySelector, querySelectorAll } from '@/lib/llm/xml';
 import extractRelationshipArcPrompt from '@/lib/prompts/post-processing/extract-relationship-arc';
 import { reportStepProgress } from '@/lib/step-projection';
 import {

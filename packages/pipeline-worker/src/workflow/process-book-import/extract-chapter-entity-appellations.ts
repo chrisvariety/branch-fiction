@@ -1,3 +1,15 @@
+import {
+  getAttribute,
+  getText,
+  parse,
+  querySelector,
+  querySelectorAll
+} from '@branch-fiction/extension-sdk/llm/xml';
+import { watchAgent, watchLoopDetection } from '@branch-fiction/extension-sdk/pi-ai';
+import {
+  RecoverableError,
+  UnrecoverableError
+} from '@branch-fiction/extension-sdk/worker/error-types';
 import { Agent } from '@earendil-works/pi-agent-core';
 import { v5 as uuidv5, v7 as uuidv7 } from 'uuid';
 import * as v from 'valibot';
@@ -13,20 +25,11 @@ import { createChapterEntityAppellations } from '@/lib/db/models/chapter-entity-
 import { getNonEmptyChapterParagraphsByChapterIds } from '@/lib/db/models/chapter-paragraph/get-chapter-paragraph';
 import { getChapterSceneGroupById } from '@/lib/db/models/chapter-scene-group/get-chapter-scene-group';
 import { getChapterScenesWithSettingAndLocationByIds } from '@/lib/db/models/chapter-scene/get-chapter-scene';
-import { RecoverableError, UnrecoverableError } from '@/lib/error-types';
 import { fuzzyMatchByKey } from '@/lib/lit/fuzzy-match';
 import { gatherMentions } from '@/lib/lit/gather-mentions';
 import { entityNamesFormatted } from '@/lib/lit/names';
 import { organizeParagraphsIntoScenes } from '@/lib/lit/organize-paragraphs-into-scenes';
 import { buildSceneAttrs } from '@/lib/lit/scene-attrs';
-import { watchAgent, watchLoopDetection } from '@/lib/llm/agent';
-import {
-  getAttribute,
-  getText,
-  parse,
-  querySelector,
-  querySelectorAll
-} from '@/lib/llm/xml';
 import extractEntityAppellationsFromChapter from '@/lib/prompts/import/extract-entity-appellations-from-chapter';
 import {
   addOrdinalSuffix,

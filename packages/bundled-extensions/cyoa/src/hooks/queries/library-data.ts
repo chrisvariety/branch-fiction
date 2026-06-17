@@ -1,9 +1,9 @@
+import { transformImageUrl } from '@branch-fiction/extension-sdk/media/transform-url';
 import { queryOptions } from '@tanstack/react-query';
 
 import { getLatestChatsByUserId } from '@/iframe/db/models/chat/get-chat';
 import { getUserWorldsByUserId } from '@/iframe/db/models/user-world/get-user-world';
 import { DEFAULT_USER_ID } from '@/lib/auth';
-import { transformImageUrl } from '@/lib/media/transform-url';
 
 export type LibraryWorld = {
   id: string;

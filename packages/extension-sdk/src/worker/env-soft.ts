@@ -1,7 +1,4 @@
-// Third-party libs probe and mutate many env vars at import/init time
-// (e.g. `debug` deletes `process.env.DEBUG`). Strict `--allow-env=...`
-// causes Deno to throw `NotCapable` on each unallowed call, breaking
-// module load. So we work around that.
+// Swallow Deno `NotCapable` env errors so libs probing env vars don't break module load.
 const realGet = Deno.env.get.bind(Deno.env);
 const realHas = Deno.env.has.bind(Deno.env);
 const realToObject = Deno.env.toObject.bind(Deno.env);

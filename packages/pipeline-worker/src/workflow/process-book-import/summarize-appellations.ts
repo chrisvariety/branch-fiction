@@ -1,3 +1,12 @@
+import {
+  getAttribute,
+  extractWrappedXml,
+  getText,
+  parse,
+  querySelectorAll
+} from '@branch-fiction/extension-sdk/llm/xml';
+import { getAssistantText } from '@branch-fiction/extension-sdk/pi-ai';
+import { UnrecoverableError } from '@branch-fiction/extension-sdk/worker/error-types';
 import { v7 as uuidv7 } from 'uuid';
 import * as v from 'valibot';
 
@@ -14,15 +23,6 @@ import { getBookImportById } from '@/lib/db/models/book-import/get-book-import';
 import { getBookById } from '@/lib/db/models/book/get-book';
 import { getDistinctPhraseChapterEntityAppellationsByBookId } from '@/lib/db/models/chapter-entity-appellation/get-chapter-entity-appellation';
 import { getNonEmptyChapterParagraphsByBookId } from '@/lib/db/models/chapter-paragraph/get-chapter-paragraph';
-import { UnrecoverableError } from '@/lib/error-types';
-import { getAssistantText } from '@/lib/llm/agent';
-import {
-  getAttribute,
-  extractWrappedXml,
-  getText,
-  parse,
-  querySelectorAll
-} from '@/lib/llm/xml';
 import summarizeAppellationsPrompt from '@/lib/prompts/import/summarize-appellations';
 import {
   addOrdinalSuffix,

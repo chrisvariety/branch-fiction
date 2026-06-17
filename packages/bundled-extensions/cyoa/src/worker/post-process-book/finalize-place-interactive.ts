@@ -1,5 +1,6 @@
+import { UnrecoverableError } from '@branch-fiction/extension-sdk/worker/error-types';
+
 import { BookInteractive } from '@/lib/db/types';
-import { UnrecoverableError } from '@/lib/error-types';
 import { getDb } from '@/worker/db';
 import { getBookInteractiveByIdSlim } from '@/worker/db/models/book-interactive/get-book-interactive';
 import { promoteBookInteractive } from '@/worker/db/models/book-interactive/update-book-interactive';

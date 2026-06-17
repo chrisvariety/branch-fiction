@@ -1,6 +1,5 @@
+import { createPrompt, PromptMeta } from '@branch-fiction/extension-sdk/llm/prompt';
 import * as v from 'valibot';
-
-import { createPrompt, PromptMeta } from '..';
 
 const CharacterArcPhaseSchema = v.object({
   friendlyId: v.string(),

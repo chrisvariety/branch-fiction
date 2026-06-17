@@ -1,3 +1,8 @@
+import { watchAgent } from '@branch-fiction/extension-sdk/pi-ai';
+import {
+  RecoverableError,
+  UnrecoverableError
+} from '@branch-fiction/extension-sdk/worker/error-types';
 import { Agent, type AgentTool } from '@earendil-works/pi-agent-core';
 import { Type } from '@earendil-works/pi-ai';
 import { v7 as uuidv7 } from 'uuid';
@@ -8,9 +13,7 @@ import { getBookEntitiesByBookIdAndTypes } from '@/lib/db/models/book-entity/get
 import { getBookById } from '@/lib/db/models/book/get-book';
 import { getChapterEntityAttributesByBookEntityIdsAndCategories } from '@/lib/db/models/chapter-entity-attribute/get-chapter-entity-attribute';
 import { getChapterRelationshipsWithChapterAndEntitiesByBookId } from '@/lib/db/models/chapter-relationship/get-chapter-relationship';
-import { RecoverableError, UnrecoverableError } from '@/lib/error-types';
 import { buildRelationshipGraph } from '@/lib/lit/relationship-graph';
-import { watchAgent } from '@/lib/llm/agent';
 import extractHierarchyPrompt from '@/lib/prompts/post-processing/extract-hierarchy';
 import {
   addOrdinalSuffix,

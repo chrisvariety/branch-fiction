@@ -1,4 +1,4 @@
-import '@/lib/env-soft';
+import '@branch-fiction/extension-sdk/worker/env-soft';
 import { handlers } from '@/handlers';
 import { getDb, initDb } from '@/lib/db';
 import { getBookImportById } from '@/lib/db/models/book-import/get-book-import';

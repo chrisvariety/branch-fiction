@@ -1,3 +1,15 @@
+import {
+  extractWrappedXml,
+  getText,
+  parse,
+  querySelector,
+  querySelectorAll
+} from '@branch-fiction/extension-sdk/llm/xml';
+import { getAssistantText } from '@branch-fiction/extension-sdk/pi-ai';
+import {
+  RecoverableError,
+  UnrecoverableError
+} from '@branch-fiction/extension-sdk/worker/error-types';
 import { v7 as uuidv7 } from 'uuid';
 import * as v from 'valibot';
 
@@ -15,17 +27,8 @@ import { getBookEntitiesByBookIdAndTypesAndSignificanceTiers } from '@/lib/db/mo
 import { getBookById } from '@/lib/db/models/book/get-book';
 import { getChapterEntityAppellationsWithChapterAndEntitiesByBookId } from '@/lib/db/models/chapter-entity-appellation/get-chapter-entity-appellation';
 import { getChapterByBookIdAndChapterIdx } from '@/lib/db/models/chapter/get-chapter';
-import { RecoverableError, UnrecoverableError } from '@/lib/error-types';
 import { convertArcFriendlyIdPrefixToIsolated } from '@/lib/lit/arc-types';
 import { parseChapterRange } from '@/lib/lit/chapter-range';
-import { getAssistantText } from '@/lib/llm/agent';
-import {
-  extractWrappedXml,
-  getText,
-  parse,
-  querySelector,
-  querySelectorAll
-} from '@/lib/llm/xml';
 import extractAppellationArcPrompt from '@/lib/prompts/post-processing/extract-appellation-arc';
 import {
   addOrdinalSuffix,

@@ -1,3 +1,4 @@
+import { transformImageUrl } from '@branch-fiction/extension-sdk/media/transform-url';
 import {
   ReactorProvider,
   ReactorView,
@@ -6,7 +7,6 @@ import {
 } from '@reactor-team/js-sdk';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { transformImageUrl } from '@/lib/media/transform-url';
 import { fetchSeedImageBlob, getReactorJwt, MODEL_NAMES } from '@/lib/reactor';
 import type { PrepareWorldResult } from '@/worker/prepare-world';
 

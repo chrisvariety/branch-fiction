@@ -1,5 +1,18 @@
 import { readFile } from 'node:fs/promises';
 
+import {
+  getAttribute,
+  extractWrappedXml,
+  getText,
+  parse,
+  querySelector,
+  querySelectorAll
+} from '@branch-fiction/extension-sdk/llm/xml';
+import { getAssistantText } from '@branch-fiction/extension-sdk/pi-ai';
+import {
+  RecoverableError,
+  UnrecoverableError
+} from '@branch-fiction/extension-sdk/worker/error-types';
 import type { Image, Root } from 'mdast';
 import { fromMarkdown } from 'mdast-util-from-markdown';
 import { toMarkdown } from 'mdast-util-to-markdown';
@@ -31,21 +44,11 @@ import { getNonEmptyChapterParagraphsByBookId } from '@/lib/db/models/chapter-pa
 import { getChapterScenesByBookId } from '@/lib/db/models/chapter-scene/get-chapter-scene';
 import { createChapters } from '@/lib/db/models/chapter/create-chapter';
 import { getChaptersByBookId } from '@/lib/db/models/chapter/get-chapter';
-import { RecoverableError, UnrecoverableError } from '@/lib/error-types';
 import { parseChapterRange } from '@/lib/lit/chapter-range';
 import { entityThresholds } from '@/lib/lit/entity-significance-estimate';
 import { gatherMentions } from '@/lib/lit/gather-mentions';
 import { entityNamesFormatted } from '@/lib/lit/names';
 import { splitParagraphsPreservingBlanks } from '@/lib/lit/split-paragraphs';
-import { getAssistantText } from '@/lib/llm/agent';
-import {
-  getAttribute,
-  extractWrappedXml,
-  getText,
-  parse,
-  querySelector,
-  querySelectorAll
-} from '@/lib/llm/xml';
 import continueCharacterAppearance from '@/lib/prompts/import/continue-character-appearance';
 import continueEntityAppearance from '@/lib/prompts/import/continue-entity-appearance';
 import determineDinkusPrompt from '@/lib/prompts/import/determine-dinkus';

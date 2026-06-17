@@ -4,6 +4,19 @@ import * as v from 'valibot';
 
 const ATTRIBUTE_SESSION_NAMESPACE = '7a2b9c4e-5d1f-4a8c-b6e2-d9f4a7c1e5b3';
 
+import {
+  getAttribute,
+  getText,
+  parse,
+  querySelector,
+  querySelectorAll
+} from '@branch-fiction/extension-sdk/llm/xml';
+import { watchAgent, watchLoopDetection } from '@branch-fiction/extension-sdk/pi-ai';
+import {
+  RecoverableError,
+  UnrecoverableError
+} from '@branch-fiction/extension-sdk/worker/error-types';
+
 import { bridgeUpdateBookImport } from '@/lib/bridge';
 import {
   getBookEntitiesByBookIdAndNotTypes,
@@ -16,20 +29,11 @@ import { createChapterEntityAttributes } from '@/lib/db/models/chapter-entity-at
 import { getNonEmptyChapterParagraphsByChapterIds } from '@/lib/db/models/chapter-paragraph/get-chapter-paragraph';
 import { getChapterSceneGroupById } from '@/lib/db/models/chapter-scene-group/get-chapter-scene-group';
 import { getChapterScenesWithSettingAndLocationByIds } from '@/lib/db/models/chapter-scene/get-chapter-scene';
-import { RecoverableError, UnrecoverableError } from '@/lib/error-types';
 import { fuzzyMatchByKey } from '@/lib/lit/fuzzy-match';
 import { gatherMentions } from '@/lib/lit/gather-mentions';
 import { entityNamesFormatted } from '@/lib/lit/names';
 import { organizeParagraphsIntoScenes } from '@/lib/lit/organize-paragraphs-into-scenes';
 import { buildSceneAttrs } from '@/lib/lit/scene-attrs';
-import { watchAgent, watchLoopDetection } from '@/lib/llm/agent';
-import {
-  getAttribute,
-  getText,
-  parse,
-  querySelector,
-  querySelectorAll
-} from '@/lib/llm/xml';
 import extractCharacterAttributesFromChapter from '@/lib/prompts/import/extract-character-attributes-from-chapter';
 import extractEntityAttributesFromChapter from '@/lib/prompts/import/extract-entity-attributes-from-chapter';
 import extractPlaceAttributesFromChapter from '@/lib/prompts/import/extract-place-attributes-from-chapter';

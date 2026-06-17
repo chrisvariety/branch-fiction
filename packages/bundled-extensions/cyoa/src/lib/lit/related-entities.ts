@@ -1,9 +1,9 @@
+import { completeOrThrow, getAssistantText } from '@branch-fiction/extension-sdk/pi-ai';
 import { type AgentTool } from '@earendil-works/pi-agent-core';
 import { Type } from '@earendil-works/pi-ai';
 import dedent from 'dedent';
 import { v7 as uuidv7 } from 'uuid';
 
-import { completeOrThrow, getAssistantText } from '@/lib/llm/agent';
 import {
   getBookArcsByBookIdAndTypesAndEntityIds,
   getBookArcsByBookIdAndTypesAndFirstEntityId

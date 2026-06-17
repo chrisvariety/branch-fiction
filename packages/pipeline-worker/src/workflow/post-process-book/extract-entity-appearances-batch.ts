@@ -1,3 +1,17 @@
+import {
+  getAttribute,
+  extractWrappedXml,
+  getInnerHtml,
+  getText,
+  parse,
+  querySelector,
+  querySelectorAll
+} from '@branch-fiction/extension-sdk/llm/xml';
+import { getAssistantText } from '@branch-fiction/extension-sdk/pi-ai';
+import {
+  RecoverableError,
+  UnrecoverableError
+} from '@branch-fiction/extension-sdk/worker/error-types';
 import { v7 as uuidv7 } from 'uuid';
 import * as v from 'valibot';
 
@@ -13,19 +27,8 @@ import {
   getChapterByBookIdAndChapterIdx,
   getMaxChapterIdxByBookId
 } from '@/lib/db/models/chapter/get-chapter';
-import { RecoverableError, UnrecoverableError } from '@/lib/error-types';
 import { parseChapterRange } from '@/lib/lit/chapter-range';
 import { isolateArcs } from '@/lib/lit/isolate-arcs';
-import { getAssistantText } from '@/lib/llm/agent';
-import {
-  getAttribute,
-  extractWrappedXml,
-  getInnerHtml,
-  getText,
-  parse,
-  querySelector,
-  querySelectorAll
-} from '@/lib/llm/xml';
 import extractMultipleEntitiesAppearanceArcsPrompt from '@/lib/prompts/post-processing/extract-multiple-entities-appearance-arcs';
 import {
   addOrdinalSuffix,

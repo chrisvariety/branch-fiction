@@ -5,12 +5,11 @@ import {
 } from '@earendil-works/pi-ai';
 import { decode } from '@stablelib/base64';
 
-import { buildImagesModel } from '@/worker/providers';
-
 import type { OneShotImageOptions } from './image-apis/options';
 import { withGenAIRetry } from './image-retry';
-import './image-apis/register';
 import type { AspectRatio, GeneratedImage, InlineImage } from './image-types';
+import './image-apis/register';
+import { buildImagesModel } from './images-model';
 
 const defaultOnRetry = (error: Error, attempt: number, maxRetries: number) => {
   console.warn(

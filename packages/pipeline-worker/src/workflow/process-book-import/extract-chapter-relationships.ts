@@ -4,6 +4,12 @@ import { v5 as uuidv5, v7 as uuidv7 } from 'uuid';
 
 const RELATIONSHIP_SESSION_NAMESPACE = '9b7d2e4a-3c5f-4a1d-b2e9-c4f6a8d1e3b5';
 
+import { watchAgent } from '@branch-fiction/extension-sdk/pi-ai';
+import {
+  RecoverableError,
+  UnrecoverableError
+} from '@branch-fiction/extension-sdk/worker/error-types';
+
 import { bridgeUpdateBookImport } from '@/lib/bridge';
 import { getBookCategoriesByBookId } from '@/lib/db/models/book-category/get-book-category';
 import {
@@ -17,13 +23,11 @@ import { getNonEmptyChapterParagraphsByChapterIds } from '@/lib/db/models/chapte
 import { createChapterRelationships } from '@/lib/db/models/chapter-relationship/create-chapter-relationship';
 import { getChapterSceneGroupById } from '@/lib/db/models/chapter-scene-group/get-chapter-scene-group';
 import { getChapterScenesWithSettingAndLocationByIds } from '@/lib/db/models/chapter-scene/get-chapter-scene';
-import { RecoverableError, UnrecoverableError } from '@/lib/error-types';
 import { fuzzyMatchByKey } from '@/lib/lit/fuzzy-match';
 import { gatherMentions } from '@/lib/lit/gather-mentions';
 import { entityNamesFormatted } from '@/lib/lit/names';
 import { organizeParagraphsIntoScenes } from '@/lib/lit/organize-paragraphs-into-scenes';
 import { buildSceneAttrs } from '@/lib/lit/scene-attrs';
-import { watchAgent } from '@/lib/llm/agent';
 import extractRelationshipsCharacterPhase from '@/lib/prompts/import/extract-relationships-from-chapter-intro';
 import extractRelationshipsOtherPhase from '@/lib/prompts/import/extract-relationships-from-chapter-other';
 import extractRelationshipsPlacePhase from '@/lib/prompts/import/extract-relationships-from-chapter-place';

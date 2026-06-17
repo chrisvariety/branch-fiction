@@ -1,8 +1,9 @@
+import { parseDbCount } from '@branch-fiction/extension-sdk/db/parse-count';
+
 import type { Chat, ChatNode, Transaction } from '@/lib/db/types';
 
 import { jsonArrayFrom, jsonObjectFrom } from '../../dialect';
 import { getDb } from '../../index';
-import { parseDbCount } from '../../parse-db-count';
 
 export async function getRecentActionCountByUserId(userId: Chat['userId']) {
   const oneMinuteAgo = new Date(Date.now() - 60_000).toISOString();

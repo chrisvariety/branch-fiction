@@ -1,11 +1,10 @@
+import { watchLoopDetection } from '@branch-fiction/extension-sdk/pi-ai';
 import { Agent } from '@earendil-works/pi-agent-core';
 import {
   type AssistantMessage,
   createAssistantMessageEventStream
 } from '@earendil-works/pi-ai';
 import { describe, expect, test } from 'vitest';
-
-import { watchLoopDetection } from '../agent';
 
 function mockAssistantMessage(text: string): AssistantMessage {
   return {

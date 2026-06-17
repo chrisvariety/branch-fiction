@@ -1,14 +1,14 @@
+import type { AgentToolCall } from '@branch-fiction/extension-sdk/pi-ai';
+import { UnrecoverableError } from '@branch-fiction/extension-sdk/worker/error-types';
 import type { Agent, AgentTool } from '@earendil-works/pi-agent-core';
 import { Type } from '@earendil-works/pi-ai';
 import dedent from 'dedent';
 
-import type { AgentToolCall } from '@/lib/llm/agent';
 import type { Logger } from '@/workflow/handler';
 
 import { getNonEmptyChapterParagraphsByChapterId } from '../db/models/chapter-paragraph/get-chapter-paragraph';
 import { getChapterScenesByChapterId } from '../db/models/chapter-scene/get-chapter-scene';
 import { getChapterByBookIdAndChapterIdx } from '../db/models/chapter/get-chapter';
-import { UnrecoverableError } from '../error-types';
 import { organizeParagraphsIntoScenes } from './organize-paragraphs-into-scenes';
 
 const CHAPTERS_TO_READ_DEFAULT = 5;

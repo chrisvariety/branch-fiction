@@ -1,4 +1,4 @@
-import { transformImageUrl } from '@/lib/media/transform-url';
+import { transformImageUrl } from '@branch-fiction/extension-sdk/media/transform-url';
 
 export function WorldBuildingLoadingOverlay({
   entities,

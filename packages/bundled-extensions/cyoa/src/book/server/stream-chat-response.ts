@@ -1,3 +1,9 @@
+import {
+  getText,
+  parse,
+  querySelector,
+  querySelectorAll
+} from '@branch-fiction/extension-sdk/llm/xml';
 import { type Message, streamSimple } from '@earendil-works/pi-ai';
 import { v7 as uuidv7 } from 'uuid';
 
@@ -9,7 +15,6 @@ import {
   stripFriendlyIdPrefixes
 } from '@/lib/chat/friendly-id-map';
 import { smoothStream, type StreamMessage } from '@/lib/chat/smooth-stream';
-import { getText, parse, querySelector, querySelectorAll } from '@/lib/llm/xml';
 import { ensureDbReady, getDb } from '@/worker/db';
 import { getEntitiesWithAppearanceArcByBookIds } from '@/worker/db/models/book-arc/get-book-arc';
 import {

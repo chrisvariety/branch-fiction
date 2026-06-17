@@ -1,3 +1,4 @@
+import { UnrecoverableError } from '@branch-fiction/extension-sdk/worker/error-types';
 import { v7 as uuidv7 } from 'uuid';
 
 import { createBookCharacterPlaceScores } from '@/lib/db/models/book-character-place-score/create-book-character-place-score';
@@ -11,7 +12,6 @@ import { getBookById } from '@/lib/db/models/book/get-book';
 import { updateBookById } from '@/lib/db/models/book/update-book';
 import { getChapterEntityAttributesByBookEntityIdsAndCategories } from '@/lib/db/models/chapter-entity-attribute/get-chapter-entity-attribute';
 import { getChapterRelationshipsWithChapterAndEntitiesByBookId } from '@/lib/db/models/chapter-relationship/get-chapter-relationship';
-import { UnrecoverableError } from '@/lib/error-types';
 import { getTopCharacters } from '@/lib/lit/character-significance';
 import {
   analyzeEntitySignificance,

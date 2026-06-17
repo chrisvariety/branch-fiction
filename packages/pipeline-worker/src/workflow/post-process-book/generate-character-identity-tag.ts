@@ -1,3 +1,16 @@
+import {
+  getAttribute,
+  extractWrappedXml,
+  getText,
+  parse,
+  querySelector,
+  querySelectorAll
+} from '@branch-fiction/extension-sdk/llm/xml';
+import { getAssistantText } from '@branch-fiction/extension-sdk/pi-ai';
+import {
+  RecoverableError,
+  UnrecoverableError
+} from '@branch-fiction/extension-sdk/worker/error-types';
 import { v7 as uuidv7 } from 'uuid';
 import * as v from 'valibot';
 
@@ -8,20 +21,10 @@ import { updateBookEntityById } from '@/lib/db/models/book-entity/update-book-en
 import { getBookById } from '@/lib/db/models/book/get-book';
 import { getChapterRelationshipsWithChapterAndEntitiesByBookId } from '@/lib/db/models/chapter-relationship/get-chapter-relationship';
 import { getChapterById } from '@/lib/db/models/chapter/get-chapter';
-import { RecoverableError, UnrecoverableError } from '@/lib/error-types';
 import {
   buildRelationshipGraph,
   findAnchorCharacterIds
 } from '@/lib/lit/relationship-graph';
-import { getAssistantText } from '@/lib/llm/agent';
-import {
-  getAttribute,
-  extractWrappedXml,
-  getText,
-  parse,
-  querySelector,
-  querySelectorAll
-} from '@/lib/llm/xml';
 import summarizeCharacterAnchorIdentityTagPrompt from '@/lib/prompts/post-processing/summarize-character-anchor-identity-tag';
 import summarizeCharacterIdentityTagPrompt from '@/lib/prompts/post-processing/summarize-character-identity-tag';
 import summarizeCharacterOrphanIdentityTagPrompt from '@/lib/prompts/post-processing/summarize-character-orphan-identity-tag';

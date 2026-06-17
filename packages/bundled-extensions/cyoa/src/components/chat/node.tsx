@@ -1,3 +1,4 @@
+import { transformImageUrl } from '@branch-fiction/extension-sdk/media/transform-url';
 import { IconCheck } from '@tabler/icons-react';
 import clsx from 'clsx';
 import { AnimatePresence, motion } from 'motion/react';
@@ -14,7 +15,6 @@ import {
 } from '@/components/chat/state-machine';
 import { Button } from '@/components/ui/button';
 import { useImageLoaded } from '@/hooks/use-image-loaded';
-import { transformImageUrl } from '@/lib/media/transform-url';
 
 import { Separator } from '../ui/separator';
 import { SaveProgressAlert } from './save-progress-alert';

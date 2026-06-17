@@ -1,3 +1,4 @@
+import { completeOrThrow, getAssistantText } from '@branch-fiction/extension-sdk/pi-ai';
 import dedent from 'dedent';
 import slug from 'slug';
 import { v7 as uuidv7 } from 'uuid';
@@ -14,7 +15,6 @@ import {
 import { updateUserWorldById } from '@/worker/db/models/user-world/update-user-world';
 
 import { DEFAULT_USER_ID } from '../../lib/auth';
-import { completeOrThrow, getAssistantText } from '../../lib/llm/agent';
 import { getPiModel } from '../../worker/providers';
 
 const MAX_SCENARIOS_BEFORE_REUSE = 50;

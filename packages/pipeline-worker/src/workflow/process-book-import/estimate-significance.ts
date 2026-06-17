@@ -1,3 +1,5 @@
+import { UnrecoverableError } from '@branch-fiction/extension-sdk/worker/error-types';
+
 import { bridgeUpdateBookImport } from '@/lib/bridge';
 import { getDb } from '@/lib/db';
 import { getBookEntitiesByBookId } from '@/lib/db/models/book-entity/get-book-entity';
@@ -6,7 +8,6 @@ import { getBookImportById } from '@/lib/db/models/book-import/get-book-import';
 import { getBookById } from '@/lib/db/models/book/get-book';
 import { getNonEmptyChapterParagraphsByBookId } from '@/lib/db/models/chapter-paragraph/get-chapter-paragraph';
 import { getChapterScenesByBookId } from '@/lib/db/models/chapter-scene/get-chapter-scene';
-import { UnrecoverableError } from '@/lib/error-types';
 import { entityThresholds } from '@/lib/lit/entity-significance-estimate';
 import { gatherMentions } from '@/lib/lit/gather-mentions';
 import { createWorkflowFunction } from '@/workflow/handler';

@@ -1,17 +1,20 @@
-import { complete } from '@earendil-works/pi-ai';
-import { v7 as uuidv7 } from 'uuid';
-import * as v from 'valibot';
-
-import { createBookArcs } from '@/lib/db/models/book-arc/create-book-arc';
-import { RecoverableError, UnrecoverableError } from '@/lib/error-types';
-import { getAssistantText } from '@/lib/llm/agent';
 import {
   getAttribute,
   extractWrappedXml,
   getInnerHtml,
   parse,
   querySelectorAll
-} from '@/lib/llm/xml';
+} from '@branch-fiction/extension-sdk/llm/xml';
+import { getAssistantText } from '@branch-fiction/extension-sdk/pi-ai';
+import {
+  RecoverableError,
+  UnrecoverableError
+} from '@branch-fiction/extension-sdk/worker/error-types';
+import { complete } from '@earendil-works/pi-ai';
+import { v7 as uuidv7 } from 'uuid';
+import * as v from 'valibot';
+
+import { createBookArcs } from '@/lib/db/models/book-arc/create-book-arc';
 import isolateCharacterAppearanceArcPrompt from '@/lib/prompts/post-processing/isolate-character-appearance-arc';
 import isolateCharacterArcPrompt from '@/lib/prompts/post-processing/isolate-character-arc';
 import isolateEntityAppearanceArcPrompt from '@/lib/prompts/post-processing/isolate-entity-appearance-arc';

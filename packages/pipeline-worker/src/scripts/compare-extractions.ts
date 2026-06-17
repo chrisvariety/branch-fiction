@@ -1,4 +1,4 @@
-import '@/lib/env-soft';
+import '@branch-fiction/extension-sdk/worker/env-soft';
 import { Agent } from '@earendil-works/pi-agent-core';
 import { getModel } from '@earendil-works/pi-ai';
 import { encode } from '@toon-format/toon';

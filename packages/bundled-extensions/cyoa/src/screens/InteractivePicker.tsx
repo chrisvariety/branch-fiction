@@ -1,3 +1,4 @@
+import { transformImageUrl } from '@branch-fiction/extension-sdk/media/transform-url';
 import { IconArrowLeft, IconArrowRight } from '@tabler/icons-react';
 import { useMutation, useMutationState, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
@@ -33,7 +34,6 @@ import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { bookDataQueryOptions } from '@/hooks/queries/book-data';
-import { transformImageUrl } from '@/lib/media/transform-url';
 
 import { buildWorld, generateScenarios, generateWorldImage } from '../book/data';
 

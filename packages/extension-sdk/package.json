@@ -1,6 +1,6 @@
 {
   "name": "@branch-fiction/extension-sdk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "SDK and dev tooling for building Branch Fiction extensions.",
   "homepage": "https://github.com/chrisvariety/branch-fiction/tree/main/packages/extension-sdk",
   "license": "MIT",
@@ -32,6 +32,54 @@
       "types": "./dist/pi-handle.d.ts",
       "default": "./dist/pi-handle.js"
     },
+    "./pi-ai": {
+      "types": "./dist/pi-ai.d.ts",
+      "default": "./dist/pi-ai.js"
+    },
+    "./llm/xml": {
+      "types": "./dist/llm/xml.d.ts",
+      "default": "./dist/llm/xml.js"
+    },
+    "./llm/prompt": {
+      "types": "./dist/llm/prompt.d.ts",
+      "default": "./dist/llm/prompt.js"
+    },
+    "./media/art-style": {
+      "types": "./dist/media/art-style.d.ts",
+      "default": "./dist/media/art-style.js"
+    },
+    "./media/generate-one-shot-image": {
+      "types": "./dist/media/generate-one-shot-image.d.ts",
+      "default": "./dist/media/generate-one-shot-image.js"
+    },
+    "./media/image-errors": {
+      "types": "./dist/media/image-errors.d.ts",
+      "default": "./dist/media/image-errors.js"
+    },
+    "./media/image-models": {
+      "types": "./dist/media/image-models.d.ts",
+      "default": "./dist/media/image-models.js"
+    },
+    "./media/image-retry": {
+      "types": "./dist/media/image-retry.d.ts",
+      "default": "./dist/media/image-retry.js"
+    },
+    "./media/image-types": {
+      "types": "./dist/media/image-types.d.ts",
+      "default": "./dist/media/image-types.js"
+    },
+    "./media/transform-url": {
+      "types": "./dist/media/transform-url.d.ts",
+      "default": "./dist/media/transform-url.js"
+    },
+    "./media/image-apis/gemini": {
+      "types": "./dist/media/image-apis/gemini.d.ts",
+      "default": "./dist/media/image-apis/gemini.js"
+    },
+    "./media/image-apis/openai": {
+      "types": "./dist/media/image-apis/openai.d.ts",
+      "default": "./dist/media/image-apis/openai.js"
+    },
     "./models-catalog": {
       "types": "./dist/models-catalog.d.ts",
       "default": "./dist/models-catalog.js"
@@ -59,6 +107,22 @@
     "./db/boolean-plugin": {
       "types": "./dist/db/boolean-plugin.d.ts",
       "default": "./dist/db/boolean-plugin.js"
+    },
+    "./db/worker": {
+      "types": "./dist/db/worker.d.ts",
+      "default": "./dist/db/worker.js"
+    },
+    "./db/parse-count": {
+      "types": "./dist/db/parse-count.d.ts",
+      "default": "./dist/db/parse-count.js"
+    },
+    "./worker/error-types": {
+      "types": "./dist/worker/error-types.d.ts",
+      "default": "./dist/worker/error-types.js"
+    },
+    "./worker/env-soft": {
+      "types": "./dist/worker/env-soft.d.ts",
+      "default": "./dist/worker/env-soft.js"
     }
   },
   "publishConfig": {
@@ -76,12 +140,24 @@
     "ci": "concurrently \"pnpm lint --fix\" \"pnpm fmt\""
   },
   "dependencies": {
+    "@earendil-works/pi-agent-core": "catalog:",
     "@earendil-works/pi-ai": "catalog:",
+    "@google/genai": "^2.8.0",
     "@hono/node-server": "^2.0.4",
+    "@huggingface/jinja": "catalog:",
+    "@stablelib/base64": "catalog:",
     "better-sqlite3": "catalog:",
+    "css-select": "catalog:",
+    "dom-serializer": "catalog:",
+    "domhandler": "catalog:",
+    "domutils": "catalog:",
     "hono": "^4.12.25",
+    "htmlparser2": "catalog:",
     "kysely": "catalog:",
-    "kysely-plugin-serialize": "catalog:"
+    "kysely-plugin-serialize": "catalog:",
+    "openai": "^6.42.0",
+    "p-retry": "^8.0.0",
+    "valibot": "catalog:"
   },
   "devDependencies": {
     "@types/better-sqlite3": "catalog:",

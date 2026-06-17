@@ -1,3 +1,4 @@
+import { getAssistantText } from '@branch-fiction/extension-sdk/pi-ai';
 import { type AgentTool } from '@earendil-works/pi-agent-core';
 import { complete, Type } from '@earendil-works/pi-ai';
 import dedent from 'dedent';
@@ -11,7 +12,6 @@ import {
   getBookEntitiesByBookId,
   getBookEntityByBookIdAndFriendlyId
 } from '@/lib/db/models/book-entity/get-book-entity';
-import { getAssistantText } from '@/lib/llm/agent';
 import type { WorkflowContext } from '@/workflow/handler';
 
 import { gatherMentions } from './gather-mentions';

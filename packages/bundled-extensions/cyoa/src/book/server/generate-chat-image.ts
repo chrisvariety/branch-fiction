@@ -1,3 +1,9 @@
+import { resolveArtStyle } from '@branch-fiction/extension-sdk/media/art-style';
+import { type StructuredPrompt } from '@branch-fiction/extension-sdk/media/image-models';
+import {
+  buildAssetUrl,
+  parseAssetUrl
+} from '@branch-fiction/extension-sdk/media/transform-url';
 import { encode } from '@stablelib/base64';
 
 import { ensureDbReady } from '@/worker/db';
@@ -7,15 +13,12 @@ import {
 } from '@/worker/db/models/chat-node-part/get-chat-node-part';
 import { updateChatNodePartById } from '@/worker/db/models/chat-node-part/update-chat-node-part';
 
-import { resolveArtStyle } from '../../lib/media/art-style';
 import {
   compositeCrops,
   compositeCropsWithReference,
   loadCharacterCrops
 } from '../../lib/media/character-crops';
-import { type StructuredPrompt } from '../../lib/media/image-models';
 import { generateImageWithSafetyRewrite } from '../../lib/media/rewrite-for-safety';
-import { buildAssetUrl, parseAssetUrl } from '../../lib/media/transform-url';
 import { getChatImageProvider } from '../../worker/providers';
 
 export async function generateChatImage({

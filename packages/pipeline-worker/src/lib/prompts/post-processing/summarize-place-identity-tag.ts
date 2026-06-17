@@ -1,6 +1,5 @@
+import { createPrompt, PromptMeta } from '@branch-fiction/extension-sdk/llm/prompt';
 import * as v from 'valibot';
-
-import { createPrompt, PromptMeta } from '../index';
 
 const ArcSchema = v.object({
   title: v.string(),

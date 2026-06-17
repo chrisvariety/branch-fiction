@@ -1,3 +1,15 @@
+import {
+  getAttribute,
+  getText,
+  parse,
+  querySelector,
+  querySelectorAll
+} from '@branch-fiction/extension-sdk/llm/xml';
+import { getAssistantText } from '@branch-fiction/extension-sdk/pi-ai';
+import {
+  RecoverableError,
+  UnrecoverableError
+} from '@branch-fiction/extension-sdk/worker/error-types';
 import { v7 as uuidv7 } from 'uuid';
 
 import { NewBookStyle } from '@/app/lib/db/types';
@@ -8,16 +20,7 @@ import { createBookStyles } from '@/lib/db/models/book-style/create-book-style';
 import { getBookById } from '@/lib/db/models/book/get-book';
 import { getNonEmptyChapterParagraphsByBookId } from '@/lib/db/models/chapter-paragraph/get-chapter-paragraph';
 import { getChapterScenesByBookId } from '@/lib/db/models/chapter-scene/get-chapter-scene';
-import { RecoverableError, UnrecoverableError } from '@/lib/error-types';
 import { organizeParagraphsIntoScenes } from '@/lib/lit/organize-paragraphs-into-scenes';
-import { getAssistantText } from '@/lib/llm/agent';
-import {
-  getAttribute,
-  getText,
-  parse,
-  querySelector,
-  querySelectorAll
-} from '@/lib/llm/xml';
 import extractStylePrompt from '@/lib/prompts/import/extract-style';
 import selectDistinctivePassagesPrompt from '@/lib/prompts/import/select-distinctive-passages';
 import {

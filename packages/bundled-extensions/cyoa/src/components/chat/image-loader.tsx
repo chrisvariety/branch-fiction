@@ -1,6 +1,5 @@
+import { transformImageUrl } from '@branch-fiction/extension-sdk/media/transform-url';
 import clsx from 'clsx';
-
-import { transformImageUrl } from '@/lib/media/transform-url';
 
 export function ImageLoader({
   label = 'Generating Image',

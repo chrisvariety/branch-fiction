@@ -1,3 +1,16 @@
+import {
+  getAttribute,
+  extractWrappedXml,
+  getText,
+  parse,
+  querySelector,
+  querySelectorAll
+} from '@branch-fiction/extension-sdk/llm/xml';
+import { getAssistantText } from '@branch-fiction/extension-sdk/pi-ai';
+import {
+  RecoverableError,
+  UnrecoverableError
+} from '@branch-fiction/extension-sdk/worker/error-types';
 import { v7 as uuidv7 } from 'uuid';
 import * as v from 'valibot';
 
@@ -20,23 +33,13 @@ import {
   getChapterByBookIdAndChapterIdx,
   getMaxChapterIdxByBookId
 } from '@/lib/db/models/chapter/get-chapter';
-import { RecoverableError, UnrecoverableError } from '@/lib/error-types';
 import { parseChapterRange } from '@/lib/lit/chapter-range';
 import { SignificanceTier } from '@/lib/lit/entity-significance';
 import { entityThresholds } from '@/lib/lit/entity-significance-estimate';
 import { gatherMentions } from '@/lib/lit/gather-mentions';
 import { isolateArcs } from '@/lib/lit/isolate-arcs';
 import { buildRelationshipGraph } from '@/lib/lit/relationship-graph';
-import { getAssistantText } from '@/lib/llm/agent';
 import { estimateTokens } from '@/lib/llm/estimate-tokens';
-import {
-  getAttribute,
-  extractWrappedXml,
-  getText,
-  parse,
-  querySelector,
-  querySelectorAll
-} from '@/lib/llm/xml';
 import extractRelatedCharacterRelationshipArcPrompt from '@/lib/prompts/post-processing/extract-related-character-relationship-arc';
 import extractRelatedPlaceRelationshipArcPrompt from '@/lib/prompts/post-processing/extract-related-place-relationship-arc';
 import { reportStepProgress } from '@/lib/step-projection';

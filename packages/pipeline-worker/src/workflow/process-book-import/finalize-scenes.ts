@@ -1,3 +1,8 @@
+import { watchAgent } from '@branch-fiction/extension-sdk/pi-ai';
+import {
+  RecoverableError,
+  UnrecoverableError
+} from '@branch-fiction/extension-sdk/worker/error-types';
 import { Agent, type AgentTool } from '@earendil-works/pi-agent-core';
 import { Type } from '@earendil-works/pi-ai';
 import { encode } from '@toon-format/toon';
@@ -10,8 +15,6 @@ import { getBookImportById } from '@/lib/db/models/book-import/get-book-import';
 import { getBookById } from '@/lib/db/models/book/get-book';
 import { getChapterScenesByBookId } from '@/lib/db/models/chapter-scene/get-chapter-scene';
 import { updateChapterSceneById } from '@/lib/db/models/chapter-scene/update-chapter-scene';
-import { RecoverableError, UnrecoverableError } from '@/lib/error-types';
-import { watchAgent } from '@/lib/llm/agent';
 import finalizeScenePrompt from '@/lib/prompts/import/finalize-scenes';
 import {
   addOrdinalSuffix,

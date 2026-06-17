@@ -1,7 +1,7 @@
+import { completeOrThrow, getAssistantText } from '@branch-fiction/extension-sdk/pi-ai';
+import { UnrecoverableError } from '@branch-fiction/extension-sdk/worker/error-types';
 import { v7 as uuidv7 } from 'uuid';
 
-import { UnrecoverableError } from '@/lib/error-types';
-import { completeOrThrow, getAssistantText } from '@/lib/llm/agent';
 import { DEBUG_MODE } from '@/lib/media/debug';
 import { type WorkflowContext } from '@/worker/handler';
 import { getImageEvaluationPiModel } from '@/worker/providers';

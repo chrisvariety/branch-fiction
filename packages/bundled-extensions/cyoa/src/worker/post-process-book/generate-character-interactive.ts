@@ -1,3 +1,23 @@
+import {
+  getAttribute,
+  getText,
+  parse,
+  querySelector,
+  querySelectorAll
+} from '@branch-fiction/extension-sdk/llm/xml';
+import {
+  buildAssetUrl,
+  parseAssetUrl
+} from '@branch-fiction/extension-sdk/media/transform-url';
+import {
+  completeOrThrow,
+  getAssistantText,
+  watchAgent
+} from '@branch-fiction/extension-sdk/pi-ai';
+import {
+  RecoverableError,
+  UnrecoverableError
+} from '@branch-fiction/extension-sdk/worker/error-types';
 import { Agent } from '@earendil-works/pi-agent-core';
 import { encode } from '@stablelib/base64';
 import dedent from 'dedent';
@@ -11,20 +31,11 @@ import {
   NewBookInteractiveEntity,
   Point
 } from '@/lib/db/types';
-import { RecoverableError, UnrecoverableError } from '@/lib/error-types';
 import { convertArcFriendlyIdPrefixToIsolated } from '@/lib/lit/arc-types';
 import {
   createLookupRelatedEntityAppearanceTool,
   getRelatedEntitiesFromArcs
 } from '@/lib/lit/related-entities';
-import { completeOrThrow, getAssistantText, watchAgent } from '@/lib/llm/agent';
-import {
-  getAttribute,
-  getText,
-  parse,
-  querySelector,
-  querySelectorAll
-} from '@/lib/llm/xml';
 import { cropToPolygon, getBoundingBox } from '@/lib/media/bounding-box';
 import { segmentAndFilter } from '@/lib/media/character-crops';
 import { debugImage } from '@/lib/media/debug';
@@ -32,7 +43,6 @@ import { detectHeads, MIN_HEAD_POLYGON_AREA } from '@/lib/media/head';
 import { createImageChatSession } from '@/lib/media/image-chat-session';
 import { createNumberedOverlayImage } from '@/lib/media/numbered-overlay';
 import { createCharacterReferenceGrid } from '@/lib/media/reference-grid';
-import { buildAssetUrl, parseAssetUrl } from '@/lib/media/transform-url';
 import characterDynamics from '@/lib/prompts/interactive/character-dynamics';
 import { matchSegmentsToEntities } from '@/lib/segment/match';
 import { RoboflowPrediction } from '@/lib/segment/prediction';
@@ -511,7 +521,12 @@ async function generateCharacterDynamics(
     getApiKey: () => apiKey
   });
 
-  const watcher = watchAgent(agent, ctx, 'scene_description');
+  const watcher = watchAgent(
+    'generateCharacterInteractive',
+    agent,
+    ctx,
+    'scene_description'
+  );
 
   const promptText = characterDynamics.render({
     type,

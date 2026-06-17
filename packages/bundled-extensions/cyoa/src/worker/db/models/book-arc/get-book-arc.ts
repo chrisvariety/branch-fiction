@@ -1,4 +1,5 @@
 import type { BookArc } from '@branch-fiction/extension-sdk/db';
+import { parseDbCount } from '@branch-fiction/extension-sdk/db/parse-count';
 import { sql } from 'kysely';
 
 import type { Transaction } from '@/lib/db/types';
@@ -9,7 +10,6 @@ import { generateUniqueFriendlyPrefix } from '@/lib/lit/friendly-id';
 import { env } from '../../../../env/server';
 import { jsonArrayFrom } from '../../dialect';
 import { getDb } from '../../index';
-import { parseDbCount } from '../../parse-db-count';
 import { getBookEntityNamesByIds } from '../book-entity/get-book-entity';
 
 export async function getBookArcById(id: BookArc['id'], trx?: Transaction) {

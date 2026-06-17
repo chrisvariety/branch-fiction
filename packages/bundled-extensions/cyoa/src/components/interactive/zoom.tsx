@@ -1,10 +1,10 @@
+import { transformImageUrl } from '@branch-fiction/extension-sdk/media/transform-url';
 import clsx from 'clsx';
 import { zoomIdentity, type ZoomTransform } from 'd3-zoom';
 import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 
 import { useGestureNavigation } from '@/components/interactive/use-gesture-navigation';
-import { transformImageUrl } from '@/lib/media/transform-url';
 
 import { EntityPolygon, getBoundsFromPoints, SvgCoachmark } from './panel';
 

@@ -2,7 +2,6 @@ import {
   buildPiModel,
   type PiModelHandle
 } from '@branch-fiction/extension-sdk/pi-handle';
-import { type ImagesApi, type ImagesModel } from '@earendil-works/pi-ai';
 
 import { type SegmentationProvider } from '@/lib/segment/prediction';
 
@@ -74,39 +73,6 @@ export function getImageEvaluationPiModel(): PiModelHandle {
     modelId: provider.modelKey,
     reasoning: provider.reasoning ?? null
   });
-}
-
-// Maps an image provider option's baseURL to the pi-ai images API that speaks its protocol.
-// The custom APIs are registered in src/lib/media/image-apis; `openrouter-images` is built in.
-const BASE_URL_TO_IMAGES_API: Record<string, ImagesApi> = {
-  'https://generativelanguage.googleapis.com/v1beta': 'gemini-images',
-  'https://api.openai.com/v1': 'openai-images',
-  'https://api.x.ai/v1': 'xai-images',
-  'https://fal.run': 'fal-images',
-  'https://openrouter.ai/api/v1': 'openrouter-images'
-};
-
-// Build a pi-ai ImagesModel for an image-generation provider binding. The proxy injects the
-// real API key, so baseUrl points at proxyBaseURL and the key passed to generateImages is a
-// placeholder.
-export function buildImagesModel(provider: ProviderBinding): ImagesModel<ImagesApi> {
-  if (!provider.modelKey) {
-    throw new Error('Image provider has no modelKey configured');
-  }
-  const api = BASE_URL_TO_IMAGES_API[provider.baseURL];
-  if (!api) {
-    throw new Error(`Unsupported image provider baseURL: ${provider.baseURL}`);
-  }
-  return {
-    id: provider.modelKey,
-    name: provider.modelKey,
-    api,
-    provider: api,
-    baseUrl: provider.proxyBaseURL,
-    input: ['text', 'image'],
-    output: ['image', 'text'],
-    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }
-  };
 }
 
 export function getSegmentationProvider(): SegmentationProvider {

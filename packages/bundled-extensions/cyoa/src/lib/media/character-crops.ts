@@ -1,3 +1,4 @@
+import { parseAssetUrl } from '@branch-fiction/extension-sdk/media/transform-url';
 import { Jimp } from 'jimp';
 
 import { type WorkflowContext } from '@/worker/handler';
@@ -10,7 +11,6 @@ import {
 } from '../segment/prediction';
 import { calculatePolygonArea, JimpImage } from './bounding-box';
 import { DEBUG_MODE } from './debug';
-import { parseAssetUrl } from './transform-url';
 
 export async function loadCharacterCrops<
   T extends { bookEntityName: string; croppedImageUrl?: string | null }

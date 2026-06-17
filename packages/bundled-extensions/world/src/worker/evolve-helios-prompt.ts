@@ -1,7 +1,12 @@
+import {
+  getText,
+  parse,
+  querySelector,
+  querySelectorAll
+} from '@branch-fiction/extension-sdk/llm/xml';
+import { completeOrThrow, getAssistantText } from '@branch-fiction/extension-sdk/pi-ai';
 import { v7 as uuidv7 } from 'uuid';
 
-import { completeOrThrow, getAssistantText } from '@/lib/llm/agent';
-import { getText, parse, querySelector, querySelectorAll } from '@/lib/llm/xml';
 import heliosEvolve from '@/lib/prompts/helios-evolve';
 import { createWorkflowFunction } from '@/worker/handler';
 

@@ -1,12 +1,18 @@
+import { generateOneShotImage } from '@branch-fiction/extension-sdk/media/generate-one-shot-image';
+import { isImageSafetyError } from '@branch-fiction/extension-sdk/media/image-errors';
+import {
+  assemblePrompt,
+  type StructuredPrompt
+} from '@branch-fiction/extension-sdk/media/image-models';
+import type {
+  AspectRatio,
+  GeneratedImage,
+  InlineImage
+} from '@branch-fiction/extension-sdk/media/image-types';
+import { completeOrThrow, getAssistantText } from '@branch-fiction/extension-sdk/pi-ai';
 import { v7 as uuidv7 } from 'uuid';
 
-import { completeOrThrow, getAssistantText } from '@/lib/llm/agent';
 import { getPiModel } from '@/worker/providers';
-
-import { generateOneShotImage } from './generate-one-shot-image';
-import { isImageSafetyError } from './image-errors';
-import { assemblePrompt, type StructuredPrompt } from './image-models';
-import type { AspectRatio, GeneratedImage, InlineImage } from './image-types';
 
 const SAFETY_REWRITE_SYSTEM_PROMPT = `The following image generation prompt triggered a safety violation. Rewrite it to pass image safety filters while keeping the scene's emotion, tension, and atmosphere intact. Rather than removing the intimacy, use creative composition to convey it: shift the camera to faces and upper bodies, use over-the-shoulder or profile angles, add strategic coverings (hands, sheets, clothing, shadows), or frame the shot to be suggestive and evocative without showing explicit imagery. Output only the rewritten prompt, with no preamble or explanation.`;
 

@@ -1,5 +1,6 @@
+import { transformImageUrl } from '@branch-fiction/extension-sdk/media/transform-url';
+
 import type { WorldModel } from '@/lib/db/types';
-import { transformImageUrl } from '@/lib/media/transform-url';
 
 export const MODEL_NAMES: Record<WorldModel, string> = {
   helios: 'helios',

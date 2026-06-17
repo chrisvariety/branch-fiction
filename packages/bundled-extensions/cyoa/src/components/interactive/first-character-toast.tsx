@@ -1,6 +1,5 @@
+import { transformImageUrl } from '@branch-fiction/extension-sdk/media/transform-url';
 import { IconX } from '@tabler/icons-react';
-
-import { transformImageUrl } from '@/lib/media/transform-url';
 
 export function FirstCharacterToast({
   character,

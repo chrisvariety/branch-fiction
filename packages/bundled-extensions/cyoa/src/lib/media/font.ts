@@ -1,6 +1,10 @@
+import {
+  getAttribute,
+  parse,
+  querySelector,
+  querySelectorAll
+} from '@branch-fiction/extension-sdk/llm/xml';
 import { Jimp, type loadFont } from 'jimp';
-
-import { getAttribute, parse, querySelector, querySelectorAll } from '@/lib/llm/xml';
 
 import fontFntText from '../fonts/open-sans-32-black.fnt?raw';
 import fontPngUrl from '../fonts/open-sans-32-black.png?url';

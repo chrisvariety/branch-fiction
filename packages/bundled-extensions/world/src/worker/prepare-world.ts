@@ -1,13 +1,21 @@
+import {
+  getText,
+  parse,
+  querySelector,
+  querySelectorAll
+} from '@branch-fiction/extension-sdk/llm/xml';
+import { resolveArtStyle } from '@branch-fiction/extension-sdk/media/art-style';
+import { generateOneShotImage } from '@branch-fiction/extension-sdk/media/generate-one-shot-image';
+import {
+  buildAssetUrl,
+  parseAssetUrl
+} from '@branch-fiction/extension-sdk/media/transform-url';
+import { completeOrThrow, getAssistantText } from '@branch-fiction/extension-sdk/pi-ai';
+import { UnrecoverableError } from '@branch-fiction/extension-sdk/worker/error-types';
 import { v7 as uuidv7 } from 'uuid';
 
 import type { WorldModel } from '@/lib/db/types';
-import { UnrecoverableError } from '@/lib/error-types';
 import { convertArcFriendlyIdPrefixToIsolated } from '@/lib/lit/arc-types';
-import { completeOrThrow, getAssistantText } from '@/lib/llm/agent';
-import { getText, parse, querySelector, querySelectorAll } from '@/lib/llm/xml';
-import { resolveArtStyle } from '@/lib/media/art-style';
-import { generateOneShotImage } from '@/lib/media/generate-one-shot-image';
-import { buildAssetUrl, parseAssetUrl } from '@/lib/media/transform-url';
 import heliosWorld from '@/lib/prompts/helios-world';
 import lingbotWorld from '@/lib/prompts/lingbot-world';
 import worldSeed from '@/lib/prompts/world-seed';

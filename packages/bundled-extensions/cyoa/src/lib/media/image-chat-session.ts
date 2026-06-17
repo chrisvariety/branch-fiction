@@ -1,12 +1,18 @@
+import {
+  extractImageFromResponse,
+  SAFETY_SETTINGS
+} from '@branch-fiction/extension-sdk/media/image-apis/gemini';
+import { isOpenAIModerationError } from '@branch-fiction/extension-sdk/media/image-apis/openai';
+import { ImageSafetyError } from '@branch-fiction/extension-sdk/media/image-errors';
+import { withGenAIRetry } from '@branch-fiction/extension-sdk/media/image-retry';
+import type {
+  AspectRatio,
+  GeneratedImage,
+  InlineImage
+} from '@branch-fiction/extension-sdk/media/image-types';
 import { GoogleGenAI } from '@google/genai';
 import { decode } from '@stablelib/base64';
 import OpenAI from 'openai';
-
-import { extractImageFromResponse, SAFETY_SETTINGS } from './image-apis/gemini';
-import { isOpenAIModerationError } from './image-apis/openai';
-import { ImageSafetyError } from './image-errors';
-import { withGenAIRetry } from './image-retry';
-import type { AspectRatio, GeneratedImage, InlineImage } from './image-types';
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 const OPENAI_BASE = 'https://api.openai.com/v1';

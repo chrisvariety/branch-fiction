@@ -1,3 +1,15 @@
+import { getText, parse, querySelector } from '@branch-fiction/extension-sdk/llm/xml';
+import { generateOneShotImage } from '@branch-fiction/extension-sdk/media/generate-one-shot-image';
+import {
+  assemblePrompt,
+  type StructuredPrompt
+} from '@branch-fiction/extension-sdk/media/image-models';
+import {
+  buildAssetUrl,
+  parseAssetUrl
+} from '@branch-fiction/extension-sdk/media/transform-url';
+import { watchAgent } from '@branch-fiction/extension-sdk/pi-ai';
+import { UnrecoverableError } from '@branch-fiction/extension-sdk/worker/error-types';
 import { Agent } from '@earendil-works/pi-agent-core';
 import { encode } from '@stablelib/base64';
 import dedent from 'dedent';
@@ -5,13 +17,10 @@ import { Jimp } from 'jimp';
 import { v7 as uuidv7 } from 'uuid';
 
 import { BookInteractive } from '@/lib/db/types';
-import { UnrecoverableError } from '@/lib/error-types';
 import {
   createLookupRelatedEntityAppearanceTool,
   getRelatedEntitiesFromArcs
 } from '@/lib/lit/related-entities';
-import { watchAgent } from '@/lib/llm/agent';
-import { getText, parse, querySelector } from '@/lib/llm/xml';
 import {
   cropToPolygon,
   expandBoundingBox,
@@ -20,11 +29,8 @@ import {
 } from '@/lib/media/bounding-box';
 import { segmentAndFilter } from '@/lib/media/character-crops';
 import { debugImage } from '@/lib/media/debug';
-import { generateOneShotImage } from '@/lib/media/generate-one-shot-image';
 import { detectHeadsWithFallback } from '@/lib/media/head';
-import { assemblePrompt, type StructuredPrompt } from '@/lib/media/image-models';
 import { createNumberedOverlayImage } from '@/lib/media/numbered-overlay';
-import { buildAssetUrl, parseAssetUrl } from '@/lib/media/transform-url';
 import characterFullBodyPrompt from '@/lib/prompts/interactive/character-full-body';
 import { getDb } from '@/worker/db';
 import { updateBookInteractiveEntityById } from '@/worker/db/models/book-interactive-entity/update-book-interactive-entity';
@@ -430,7 +436,7 @@ async function extractCharacterDescription(
     getApiKey: () => apiKey
   });
 
-  const watcher = watchAgent(agent, ctx, 'character');
+  const watcher = watchAgent('finalizeCharacterInteractive', agent, ctx, 'character');
 
   const promptText = characterFullBodyPrompt.render({
     character: {

@@ -1,3 +1,4 @@
+import { transformImageUrl } from '@branch-fiction/extension-sdk/media/transform-url';
 import { queryOptions } from '@tanstack/react-query';
 
 import {
@@ -7,7 +8,6 @@ import {
 } from '@/iframe/db/models/chat/get-chat';
 import { DEFAULT_USER_ID } from '@/lib/auth';
 import type { ChatNodePart } from '@/lib/db/types';
-import { transformImageUrl } from '@/lib/media/transform-url';
 
 export type ChatLeafNodeData = {
   id: string;

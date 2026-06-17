@@ -1,6 +1,5 @@
+import { createPrompt, type PromptMeta } from '@branch-fiction/extension-sdk/llm/prompt';
 import * as v from 'valibot';
-
-import { createPrompt, type PromptMeta } from '..';
 
 const InputSchema = v.object({
   entities: v.array(

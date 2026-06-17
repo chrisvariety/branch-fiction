@@ -1,3 +1,4 @@
+import { UnrecoverableError } from '@branch-fiction/extension-sdk/worker/error-types';
 import { v7 as uuidv7 } from 'uuid';
 
 import { bridgeUpdateBookImport } from '@/lib/bridge';
@@ -6,7 +7,6 @@ import { getBookCategoriesByBookId } from '@/lib/db/models/book-category/get-boo
 import { getBookImportById } from '@/lib/db/models/book-import/get-book-import';
 import { getBookById } from '@/lib/db/models/book/get-book';
 import { getNonEmptyChapterParagraphsByBookId } from '@/lib/db/models/chapter-paragraph/get-chapter-paragraph';
-import { UnrecoverableError } from '@/lib/error-types';
 import { CATEGORIES } from '@/lib/lit/categories';
 import { createWorkflowFunction, type WorkflowContext } from '@/workflow/handler';
 

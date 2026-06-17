@@ -1,14 +1,17 @@
+import { resolveArtStyle } from '@branch-fiction/extension-sdk/media/art-style';
+import { type StructuredPrompt } from '@branch-fiction/extension-sdk/media/image-models';
+import {
+  buildAssetUrl,
+  parseAssetUrl
+} from '@branch-fiction/extension-sdk/media/transform-url';
 import dedent from 'dedent';
 
 import { ensureDbReady } from '@/worker/db';
 import { getUserWorldWithEntitiesById } from '@/worker/db/models/user-world/get-user-world';
 import { updateUserWorldById } from '@/worker/db/models/user-world/update-user-world';
 
-import { resolveArtStyle } from '../../lib/media/art-style';
 import { compositeCrops, loadCharacterCrops } from '../../lib/media/character-crops';
-import { type StructuredPrompt } from '../../lib/media/image-models';
 import { generateImageWithSafetyRewrite } from '../../lib/media/rewrite-for-safety';
-import { buildAssetUrl, parseAssetUrl } from '../../lib/media/transform-url';
 import { getProvider } from '../../worker/providers';
 
 export type GenerateWorldImageParams = {

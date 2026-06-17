@@ -1,3 +1,5 @@
+import { watchAgent } from '@branch-fiction/extension-sdk/pi-ai';
+import { UnrecoverableError } from '@branch-fiction/extension-sdk/worker/error-types';
 import { Agent, type AgentTool } from '@earendil-works/pi-agent-core';
 import { Type, type TSchema } from '@earendil-works/pi-ai';
 import { encode } from '@toon-format/toon';
@@ -26,7 +28,6 @@ import { getBookImportById } from '@/lib/db/models/book-import/get-book-import';
 import { getBookById } from '@/lib/db/models/book/get-book';
 import { getNonEmptyChapterParagraphsByBookId } from '@/lib/db/models/chapter-paragraph/get-chapter-paragraph';
 import { getMaxChapterIdxByBookId } from '@/lib/db/models/chapter/get-chapter';
-import { UnrecoverableError } from '@/lib/error-types';
 import {
   abortOnExcessiveChapterCalls,
   createBookChapterContentAgentTool,
@@ -37,7 +38,6 @@ import {
 } from '@/lib/lit/book-content';
 import { gatherMentions } from '@/lib/lit/gather-mentions';
 import { partitionStopwords } from '@/lib/lit/stop-words';
-import { watchAgent } from '@/lib/llm/agent';
 import { estimateTokens } from '@/lib/llm/estimate-tokens';
 import extractEntitiesDoubleCheckPrompt from '@/lib/prompts/import/extract-entities-double-check';
 import extractEntitiesIdentifiedPrompt from '@/lib/prompts/import/extract-entities-identified';

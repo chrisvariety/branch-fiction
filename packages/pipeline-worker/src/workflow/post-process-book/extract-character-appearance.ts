@@ -1,3 +1,17 @@
+import {
+  getAttribute,
+  extractWrappedXml,
+  getInnerHtml,
+  getText,
+  parse,
+  querySelector,
+  querySelectorAll
+} from '@branch-fiction/extension-sdk/llm/xml';
+import { getAssistantText, watchAgent } from '@branch-fiction/extension-sdk/pi-ai';
+import {
+  RecoverableError,
+  UnrecoverableError
+} from '@branch-fiction/extension-sdk/worker/error-types';
 import { Agent } from '@earendil-works/pi-agent-core';
 import { v7 as uuidv7 } from 'uuid';
 import * as v from 'valibot';
@@ -18,7 +32,6 @@ import {
   getChapterById,
   getMaxChapterIdxByBookId
 } from '@/lib/db/models/chapter/get-chapter';
-import { RecoverableError, UnrecoverableError } from '@/lib/error-types';
 import {
   createLookupCharacterAttributeTool,
   createSearchCharacterAttributesTool
@@ -29,16 +42,6 @@ import {
   createLookupRelatedEntityAppearanceTool,
   getRelatedEntitiesFromArcs
 } from '@/lib/lit/related-entities';
-import { getAssistantText, watchAgent } from '@/lib/llm/agent';
-import {
-  getAttribute,
-  extractWrappedXml,
-  getInnerHtml,
-  getText,
-  parse,
-  querySelector,
-  querySelectorAll
-} from '@/lib/llm/xml';
 import determineAppearanceApplicabilityPrompt from '@/lib/prompts/post-processing/determine-appearance-applicability';
 import determineEntityArcPrompt from '@/lib/prompts/post-processing/determine-entity-arc';
 import extractCharacterAppearancePrompt from '@/lib/prompts/post-processing/extract-character-appearance';

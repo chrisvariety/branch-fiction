@@ -1,3 +1,8 @@
+import { watchAgent } from '@branch-fiction/extension-sdk/pi-ai';
+import {
+  RecoverableError,
+  UnrecoverableError
+} from '@branch-fiction/extension-sdk/worker/error-types';
 import { Agent, type AgentTool } from '@earendil-works/pi-agent-core';
 import { Type } from '@earendil-works/pi-ai';
 import dedent from 'dedent';
@@ -12,7 +17,6 @@ import { createChapterSceneGroups } from '@/lib/db/models/chapter-scene-group/cr
 import { createChapterScenes } from '@/lib/db/models/chapter-scene/create-chapter-scene';
 import { getChapterScenesByBookId } from '@/lib/db/models/chapter-scene/get-chapter-scene';
 import { getMaxChapterIdxByBookId } from '@/lib/db/models/chapter/get-chapter';
-import { RecoverableError, UnrecoverableError } from '@/lib/error-types';
 import {
   extractProcessedChapters,
   findMissingChapterRange,
@@ -23,7 +27,6 @@ import {
   splitByThematicBreak,
   ThematicBreakGroup
 } from '@/lib/lit/split-by-thematic-break';
-import { watchAgent } from '@/lib/llm/agent';
 import { estimateTokens } from '@/lib/llm/estimate-tokens';
 import extractScenesPrompt from '@/lib/prompts/import/extract-scenes';
 import { reportStepProgress } from '@/lib/step-projection';

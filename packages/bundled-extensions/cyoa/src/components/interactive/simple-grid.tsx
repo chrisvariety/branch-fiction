@@ -1,7 +1,7 @@
+import { transformImageUrl } from '@branch-fiction/extension-sdk/media/transform-url';
 import clsx from 'clsx';
 
 import { Button } from '@/components/ui/button';
-import { transformImageUrl } from '@/lib/media/transform-url';
 
 export function SimpleEntityGrid({
   entities,

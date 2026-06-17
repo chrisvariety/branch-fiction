@@ -1,3 +1,4 @@
+import { getAssistantText, completeOrThrow } from '@branch-fiction/extension-sdk/pi-ai';
 import dedent from 'dedent';
 import { v7 as uuidv7 } from 'uuid';
 import * as v from 'valibot';
@@ -6,7 +7,6 @@ import {
   findClosestAppellationsForSourceEntity,
   findClosestArcForEntity
 } from '@/lib/chat/closest-arc';
-import { getAssistantText, completeOrThrow } from '@/lib/llm/agent';
 import chatDirectorPrompt from '@/lib/prompts/chat/chat-director';
 import {
   getBookArcsByBookIdAndTypesAndEntityIds,

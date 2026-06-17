@@ -1,6 +1,6 @@
 // Worker entry. Named exports = task handlers — `extensionSDK.worker.spawn(name)`
 
-import './lib/env-soft';
+import '@branch-fiction/extension-sdk/worker/env-soft';
 
 export { runFirstLaunch } from './worker/orchestrator';
 export { buildWorld } from './book/server/build-world';

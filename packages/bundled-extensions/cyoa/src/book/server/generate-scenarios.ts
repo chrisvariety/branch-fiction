@@ -1,4 +1,11 @@
 import type { BookEntity } from '@branch-fiction/extension-sdk/db';
+import {
+  getText,
+  parse,
+  querySelector,
+  querySelectorAll
+} from '@branch-fiction/extension-sdk/llm/xml';
+import { completeOrThrow, getAssistantText } from '@branch-fiction/extension-sdk/pi-ai';
 import { v7 as uuidv7 } from 'uuid';
 import * as v from 'valibot';
 
@@ -33,8 +40,6 @@ import {
   buildRelationshipGraph,
   findBridgeCharacters
 } from '../../lib/lit/relationship-graph';
-import { completeOrThrow, getAssistantText } from '../../lib/llm/agent';
-import { getText, parse, querySelector, querySelectorAll } from '../../lib/llm/xml';
 import generateBridgeScenarioCardsPrompt from '../../lib/prompts/chat/generate-bridge-scenario-cards';
 import generateScenarioCardsPrompt from '../../lib/prompts/chat/generate-scenario-cards';
 import { getPiModel } from '../../worker/providers';

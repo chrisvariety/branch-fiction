@@ -1,19 +1,28 @@
+import { getText, parse, querySelector } from '@branch-fiction/extension-sdk/llm/xml';
+import { resolveArtStyle } from '@branch-fiction/extension-sdk/media/art-style';
+import { generateOneShotImage } from '@branch-fiction/extension-sdk/media/generate-one-shot-image';
+import {
+  assemblePrompt,
+  type StructuredPrompt
+} from '@branch-fiction/extension-sdk/media/image-models';
+import {
+  buildAssetUrl,
+  parseAssetUrl
+} from '@branch-fiction/extension-sdk/media/transform-url';
+import { watchAgent } from '@branch-fiction/extension-sdk/pi-ai';
+import {
+  RecoverableError,
+  UnrecoverableError
+} from '@branch-fiction/extension-sdk/worker/error-types';
 import { Agent } from '@earendil-works/pi-agent-core';
 import { encode } from '@stablelib/base64';
 import { v7 as uuidv7 } from 'uuid';
 
-import { RecoverableError, UnrecoverableError } from '@/lib/error-types';
 import {
   createLookupRelatedEntityAppearanceTool,
   getRelatedEntitiesFromArcs
 } from '@/lib/lit/related-entities';
-import { watchAgent } from '@/lib/llm/agent';
-import { getText, parse, querySelector } from '@/lib/llm/xml';
-import { resolveArtStyle } from '@/lib/media/art-style';
 import { debugImage } from '@/lib/media/debug';
-import { generateOneShotImage } from '@/lib/media/generate-one-shot-image';
-import { assemblePrompt, type StructuredPrompt } from '@/lib/media/image-models';
-import { buildAssetUrl, parseAssetUrl } from '@/lib/media/transform-url';
 import characterReference from '@/lib/prompts/interactive/character-reference';
 import { getBookArcsByBookIdAndTypesAndEntityIds } from '@/worker/db/models/book-arc/get-book-arc';
 import { getBookEntityById } from '@/worker/db/models/book-entity/get-book-entity';
@@ -122,7 +131,12 @@ export const handler = createWorkflowFunction<
       getApiKey: () => apiKey
     });
 
-    const watcher = watchAgent(agent, ctx, 'character');
+    const watcher = watchAgent(
+      'generateCharacterReferenceImage',
+      agent,
+      ctx,
+      'character'
+    );
 
     const promptText = characterReference.render({
       character: {

@@ -1,3 +1,26 @@
+import {
+  getAttribute,
+  getInnerHtml,
+  getText,
+  parse,
+  querySelector,
+  querySelectorAll
+} from '@branch-fiction/extension-sdk/llm/xml';
+import { resolveArtStyle } from '@branch-fiction/extension-sdk/media/art-style';
+import { generateOneShotImage } from '@branch-fiction/extension-sdk/media/generate-one-shot-image';
+import {
+  assemblePrompt,
+  type StructuredPrompt
+} from '@branch-fiction/extension-sdk/media/image-models';
+import {
+  buildAssetUrl,
+  parseAssetUrl
+} from '@branch-fiction/extension-sdk/media/transform-url';
+import { completeOrThrow, getAssistantText } from '@branch-fiction/extension-sdk/pi-ai';
+import {
+  RecoverableError,
+  UnrecoverableError
+} from '@branch-fiction/extension-sdk/worker/error-types';
 import { encode } from '@stablelib/base64';
 import dedent from 'dedent';
 import { Jimp } from 'jimp';
@@ -10,28 +33,14 @@ import {
   NewBookInteractiveEntity,
   Point
 } from '@/lib/db/types';
-import { RecoverableError, UnrecoverableError } from '@/lib/error-types';
 import { convertArcFriendlyIdPrefixToIsolated } from '@/lib/lit/arc-types';
-import { completeOrThrow, getAssistantText } from '@/lib/llm/agent';
-import {
-  getAttribute,
-  getInnerHtml,
-  getText,
-  parse,
-  querySelector,
-  querySelectorAll
-} from '@/lib/llm/xml';
-import { resolveArtStyle } from '@/lib/media/art-style';
 import { calculatePolygonArea, getBoundingBox } from '@/lib/media/bounding-box';
 import { DEBUG_MODE, debugImage } from '@/lib/media/debug';
-import { generateOneShotImage } from '@/lib/media/generate-one-shot-image';
 import {
   createImageChatSession,
   type ImageChatSession
 } from '@/lib/media/image-chat-session';
-import { assemblePrompt, type StructuredPrompt } from '@/lib/media/image-models';
 import { createNumberedOverlayImage } from '@/lib/media/numbered-overlay';
-import { buildAssetUrl, parseAssetUrl } from '@/lib/media/transform-url';
 import placeInteractive from '@/lib/prompts/interactive/place-interactive';
 import placePositions from '@/lib/prompts/interactive/place-positions';
 import planPlaceInteractive from '@/lib/prompts/interactive/plan-place-interactive';

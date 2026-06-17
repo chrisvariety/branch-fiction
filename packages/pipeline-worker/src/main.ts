@@ -1,4 +1,4 @@
-import './lib/env-soft';
+import '@branch-fiction/extension-sdk/worker/env-soft';
 import { applyModelsCatalog } from '@branch-fiction/extension-sdk/models-catalog';
 import PQueue from 'p-queue';
 

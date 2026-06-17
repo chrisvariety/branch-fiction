@@ -1,3 +1,15 @@
+import {
+  getAttribute,
+  extractWrappedXml,
+  getText,
+  parse,
+  querySelectorAll
+} from '@branch-fiction/extension-sdk/llm/xml';
+import { getAssistantText } from '@branch-fiction/extension-sdk/pi-ai';
+import {
+  RecoverableError,
+  UnrecoverableError
+} from '@branch-fiction/extension-sdk/worker/error-types';
 import { v7 as uuidv7 } from 'uuid';
 import * as v from 'valibot';
 
@@ -10,16 +22,7 @@ import {
 } from '@/lib/db/models/book-entity/get-book-entity';
 import { updateBookEntityById } from '@/lib/db/models/book-entity/update-book-entity';
 import { getBookById } from '@/lib/db/models/book/get-book';
-import { RecoverableError, UnrecoverableError } from '@/lib/error-types';
 import { buildPlaceHierarchy } from '@/lib/lit/hierarchy';
-import { getAssistantText } from '@/lib/llm/agent';
-import {
-  getAttribute,
-  extractWrappedXml,
-  getText,
-  parse,
-  querySelectorAll
-} from '@/lib/llm/xml';
 import summarizePlaceIdentityTagPrompt from '@/lib/prompts/post-processing/summarize-place-identity-tag';
 import {
   addOrdinalSuffix,

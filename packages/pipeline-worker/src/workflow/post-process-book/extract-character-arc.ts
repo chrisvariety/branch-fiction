@@ -1,3 +1,14 @@
+import {
+  getText,
+  parse,
+  querySelector,
+  querySelectorAll
+} from '@branch-fiction/extension-sdk/llm/xml';
+import { watchAgent } from '@branch-fiction/extension-sdk/pi-ai';
+import {
+  RecoverableError,
+  UnrecoverableError
+} from '@branch-fiction/extension-sdk/worker/error-types';
 import { Agent } from '@earendil-works/pi-agent-core';
 import { v7 as uuidv7 } from 'uuid';
 import * as v from 'valibot';
@@ -16,15 +27,12 @@ import {
   getChapterById,
   getMaxChapterIdxByBookId
 } from '@/lib/db/models/chapter/get-chapter';
-import { RecoverableError, UnrecoverableError } from '@/lib/error-types';
 import { parseChapterRange } from '@/lib/lit/chapter-range';
 import { isolateArcs } from '@/lib/lit/isolate-arcs';
 import {
   createLookupRelatedEntityAppearanceTool,
   getRelatedEntitiesFromArcs
 } from '@/lib/lit/related-entities';
-import { watchAgent } from '@/lib/llm/agent';
-import { getText, parse, querySelector, querySelectorAll } from '@/lib/llm/xml';
 import extractCharacterArcPrompt from '@/lib/prompts/post-processing/extract-character-arc';
 import {
   addOrdinalSuffix,

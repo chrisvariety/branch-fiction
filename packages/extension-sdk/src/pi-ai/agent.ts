@@ -1,10 +1,23 @@
 import type { Agent } from '@earendil-works/pi-agent-core';
-import type { AssistantMessage } from '@earendil-works/pi-ai';
+import { complete, type AssistantMessage } from '@earendil-works/pi-ai';
 
-import { extractWrappedXml } from '@/lib/llm/xml';
-import type { WorkflowContext } from '@/workflow/handler';
+import { extractWrappedXml } from '../llm/xml';
 
 export type AgentToolCall = { name: string; args: Record<string, unknown> };
+
+export type AgentWatcher = {
+  xml: string | null;
+  toolCalls: AgentToolCall[];
+  lastAssistantText: string | null;
+  lastAssistantMessage: AssistantMessage | null;
+};
+
+// Minimal host surface watchAgent needs; WorkflowContext satisfies it structurally.
+export type AgentWatchContext = {
+  log: { info(message: string): void };
+  trackUsage(message: AssistantMessage): void;
+  traceAgent?(name: string, agent: Agent): void;
+};
 
 export function getAssistantText(message: AssistantMessage): string {
   return message.content
@@ -13,17 +26,22 @@ export function getAssistantText(message: AssistantMessage): string {
     .join('');
 }
 
-type AgentWatcher = {
-  xml: string | null;
-  toolCalls: AgentToolCall[];
-  lastAssistantText: string | null;
-  lastAssistantMessage: AssistantMessage | null;
-};
+// pi-ai resolves complete() with a message whose stopReason is "error" instead
+// of rejecting — convert that back to a throw so callers don't see empty text.
+export async function completeOrThrow(
+  ...args: Parameters<typeof complete>
+): Promise<AssistantMessage> {
+  const message = await complete(...args);
+  if (message.stopReason === 'error') {
+    throw new Error(message.errorMessage || 'LLM provider returned an error');
+  }
+  return message;
+}
 
 export function watchAgent(
   name: string,
   agent: Agent,
-  ctx: WorkflowContext,
+  ctx: AgentWatchContext,
   wrapperTag?: string
 ): AgentWatcher {
   const watcher: AgentWatcher = {
@@ -33,7 +51,7 @@ export function watchAgent(
     lastAssistantMessage: null
   };
 
-  ctx.traceAgent(name, agent);
+  ctx.traceAgent?.(name, agent);
 
   agent.subscribe((event) => {
     if (event.type === 'message_end' && event.message.role === 'assistant') {

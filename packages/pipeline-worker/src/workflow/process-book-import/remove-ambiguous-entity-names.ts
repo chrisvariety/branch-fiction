@@ -1,3 +1,11 @@
+import {
+  extractWrappedXml,
+  getAttribute,
+  parse,
+  querySelectorAll
+} from '@branch-fiction/extension-sdk/llm/xml';
+import { getAssistantText } from '@branch-fiction/extension-sdk/pi-ai';
+import { UnrecoverableError } from '@branch-fiction/extension-sdk/worker/error-types';
 import dedent from 'dedent';
 import pluralize from 'pluralize-esm';
 import { v7 as uuidv7 } from 'uuid';
@@ -13,10 +21,7 @@ import { getBookImportById } from '@/lib/db/models/book-import/get-book-import';
 import { getBookById } from '@/lib/db/models/book/get-book';
 import { getNonEmptyChapterParagraphsByBookId } from '@/lib/db/models/chapter-paragraph/get-chapter-paragraph';
 import { getChapterScenesByBookId } from '@/lib/db/models/chapter-scene/get-chapter-scene';
-import { UnrecoverableError } from '@/lib/error-types';
 import { organizeParagraphsIntoScenes } from '@/lib/lit/organize-paragraphs-into-scenes';
-import { getAssistantText } from '@/lib/llm/agent';
-import { extractWrappedXml, getAttribute, parse, querySelectorAll } from '@/lib/llm/xml';
 import determineOvermatchingEntityNamesPrompt from '@/lib/prompts/import/determine-overmatching-entity-names';
 import { addOrdinalSuffix, createWorkflowFunction } from '@/workflow/handler';
 

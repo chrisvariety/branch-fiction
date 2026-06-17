@@ -1,3 +1,9 @@
+import { getText, parse, querySelector } from '@branch-fiction/extension-sdk/llm/xml';
+import { watchAgent } from '@branch-fiction/extension-sdk/pi-ai';
+import {
+  RecoverableError,
+  UnrecoverableError
+} from '@branch-fiction/extension-sdk/worker/error-types';
 import { Agent } from '@earendil-works/pi-agent-core';
 import { v7 as uuidv7 } from 'uuid';
 import * as v from 'valibot';
@@ -12,14 +18,11 @@ import { updateBookEntityById } from '@/lib/db/models/book-entity/update-book-en
 import { getBookById } from '@/lib/db/models/book/get-book';
 import { getChapterEntityAttributesByBookEntityIdsAndCategories } from '@/lib/db/models/chapter-entity-attribute/get-chapter-entity-attribute';
 import { getChaptersByBookId } from '@/lib/db/models/chapter/get-chapter';
-import { RecoverableError, UnrecoverableError } from '@/lib/error-types';
 import {
   createLookupCharacterAttributeTool,
   createSearchCharacterAttributesTool
 } from '@/lib/lit/attributes';
-import { watchAgent } from '@/lib/llm/agent';
 import { estimateTokens } from '@/lib/llm/estimate-tokens';
-import { getText, parse, querySelector } from '@/lib/llm/xml';
 import determineMinorsPrompt from '@/lib/prompts/post-processing/determine-minors';
 import determineMinorsFollowupPrompt from '@/lib/prompts/post-processing/determine-minors-followup';
 import {

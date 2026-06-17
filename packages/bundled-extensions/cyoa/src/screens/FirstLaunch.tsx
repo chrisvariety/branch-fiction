@@ -1,4 +1,5 @@
 import { isTaskAlreadyRunningError } from '@branch-fiction/extension-sdk';
+import { transformImageUrl } from '@branch-fiction/extension-sdk/media/transform-url';
 import {
   IconAlertCircle,
   IconAlertTriangle,
@@ -37,7 +38,6 @@ import {
   overallStatus,
   stepStatus
 } from '@/lib/first-launch-status';
-import { transformImageUrl } from '@/lib/media/transform-url';
 import { cn } from '@/lib/utils';
 
 type Props = { ctx: ExtensionCtx & { bookId: string }; steps: FirstLaunchStep[] };

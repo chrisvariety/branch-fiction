@@ -1,4 +1,4 @@
-import '@/lib/env-soft';
+import '@branch-fiction/extension-sdk/worker/env-soft';
 import { findEnvKeys, getModel } from '@earendil-works/pi-ai';
 import type { Kysely } from 'kysely';
 import { v7 as uuidv7 } from 'uuid';
