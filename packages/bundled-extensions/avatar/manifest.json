@@ -62,5 +62,6 @@
     }
   ],
   "config": [],
+  "permissions": ["microphone"],
   "net": ["api.dev.runwayml.com", "*.runwayml.com", "*.livekit.cloud", "*.livekit.run"]
 }
