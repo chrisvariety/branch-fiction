@@ -54,6 +54,9 @@
       "../packages/bundled-extensions/cyoa/seed.db.gz": "bundled-extensions/cyoa/seed.db.gz",
       "../packages/bundled-extensions/world/manifest.json": "bundled-extensions/world/manifest.json",
       "../packages/bundled-extensions/world/dist": "bundled-extensions/world/dist",
+      "../packages/bundled-extensions/avatar/manifest.json": "bundled-extensions/avatar/manifest.json",
+      "../packages/bundled-extensions/avatar/dist": "bundled-extensions/avatar/dist",
+      "../packages/bundled-extensions/avatar/seed.db.gz": "bundled-extensions/avatar/seed.db.gz",
       "seed-books": "resources/seed-books"
     },
     "icon": [
