@@ -252,8 +252,10 @@ fn retry_delay(retry_after: Option<Duration>) -> Duration {
     retry_after.unwrap_or(DEFAULT_RETRY_DELAY)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn forward_to_provider(
     label: &str,
+    trace: bool,
     resolved: ResolvedProvider,
     rest: &str,
     method: Method,
@@ -261,6 +263,9 @@ pub async fn forward_to_provider(
     headers: HeaderMap,
     body: Body,
 ) -> Result<axum::response::Response, (StatusCode, String)> {
+    let started_at = std::time::SystemTime::now();
+    let log_enabled = trace && crate::langsmith::is_enabled();
+
     let mut target = build_target_url(&resolved.base_url, rest, query)
         .map_err(|e| (StatusCode::BAD_GATEWAY, e))?;
 
@@ -273,6 +278,8 @@ pub async fn forward_to_provider(
 
     let client = Client::new();
 
+    // Captured pre-auth-injection so body-auth secrets never reach the trace.
+    let mut log_request_body: Option<Vec<u8>> = None;
     let body_bytes: Option<Bytes> = if matches!(method, Method::GET | Method::HEAD) {
         if let AuthShape::Body { .. } = resolved.auth {
             return Err((
@@ -285,6 +292,9 @@ pub async fn forward_to_provider(
         let raw = axum::body::to_bytes(body, MAX_BUFFERED_BODY_BYTES)
             .await
             .map_err(|e| (StatusCode::BAD_REQUEST, format!("read body: {e}")))?;
+        if log_enabled {
+            log_request_body = Some(raw.to_vec());
+        }
         if let AuthShape::Body { ref field } = resolved.auth {
             if raw.is_empty() {
                 return Err((
@@ -411,7 +421,27 @@ pub async fn forward_to_provider(
     response_headers.remove("transfer-encoding");
 
     let stream = upstream.bytes_stream();
-    let body = Body::from_stream(stream);
+    // Only recognized LLM endpoints are logged; this skips non-LLM proxies (e.g. token fetches).
+    let log_format = log_enabled
+        .then(|| crate::langsmith::detect_format(target.path()))
+        .flatten();
+    let body = if let Some(format) = log_format {
+        let mut log_url = target.clone();
+        log_url.set_query(None);
+        let log = crate::langsmith::PendingLog {
+            label: label.to_string(),
+            format,
+            method: method.to_string(),
+            url: log_url.to_string(),
+            started_at,
+            status: status.as_u16(),
+            request_body: log_request_body,
+            error: (status.as_u16() >= 400).then(|| format!("HTTP {}", status.as_u16())),
+        };
+        Body::from_stream(crate::langsmith::tee_and_log(stream, log))
+    } else {
+        Body::from_stream(stream)
+    };
 
     let mut resp = axum::response::Response::new(body);
     *resp.status_mut() = StatusCode::from_u16(status.as_u16()).unwrap_or(StatusCode::BAD_GATEWAY);

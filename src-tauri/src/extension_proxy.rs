@@ -86,7 +86,17 @@ async fn proxy_request(
         .map_err(|e| (StatusCode::BAD_GATEWAY, e))?;
 
     let label = format!("{}/{}", claims.sub, provider_key);
-    forward_to_provider(&label, resolved, &rest, method, uri.query(), headers, body).await
+    forward_to_provider(
+        &label,
+        true,
+        resolved,
+        &rest,
+        method,
+        uri.query(),
+        headers,
+        body,
+    )
+    .await
 }
 
 async fn resolve_provider(

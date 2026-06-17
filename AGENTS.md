@@ -4,6 +4,6 @@ This project uses pnpm. There's subpackages in `packages`.
 
 If you make a change within a package, run e.g. `pnpm --filter pipeline-worker run ci`.
 
-If you make a change within `src-tauri`, run `cd src-tauri && cargo check && cargo clippy`.
+If you make a change within `src-tauri`, run `cd src-tauri && cargo check && cargo clippy --all-targets`.
 
 Use comments sparingly, let the code speak for itself. When using comments, keep them brief and single line.

@@ -10,21 +10,21 @@ import {
 } from 'node:fs';
 import { resolve } from 'node:path';
 
-// Pin to a known-good version. Bump deliberately and re-test.
-const DENO_VERSION = 'v2.8.1';
+// Pinned version; avoid 2.8.3 which breaks Jimp PNG decode (denoland/deno#35185).
+const DENO_VERSION = 'v2.8.2';
 
 // Pinned zip SHA-256s from denoland/deno's .sha256sum files; regenerate on version bump.
 const DENO_SHA256 = {
   'aarch64-apple-darwin':
-    '8154e2de0ee8c1cae31fa88e078724aaef0295fab9fd2ad6f8520389cee908f6',
+    '02e5eb795c9f763772dfd081429cead9029e0a4a6aaff6d4e5f3ed6d2e94d361',
   'x86_64-apple-darwin':
-    '47473845e0522ba11dd279e3dd318e2d84ee200c56b8280594e0ae0b0f827460',
+    '77cf27f835f1921e49434449675c57432c6314d54edc725e2474cc825546e206',
   'x86_64-unknown-linux-gnu':
-    '2d7bb6195226ac832e0bf7109a115f0af65ee69ac797a4bbde5b27a06cc242d9',
+    '184da7a5267ab649bc08821b3bc3ce6805d8e6985fb82707cb8d5e9fd6535362',
   'aarch64-unknown-linux-gnu':
-    '67e9df91870fd0af700df924173e3009ea7ff6956e2c3c3bb86065d6070d0fd6',
+    '48647189aee6454ed9b9852fa700a77f92b39465c04c625901d165bc8e937afc',
   'x86_64-pc-windows-msvc':
-    '5fb5bac71f609fb91ec8960fb290885aadc27eeb22f07a8eca0c3db6be38b11a'
+    '6fe073b11cabeba2f2726d8a3d1592b198aec5f23dab3473d0dc8d5ec7aee1c9'
 };
 
 const skipIfExists = process.argv.includes('--skip-if-exists');
