@@ -46,7 +46,7 @@
     },
     {
       "key": "reactor_token",
-      "role": "Reactor session token",
+      "role": "Reactor API Key",
       "options": [
         {
           "baseURL": "https://api.reactor.inc",
