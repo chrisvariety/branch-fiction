@@ -5,6 +5,76 @@ import { getCharacters, getPlaces, type PickableEntity } from '@/iframe/db/entit
 import type { WorldModel } from '@/lib/db/types';
 import type { PrepareWorldPayload, PrepareWorldResult } from '@/worker/prepare-world';
 
+const ART_STYLE_IMAGES = import.meta.glob('./art-styles/*.png', {
+  eager: true,
+  import: 'default'
+}) as Record<string, string>;
+
+const ART_STYLES: { id: string; label: string; prompt: string }[] = [
+  {
+    id: 'digital-illustration',
+    label: 'Digital Illustration',
+    prompt: 'polished, semi-realistic digital illustration style (not photorealistic)'
+  },
+  {
+    id: 'studio-ghibli',
+    label: 'Studio Ghibli',
+    prompt:
+      'Studio Ghibli-inspired hand-painted anime style with soft painterly backgrounds, lush nature, gentle linework, and warm nostalgic light'
+  },
+  {
+    id: 'photorealistic',
+    label: 'Photorealistic',
+    prompt: 'photorealistic, cinematic style with natural lighting and lifelike detail'
+  },
+  {
+    id: 'anime',
+    label: 'Anime',
+    prompt:
+      'modern anime style with crisp cel-shaded linework, vibrant colors, and expressive characters'
+  },
+  {
+    id: 'oil-painting',
+    label: 'Oil Painting',
+    prompt:
+      'classical oil painting style with visible brushwork, rich impasto texture, and dramatic chiaroscuro lighting'
+  },
+  {
+    id: 'watercolor',
+    label: 'Watercolor',
+    prompt:
+      'soft watercolor painting style with delicate washes, bleeding pigments, and a light airy feel'
+  },
+  {
+    id: 'comic-book',
+    label: 'Comic Book',
+    prompt:
+      'bold comic book and graphic-novel style with heavy ink outlines, dynamic shading, and saturated flat colors'
+  },
+  {
+    id: 'storybook',
+    label: 'Storybook',
+    prompt:
+      "whimsical children's storybook illustration style with gentle textures, hand-drawn charm, and warm inviting colors"
+  },
+  {
+    id: 'stylized-3d',
+    label: 'Stylized 3D',
+    prompt:
+      'stylized 3D animated film style with smooth rounded forms, soft global illumination, and expressive character design'
+  },
+  {
+    id: 'dark-fantasy',
+    label: 'Dark Fantasy',
+    prompt:
+      'dark painterly fantasy concept-art style with moody atmosphere, dramatic lighting, and richly detailed environments'
+  }
+];
+
+function artImage(id: string): string | undefined {
+  return ART_STYLE_IMAGES[`./art-styles/${id}.png`];
+}
+
 const MODELS: { value: WorldModel; label: string; blurb: string }[] = [
   {
     value: 'helios',
@@ -31,6 +101,11 @@ const STEPS = [
   },
   {
     eyebrow: 'Step three',
+    title: 'Choose an art style',
+    description: 'The look for the generated world.'
+  },
+  {
+    eyebrow: 'Step four',
     title: 'Choose a world model',
     description: 'How you will steer and move through the world.'
   }
@@ -101,6 +176,84 @@ function ChoiceGrid({
   );
 }
 
+function artCardClasses(selected: boolean) {
+  return `flex flex-col gap-2 border bg-card p-2 text-left transition-colors ${
+    selected
+      ? 'border-primary ring-1 ring-primary'
+      : 'border-border hover:border-muted-foreground/40'
+  }`;
+}
+
+function ArtStyleStep({
+  selectedId,
+  custom,
+  onSelect,
+  onCustom
+}: {
+  selectedId: string;
+  custom: string;
+  onSelect: (id: string) => void;
+  onCustom: (v: string) => void;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Art style"
+      className="grid w-full max-w-2xl grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3"
+    >
+      {ART_STYLES.map((s) => {
+        const image = artImage(s.id);
+        return (
+          <button
+            key={s.id}
+            type="button"
+            role="radio"
+            aria-checked={selectedId === s.id}
+            className={artCardClasses(selectedId === s.id)}
+            onClick={() => onSelect(s.id)}
+          >
+            {image ? (
+              <img
+                src={image}
+                alt=""
+                className="block aspect-square w-full object-cover"
+              />
+            ) : (
+              <div className="aspect-square w-full bg-muted" />
+            )}
+            <div className="text-center font-serif text-sm">{s.label}</div>
+          </button>
+        );
+      })}
+      <button
+        type="button"
+        role="radio"
+        aria-checked={selectedId === 'custom'}
+        className={artCardClasses(selectedId === 'custom')}
+        onClick={() => onSelect('custom')}
+      >
+        <div className="box-border flex aspect-square w-full flex-col items-center justify-center gap-2 bg-muted p-3">
+          <div className="text-[10px] tracking-[0.3em] text-muted-foreground uppercase">
+            Custom
+          </div>
+          <input
+            type="text"
+            placeholder="Describe your style…"
+            value={custom}
+            onChange={(e) => {
+              onCustom(e.target.value);
+              onSelect('custom');
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="box-border w-full border border-input bg-background px-2 py-1.5 text-foreground focus:border-ring focus:outline-none"
+          />
+        </div>
+        <div className="text-center font-serif text-sm">Custom</div>
+      </button>
+    </div>
+  );
+}
+
 export function SelectWorld({
   bookId,
   onPrepared
@@ -120,21 +273,30 @@ export function SelectWorld({
   const [step, setStep] = useState(0);
   const [characterId, setCharacterId] = useState('');
   const [placeId, setPlaceId] = useState('');
+  const [artStyleId, setArtStyleId] = useState('');
+  const [customStyle, setCustomStyle] = useState('');
   const [model, setModel] = useState<WorldModel>('helios');
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const canSubmit = characterId && placeId && !busy;
-  const stepReady = [Boolean(characterId), Boolean(placeId), true][step];
-  const isLastStep = step === 2;
+  const artStyle =
+    artStyleId === 'custom'
+      ? customStyle.trim()
+      : (ART_STYLES.find((s) => s.id === artStyleId)?.prompt ?? '');
+
+  const canSubmit = characterId && placeId && artStyle && !busy;
+  const stepReady = [Boolean(characterId), Boolean(placeId), Boolean(artStyle), true][
+    step
+  ];
+  const isLastStep = step === 3;
 
   async function enter() {
     if (!canSubmit) return;
     setBusy(true);
     setError(null);
     try {
-      const payload: PrepareWorldPayload = { characterId, placeId, model };
+      const payload: PrepareWorldPayload = { characterId, placeId, model, artStyle };
       const result = await window.extensionSDK.worker
         .spawn<PrepareWorldResult>('prepareWorld', payload)
         .onLog((args) => setStatus(args.map(String).join(' ')));
@@ -184,6 +346,15 @@ export function SelectWorld({
       )}
 
       {step === 2 && (
+        <ArtStyleStep
+          selectedId={artStyleId}
+          custom={customStyle}
+          onSelect={setArtStyleId}
+          onCustom={setCustomStyle}
+        />
+      )}
+
+      {step === 3 && (
         <ChoiceGrid
           label={current.title}
           loading={false}

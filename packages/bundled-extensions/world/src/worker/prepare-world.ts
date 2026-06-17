@@ -21,6 +21,7 @@ export interface PrepareWorldPayload {
   characterId: string;
   placeId: string;
   model: WorldModel;
+  artStyle: string;
 }
 
 export interface PrepareWorldResult {
@@ -137,7 +138,7 @@ const runPrepareWorld = createWorkflowFunction<
   {
     name: ({ model }) => `Prepare ${model} world`
   },
-  async ({ characterId, placeId, model }, ctx): Promise<PrepareWorldResult> => {
+  async ({ characterId, placeId, model, artStyle }, ctx): Promise<PrepareWorldResult> => {
     if (host.bookId === null) {
       throw new UnrecoverableError('prepareWorld requires a bookId — launch from a book');
     }
@@ -231,6 +232,7 @@ const runPrepareWorld = createWorkflowFunction<
     const seedImageUrl = await generateSeedImage(
       {
         model,
+        artStyle,
         characterName: character.name,
         characterAppearance: selectedAppearance.standalone,
         placeName: place.name,
@@ -262,12 +264,14 @@ const runPrepareWorld = createWorkflowFunction<
 async function generateSeedImage(
   {
     model,
+    artStyle,
     characterName,
     characterAppearance,
     placeName,
     placeAppearance
   }: {
     model: WorldModel;
+    artStyle: string;
     characterName: string;
     characterAppearance: string;
     placeName: string;
@@ -290,7 +294,7 @@ async function generateSeedImage(
 
     Requirements:
     - ${framing}
-    - Rendered in a ${resolveArtStyle(null)}.
+    - Rendered in a ${resolveArtStyle(artStyle)}.
     - Do not include any text, labels, or names.`;
 
   console.log(`[world] seed image prompt:\n${prompt}`);
