@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { EvolveHeliosPromptResult } from '@/worker/evolve-helios-prompt';
 
 type SendCommand = (command: string, data: unknown) => Promise<void>;
+
+const ACTIONS_REVEAL_DELAY_MS = 10000;
 
 export function HeliosControls({
   sendCommand,
@@ -19,6 +21,15 @@ export function HeliosControls({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actions, setActions] = useState(suggestedActions);
+  const [actionsVisible, setActionsVisible] = useState(true);
+  const revealTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (revealTimer.current) clearTimeout(revealTimer.current);
+    },
+    []
+  );
 
   async function evolve(intent?: string) {
     const userIntent = (intent ?? text).trim();
@@ -26,6 +37,8 @@ export function HeliosControls({
     setText(userIntent);
     setBusy(true);
     setError(null);
+    if (revealTimer.current) clearTimeout(revealTimer.current);
+    setActionsVisible(false);
     try {
       const { prompt, suggestedActions: nextActions } =
         await window.extensionSDK.worker.spawn<EvolveHeliosPromptResult>(
@@ -36,8 +49,12 @@ export function HeliosControls({
       onEvolved(prompt);
       if (nextActions.length > 0) setActions(nextActions);
       setText('');
+      revealTimer.current = setTimeout(() => {
+        setActionsVisible(true);
+      }, ACTIONS_REVEAL_DELAY_MS);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+      setActionsVisible(true);
     } finally {
       setBusy(false);
     }
@@ -55,8 +72,8 @@ export function HeliosControls({
             )}
           </div>
         )}
-        {actions.length > 0 && (
-          <div className="mb-2 flex flex-wrap justify-center gap-1.5">
+        {actions.length > 0 && actionsVisible && (
+          <div className="mb-2 flex animate-[fadeIn_300ms_ease-out] flex-wrap justify-center gap-1.5">
             {actions.map((action) => (
               <button
                 key={action}
