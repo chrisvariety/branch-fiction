@@ -2,6 +2,7 @@ import { completeOrThrow, getAssistantText } from '@branch-fiction/extension-sdk
 import { UnrecoverableError } from '@branch-fiction/extension-sdk/worker/error-types';
 import { v7 as uuidv7 } from 'uuid';
 
+import { extractJsonFromResponse } from '@/lib/llm/extract-json';
 import { DEBUG_MODE } from '@/lib/media/debug';
 import { type WorkflowContext } from '@/worker/handler';
 import { getImageEvaluationPiModel } from '@/worker/providers';
@@ -145,14 +146,4 @@ Output ONLY the JSON object, no other text.`;
   }
 
   return detectionToEntityId;
-}
-
-// TODO cleanup?
-function extractJsonFromResponse(content: string): string {
-  let jsonStr = content;
-  const jsonMatch = content.match(/```(?:json)?\n?([\s\S]*?)\n?```/);
-  if (jsonMatch) {
-    jsonStr = jsonMatch[1];
-  }
-  return jsonStr;
 }

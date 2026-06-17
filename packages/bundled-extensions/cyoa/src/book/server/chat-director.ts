@@ -7,6 +7,7 @@ import {
   findClosestAppellationsForSourceEntity,
   findClosestArcForEntity
 } from '@/lib/chat/closest-arc';
+import { extractJsonFromResponse } from '@/lib/llm/extract-json';
 import chatDirectorPrompt from '@/lib/prompts/chat/chat-director';
 import {
   getBookArcsByBookIdAndTypesAndEntityIds,
@@ -95,7 +96,7 @@ export async function directChat(
     );
 
     const directorText = getAssistantText(directorMessage);
-    const result = v.parse(DirectorResponseSchema, directorText);
+    const result = v.parse(DirectorResponseSchema, extractJsonFromResponse(directorText));
 
     outOfSceneEntityMap = new Map(outOfSceneEntities.map((e) => [e.name, e]));
 
