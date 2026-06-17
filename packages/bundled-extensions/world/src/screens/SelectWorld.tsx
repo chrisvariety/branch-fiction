@@ -18,6 +18,24 @@ const MODELS: { value: WorldModel; label: string; blurb: string }[] = [
   }
 ];
 
+const STEPS = [
+  {
+    eyebrow: 'Step one',
+    title: 'Choose a character',
+    description: 'Who you will explore the world as.'
+  },
+  {
+    eyebrow: 'Step two',
+    title: 'Choose a place',
+    description: 'Where the scene unfolds around them.'
+  },
+  {
+    eyebrow: 'Step three',
+    title: 'Choose a world model',
+    description: 'How you will steer and move through the world.'
+  }
+];
+
 interface Choice {
   id: string;
   title: string;
@@ -33,55 +51,53 @@ function entityChoices(entities: PickableEntity[] | undefined): Choice[] {
 }
 
 function ChoiceGrid({
-  title,
+  label,
   loading,
   choices,
   selectedId,
   onSelect
 }: {
-  title: string;
+  label: string;
   loading: boolean;
   choices: Choice[];
   selectedId: string;
   onSelect: (id: string) => void;
 }) {
+  if (loading) return <p className="text-xs text-muted-foreground">Loading…</p>;
+  if (choices.length === 0)
+    return <p className="text-xs text-muted-foreground">Nothing available.</p>;
+
   return (
-    <section className="flex flex-col gap-3">
-      <h2 className="text-sm font-semibold tracking-wide uppercase opacity-60">
-        {title}
-      </h2>
-      {loading ? (
-        <p className="text-sm opacity-60">Loading…</p>
-      ) : choices.length === 0 ? (
-        <p className="text-sm opacity-60">Nothing available.</p>
-      ) : (
-        <div
-          role="radiogroup"
-          aria-label={title}
-          className="grid grid-cols-2 gap-3 sm:grid-cols-3"
-        >
-          {choices.map((c) => {
-            const selected = c.id === selectedId;
-            return (
-              <button
-                key={c.id}
-                role="radio"
-                aria-checked={selected}
-                onClick={() => onSelect(c.id)}
-                className={`flex flex-col gap-1 rounded-xl border p-4 text-left transition-colors ${
-                  selected
-                    ? 'border-black bg-black/5 dark:border-white dark:bg-white/10'
-                    : 'border-black/15 hover:border-black/40 dark:border-white/15 dark:hover:border-white/40'
-                }`}
-              >
-                <span className="font-medium">{c.title}</span>
-                {c.subtitle && <span className="text-sm opacity-60">{c.subtitle}</span>}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </section>
+    <div
+      role="radiogroup"
+      aria-label={label}
+      className="grid w-full max-w-2xl grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3"
+    >
+      {choices.map((c) => {
+        const selected = c.id === selectedId;
+        return (
+          <button
+            key={c.id}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            onClick={() => onSelect(c.id)}
+            className={`flex flex-col gap-1 border bg-card p-3 text-left transition-colors ${
+              selected
+                ? 'border-primary ring-1 ring-primary'
+                : 'border-border hover:border-muted-foreground/40'
+            }`}
+          >
+            <span className="font-serif text-sm">{c.title}</span>
+            {c.subtitle && (
+              <span className="text-xs leading-relaxed text-muted-foreground">
+                {c.subtitle}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -130,31 +146,26 @@ export function SelectWorld({
     }
   }
 
+  const current = STEPS[step];
+
   return (
-    <div className="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 p-8">
-      <header className="flex flex-col gap-3">
-        <h1 className="text-2xl font-semibold">Explore the World</h1>
-        <div
-          className="flex gap-1.5"
-          role="progressbar"
-          aria-valuenow={step + 1}
-          aria-valuemin={1}
-          aria-valuemax={3}
-        >
-          {[0, 1, 2].map((i) => (
-            <span
-              key={i}
-              className={`h-0.5 flex-1 rounded-full transition-colors ${
-                i <= step ? 'bg-black dark:bg-white' : 'bg-black/15 dark:bg-white/15'
-              }`}
-            />
-          ))}
-        </div>
-      </header>
+    <div className="flex flex-1 flex-col items-center gap-6 px-10 pt-12 pb-10">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <p className="text-[10px] tracking-[0.3em] text-muted-foreground uppercase">
+          {current.eyebrow}
+        </p>
+        <h1 className="font-serif text-xl tracking-tight text-balance">
+          {current.title}
+        </h1>
+        <div className="h-px w-12 bg-border" />
+        <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">
+          {current.description}
+        </p>
+      </div>
 
       {step === 0 && (
         <ChoiceGrid
-          title="Select character"
+          label={current.title}
           loading={characters.isLoading}
           choices={entityChoices(characters.data)}
           selectedId={characterId}
@@ -164,7 +175,7 @@ export function SelectWorld({
 
       {step === 1 && (
         <ChoiceGrid
-          title="Select place"
+          label={current.title}
           loading={places.isLoading}
           choices={entityChoices(places.data)}
           selectedId={placeId}
@@ -174,7 +185,7 @@ export function SelectWorld({
 
       {step === 2 && (
         <ChoiceGrid
-          title="Select world model"
+          label={current.title}
           loading={false}
           choices={MODELS.map((m) => ({
             id: m.value,
@@ -186,11 +197,12 @@ export function SelectWorld({
         />
       )}
 
-      <div className="sticky bottom-0 flex flex-col gap-2 bg-gradient-to-t from-white via-white pt-2 pb-1 dark:from-neutral-950 dark:via-neutral-950">
+      <div className="flex flex-col items-center gap-2">
         <div className="flex gap-2">
           {step > 0 && (
             <button
-              className="rounded-md border px-4 py-2 font-medium disabled:opacity-40"
+              type="button"
+              className="border border-border px-4 py-2 text-sm font-medium disabled:opacity-40"
               disabled={busy}
               onClick={() => setStep((s) => s - 1)}
             >
@@ -198,15 +210,16 @@ export function SelectWorld({
             </button>
           )}
           <button
-            className="flex-1 rounded-md bg-black px-4 py-2 font-medium text-white disabled:opacity-40 dark:bg-white dark:text-black"
+            type="button"
+            className="bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             disabled={isLastStep ? !canSubmit : !stepReady}
             onClick={() => (isLastStep ? void enter() : setStep((s) => s + 1))}
           >
             {isLastStep ? (busy ? 'Preparing…' : 'Enter the world') : 'Continue'}
           </button>
         </div>
-        {status && busy && <p className="text-sm opacity-70">{status}</p>}
-        {error && <p className="text-sm text-red-500">{error}</p>}
+        {status && busy && <p className="text-xs text-muted-foreground">{status}</p>}
+        {error && <p className="text-xs text-destructive">{error}</p>}
       </div>
     </div>
   );

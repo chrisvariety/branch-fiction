@@ -278,7 +278,7 @@ async function generateSeedImage(
   // The seed conditions the world model, so match each model's preferred framing.
   const framing =
     model === 'lingbot'
-      ? `Third-person over-the-shoulder view following ${characterName}, with ${characterName} centered in frame and seen from behind, the world opening up ahead. Pose ${characterName} in the way that fits what they are — a winged creature or dragon airborne with wings spread, a rider mounted, an ordinary person on foot — never an unnatural stance.`
+      ? `Third-person over-the-shoulder view following ${characterName}, with ${characterName} centered in frame and seen from behind, the world opening up ahead. Pose ${characterName} in the way that fits what they are, e.g. a winged creature or dragon airborne with wings spread, an ordinary person on foot, a sprite floating in the air, etc.`
       : `Establishing shot of ${characterName} present in the environment, ${characterName} facing the camera (front-facing or three-quarter).`;
 
   const prompt = dedent`
