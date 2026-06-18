@@ -61,7 +61,7 @@ pub async fn assets_handler(
     }
     let csp = format!(
         "default-src {origin} data: blob:; \
-         script-src {origin} 'unsafe-inline' 'unsafe-eval'; \
+         script-src {origin} 'unsafe-inline' 'unsafe-eval'{net}; \
          style-src {origin} 'unsafe-inline'; \
          img-src {origin} data: blob:{net}; \
          media-src {origin} data: blob:{net}; \
