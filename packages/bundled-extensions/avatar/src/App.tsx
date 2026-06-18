@@ -12,7 +12,7 @@ type Screen =
   | { name: 'select' }
   | { name: 'style'; character: PickableCharacter }
   | { name: 'prepare'; character: PickableCharacter; generateWith?: string }
-  | { name: 'view'; character: PickableCharacter; avatarId: string };
+  | { name: 'view'; character: PickableCharacter };
 
 export function App() {
   const [bookId, setBookId] = useState<string | null>(null);
@@ -42,10 +42,8 @@ export function App() {
   }
 
   function selectCharacter(character: PickableCharacter) {
-    if (character.runwayAvatarId) {
-      setScreen({ name: 'view', character, avatarId: character.runwayAvatarId });
-    } else if (character.hasAvatar) {
-      setScreen({ name: 'prepare', character });
+    if (character.hasAvatar) {
+      setScreen({ name: 'view', character });
     } else {
       setScreen({ name: 'style', character });
     }
@@ -54,7 +52,8 @@ export function App() {
   if (screen.name === 'view') {
     return (
       <AvatarView
-        avatarId={screen.avatarId}
+        bookId={bookId}
+        character={screen.character}
         onExit={() => setScreen({ name: 'select' })}
       />
     );
@@ -82,9 +81,7 @@ export function App() {
         bookId={bookId}
         character={screen.character}
         generateWith={screen.generateWith}
-        onReady={(avatarId) =>
-          setScreen({ name: 'view', character: screen.character, avatarId })
-        }
+        onReady={() => setScreen({ name: 'view', character: screen.character })}
         onBack={() => setScreen({ name: 'select' })}
         onChangeStyle={() => setScreen({ name: 'style', character: screen.character })}
       />

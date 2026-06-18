@@ -7,7 +7,6 @@ export interface PickableCharacter {
   name: string;
   identityTag: string | null;
   hasAvatar: boolean;
-  runwayAvatarId: string | null;
 }
 
 // Only characters with a CHARACTER arc can seed a personality, so gate the picker on it.
@@ -17,7 +16,7 @@ export async function getCharacters(bookId: string): Promise<PickableCharacter[]
     .leftJoin('avatars as a', (join) =>
       join.onRef('a.characterId', '=', 'be.id').on('a.bookId', '=', bookId)
     )
-    .select(['be.id', 'be.name', 'be.identityTag', 'a.runwayAvatarId'])
+    .select(['be.id', 'be.name', 'be.identityTag'])
     .select((eb) => eb.fn.count('a.characterId').as('avatarCount'))
     .where('be.bookId', '=', bookId)
     .where('be.type', '=', 'CHARACTER')
@@ -32,7 +31,7 @@ export async function getCharacters(bookId: string): Promise<PickableCharacter[]
           )
       )`
     )
-    .groupBy(['be.id', 'be.name', 'be.identityTag', 'a.runwayAvatarId'])
+    .groupBy(['be.id', 'be.name', 'be.identityTag'])
     .orderBy('be.significanceRank', 'asc')
     .orderBy('be.name', 'asc')
     .execute();
@@ -41,7 +40,6 @@ export async function getCharacters(bookId: string): Promise<PickableCharacter[]
     id: r.id,
     name: r.name,
     identityTag: r.identityTag,
-    hasAvatar: Number(r.avatarCount) > 0,
-    runwayAvatarId: r.runwayAvatarId
+    hasAvatar: Number(r.avatarCount) > 0
   }));
 }

@@ -46,7 +46,8 @@ export async function ensureDbReady(): Promise<void> {
   const db = getDb();
   await ensureSchema({
     query: async (stmt) => {
-      await sql.raw(stmt).execute(db);
+      const result = await sql.raw(stmt).execute(db);
+      return { rows: result.rows };
     }
   });
   dbReady = true;

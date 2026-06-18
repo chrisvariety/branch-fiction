@@ -1,14 +1,11 @@
 import { transformImageUrl } from '@branch-fiction/extension-sdk/media/transform-url';
-import { IconCheck, IconCopy, IconDownload, IconExternalLink } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { PickableCharacter } from '@/iframe/db/entities';
 import { getAvatar } from '@/iframe/db/models/avatar/get-avatar';
-import { setRunwayAvatarId } from '@/iframe/db/models/avatar/update-avatar';
 import type { PrepareAvatarResult } from '@/worker/prepare-avatar';
 
-const RUNWAY_CHARACTERS_URL = 'https://dev.runwayml.com/characters';
 const PERSONALITY_MAX_CHARS = 10_000;
 
 export function PrepareAvatar({
@@ -22,7 +19,7 @@ export function PrepareAvatar({
   bookId: string;
   character: PickableCharacter;
   generateWith?: string;
-  onReady: (avatarId: string) => void;
+  onReady: () => void;
   onBack: () => void;
   onChangeStyle: () => void;
 }) {
@@ -66,7 +63,7 @@ export function PrepareAvatar({
     void runPrepare(generateWith);
   }, [generateWith, generating, runPrepare]);
 
-  const ready = avatar.data && !generating;
+  const ready = !!avatar.data?.imageUrl && !generating;
 
   return (
     <div className="flex flex-1 flex-col items-center gap-6 px-10 pt-10 pb-10">
@@ -75,7 +72,7 @@ export function PrepareAvatar({
           {character.name}
         </p>
         <h1 className="font-serif text-xl tracking-tight text-balance">
-          Create your Runway Character
+          Bring {character.name} to life
         </h1>
         <div className="h-px w-12 bg-border" />
       </div>
@@ -101,18 +98,16 @@ export function PrepareAvatar({
             <>
               <Spinner />
               <p className="text-xs text-muted-foreground">
-                {status ?? 'Generating portrait and personality…'}
+                {status ?? 'Generating portrait, personality, and avatar…'}
               </p>
             </>
           )}
         </div>
       ) : (
         <Prep
-          bookId={bookId}
           character={character}
           imageUrl={avatar.data!.imageUrl}
           personality={avatar.data!.personality}
-          initialAvatarId={avatar.data!.runwayAvatarId ?? ''}
           regenerating={generating}
           onRegenerate={() => {
             const style = avatar.data?.artStyle;
@@ -136,90 +131,35 @@ export function PrepareAvatar({
 }
 
 function Prep({
-  bookId,
   character,
   imageUrl,
   personality,
-  initialAvatarId,
   regenerating,
   onRegenerate,
   onChangeStyle,
   onReady
 }: {
-  bookId: string;
   character: PickableCharacter;
   imageUrl: string;
   personality: string;
-  initialAvatarId: string;
   regenerating: boolean;
   onRegenerate: () => void;
   onChangeStyle: () => void;
-  onReady: (avatarId: string) => void;
+  onReady: () => void;
 }) {
-  const [avatarId, setAvatarId] = useState(initialAvatarId);
-  const [copied, setCopied] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-
   const hostImageUrl = transformImageUrl(imageUrl);
-
-  async function downloadImage() {
-    const res = await fetch(hostImageUrl);
-    const bytes = new Uint8Array(await res.arrayBuffer());
-    const filename = `${character.name.replace(/[^\w-]+/g, '_')}.png`;
-    await window.extensionSDK.saveFile(filename, bytes, 'image/png');
-  }
-
-  async function copyPersonality() {
-    await navigator.clipboard.writeText(personality);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  }
-
-  async function save() {
-    const id = avatarId.trim();
-    if (!id) return;
-    setSaving(true);
-    setSaveError(null);
-    try {
-      await setRunwayAvatarId(bookId, character.id, id);
-      onReady(id);
-    } catch (e) {
-      setSaveError(e instanceof Error ? e.message : String(e));
-      setSaving(false);
-    }
-  }
 
   return (
     <div className="flex w-full max-w-3xl flex-col gap-6">
       <div className="grid grid-cols-1 gap-6 md:grid-cols-[260px_1fr]">
-        <div className="flex flex-col gap-2">
-          <img
-            src={hostImageUrl}
-            alt={`Reference portrait of ${character.name}`}
-            className="aspect-video w-full border border-border object-cover"
-          />
-          <button
-            type="button"
-            onClick={() => void downloadImage()}
-            className="flex items-center justify-center gap-2 border border-border px-3 py-2 text-sm font-medium hover:border-muted-foreground/40"
-          >
-            <IconDownload size={16} /> Download portrait
-          </button>
-        </div>
+        <img
+          src={hostImageUrl}
+          alt={`Reference portrait of ${character.name}`}
+          className="aspect-video w-full border border-border object-cover"
+        />
 
         <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Personality</span>
-            <button
-              type="button"
-              onClick={() => void copyPersonality()}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-            >
-              {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
-              {copied ? 'Copied' : 'Copy'}
-            </button>
-          </div>
+          <span className="text-xs font-medium text-muted-foreground">Personality</span>
           <textarea
             readOnly
             value={personality}
@@ -231,50 +171,13 @@ function Prep({
         </div>
       </div>
 
-      <ol className="flex flex-col gap-1.5 border-l-2 border-border pl-4 text-xs leading-relaxed text-muted-foreground">
-        <li>1. Download the portrait and copy the personality above.</li>
-        <li>
-          2. Open Runway and click <strong>Create a Character</strong>, then upload the
-          portrait.
-        </li>
-        <li>
-          3. Paste the personality into <strong>Describe personality</strong>.
-        </li>
-        <li>4. Copy the new Character ID and paste it below.</li>
-      </ol>
-
       <button
         type="button"
-        onClick={() => void window.extensionSDK.openExternal(RUNWAY_CHARACTERS_URL)}
-        className="flex items-center justify-center gap-2 border border-border px-3 py-2 text-sm font-medium hover:border-muted-foreground/40"
+        onClick={onReady}
+        className="bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
       >
-        <IconExternalLink size={16} /> Open Runway Characters
+        Start conversation
       </button>
-
-      <div className="flex flex-col gap-2">
-        <label htmlFor="avatar-id" className="text-xs font-medium text-muted-foreground">
-          Runway Character ID
-        </label>
-        <div className="flex gap-2">
-          <input
-            id="avatar-id"
-            type="text"
-            value={avatarId}
-            placeholder="e.g. a1b2c3d4-…"
-            onChange={(e) => setAvatarId(e.target.value)}
-            className="flex-1 border border-input bg-background px-3 py-2 text-sm focus:border-ring focus:outline-none"
-          />
-          <button
-            type="button"
-            disabled={!avatarId.trim() || saving}
-            onClick={() => void save()}
-            className="bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-          >
-            {saving ? 'Starting…' : 'Start call'}
-          </button>
-        </div>
-        {saveError && <p className="text-xs text-destructive">{saveError}</p>}
-      </div>
 
       <div className="flex gap-4">
         <button

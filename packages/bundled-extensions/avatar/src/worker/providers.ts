@@ -4,7 +4,7 @@ import {
 } from '@branch-fiction/extension-sdk/pi-handle';
 
 // aligns with manifest.json
-type ProviderKey = 'text' | 'image_generation_reference' | 'runway_api_key';
+type ProviderKey = 'text' | 'image_generation_reference' | 'avatar';
 
 export function getProvider(key: ProviderKey): ProviderBinding {
   const provider = host.providers[key];

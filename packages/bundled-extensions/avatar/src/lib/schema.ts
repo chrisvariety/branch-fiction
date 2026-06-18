@@ -7,7 +7,6 @@ const STATEMENTS = [
     personality TEXT NOT NULL,
     art_style TEXT,
     selected_arc_friendly_id TEXT,
-    runway_avatar_id TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now')),
     PRIMARY KEY (book_id, character_id)
@@ -15,9 +14,11 @@ const STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS avatars_book_id_idx ON avatars (book_id)`
 ];
 
-export async function ensureSchema(db: {
-  query(sql: string, params?: unknown[]): Promise<unknown>;
-}): Promise<void> {
+type SchemaDb = {
+  query(sql: string, params?: unknown[]): Promise<{ rows: unknown[] }>;
+};
+
+export async function ensureSchema(db: SchemaDb): Promise<void> {
   for (const stmt of STATEMENTS) {
     await db.query(stmt);
   }

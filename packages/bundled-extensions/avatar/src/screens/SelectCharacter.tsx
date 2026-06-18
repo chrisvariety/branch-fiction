@@ -42,13 +42,9 @@ export function SelectCharacter({
             >
               <span className="flex items-center justify-between gap-2">
                 <span className="font-serif text-sm">{c.name}</span>
-                {c.runwayAvatarId ? (
+                {c.hasAvatar ? (
                   <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[9px] tracking-wide text-primary uppercase">
                     Ready
-                  </span>
-                ) : c.hasAvatar ? (
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-[9px] tracking-wide text-muted-foreground uppercase">
-                    Prepped
                   </span>
                 ) : null}
               </span>

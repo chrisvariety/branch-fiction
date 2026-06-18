@@ -13,7 +13,7 @@ interface UpsertAvatarInput {
   selectedArcFriendlyId: string | null;
 }
 
-// Re-running prep refreshes portrait/personality but preserves runway_avatar_id.
+// Re-running prep refreshes the portrait/personality and the freshly-created avatar.
 export async function upsertAvatar(
   input: UpsertAvatarInput,
   trx?: Transaction

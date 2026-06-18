@@ -16,7 +16,6 @@ export interface AvatarsTable {
   personality: string;
   artStyle: string | null;
   selectedArcFriendlyId: string | null;
-  runwayAvatarId: string | null;
   createdAt: Generated<string>;
   updatedAt: Generated<string>;
 }

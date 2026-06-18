@@ -185,7 +185,12 @@ async function generatePortrait(
   characterId: string,
   artStyle: string,
   ctx: WorkflowContext
-): Promise<{ imageUrl: string; selectedArcFriendlyId: string | null }> {
+): Promise<{
+  imageUrl: string;
+  selectedArcFriendlyId: string | null;
+  imageBytes: Uint8Array;
+  imageMimeType: string;
+}> {
   if (arcs.length === 0) {
     throw new UnrecoverableError(
       `No appearance data for ${name} — cannot draw a portrait`
@@ -249,5 +254,5 @@ async function generatePortrait(
   const imageUrl = buildAssetUrl(key, mimeType);
   await ctx.fs.write(parseAssetUrl(imageUrl).relPath, data);
 
-  return { imageUrl, selectedArcFriendlyId };
+  return { imageUrl, selectedArcFriendlyId, imageBytes: data, imageMimeType: mimeType };
 }
