@@ -60,8 +60,8 @@ export default defineConfig(async () => ({
     // dev-server CORS middleware mangle them.
     cors: false,
     watch: {
-      // 3. tell vite to ignore watching `src-tauri`
-      ignored: ['**/src-tauri/**']
+      // 3. tell vite to ignore watching `src-tauri` & bundled extensions (not hot-refreshable)
+      ignored: ['**/src-tauri/**', '**/packages/bundled-extensions/**']
     }
   },
   build: {
