@@ -1,18 +1,29 @@
 import { useEffect, useState } from 'react';
 
+import type { SessionCredentials } from '@runwayml/avatars-react';
+
 import type { PickableCharacter } from '@/iframe/db/entities';
+import type { AvatarScenario } from '@/lib/db/types';
 import { ensureSchema } from '@/lib/schema';
 
 import { AvatarView } from './screens/AvatarView';
 import { ChooseStyle } from './screens/ChooseStyle';
 import { PrepareAvatar } from './screens/PrepareAvatar';
 import { SelectCharacter } from './screens/SelectCharacter';
+import { SelectScenario } from './screens/SelectScenario';
 
 type Screen =
   | { name: 'select' }
   | { name: 'style'; character: PickableCharacter }
   | { name: 'prepare'; character: PickableCharacter; generateWith?: string }
-  | { name: 'view'; character: PickableCharacter; avatarId: string };
+  | { name: 'scenario'; character: PickableCharacter; avatarId: string }
+  | {
+      name: 'view';
+      character: PickableCharacter;
+      avatarId: string;
+      scenario: AvatarScenario | null;
+      credentials: SessionCredentials;
+    };
 
 export function App() {
   const [bookId, setBookId] = useState<string | null>(null);
@@ -43,7 +54,7 @@ export function App() {
 
   function selectCharacter(character: PickableCharacter) {
     if (character.runwayAvatarId) {
-      setScreen({ name: 'view', character, avatarId: character.runwayAvatarId });
+      setScreen({ name: 'scenario', character, avatarId: character.runwayAvatarId });
     } else if (character.hasAvatar) {
       setScreen({ name: 'prepare', character });
     } else {
@@ -55,7 +66,30 @@ export function App() {
     return (
       <AvatarView
         avatarId={screen.avatarId}
+        characterName={screen.character.name}
+        scenario={screen.scenario}
+        initialCredentials={screen.credentials}
         onExit={() => setScreen({ name: 'select' })}
+      />
+    );
+  }
+
+  if (screen.name === 'scenario') {
+    return (
+      <SelectScenario
+        bookId={bookId}
+        character={screen.character}
+        avatarId={screen.avatarId}
+        onStarted={(credentials, scenario) =>
+          setScreen({
+            name: 'view',
+            character: screen.character,
+            avatarId: screen.avatarId,
+            scenario,
+            credentials
+          })
+        }
+        onBack={() => setScreen({ name: 'select' })}
       />
     );
   }
@@ -83,7 +117,7 @@ export function App() {
         character={screen.character}
         generateWith={screen.generateWith}
         onReady={(avatarId) =>
-          setScreen({ name: 'view', character: screen.character, avatarId })
+          setScreen({ name: 'scenario', character: screen.character, avatarId })
         }
         onBack={() => setScreen({ name: 'select' })}
         onChangeStyle={() => setScreen({ name: 'style', character: screen.character })}

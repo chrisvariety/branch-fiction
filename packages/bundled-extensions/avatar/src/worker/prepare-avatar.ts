@@ -1,4 +1,9 @@
-import { getText, parse, querySelector } from '@branch-fiction/extension-sdk/llm/xml';
+import {
+  getText,
+  parse,
+  querySelector,
+  querySelectorAll
+} from '@branch-fiction/extension-sdk/llm/xml';
 import { resolveArtStyle } from '@branch-fiction/extension-sdk/media/art-style';
 import { generateOneShotImage } from '@branch-fiction/extension-sdk/media/generate-one-shot-image';
 import {
@@ -14,14 +19,27 @@ import { v7 as uuidv7 } from 'uuid';
 
 import characterPersonality from '@/lib/prompts/character-personality';
 import characterPortrait from '@/lib/prompts/character-portrait';
+import characterScenarios from '@/lib/prompts/character-scenarios';
+import { isScenarioMode } from '@/lib/scenarios';
+import { buildKnowledge, hashContent } from '@/worker/build-knowledge';
 import { ensureDbReady } from '@/worker/db';
+import {
+  replaceScenarios,
+  type ScenarioInput
+} from '@/worker/db/models/avatar-scenario/replace-scenarios';
 import { upsertAvatar } from '@/worker/db/models/avatar/upsert-avatar';
 import { getBookArcsByBookIdAndTypesAndEntityIds } from '@/worker/db/models/book-arc/get-book-arc';
 import { getBookEntityById } from '@/worker/db/models/book-entity/get-book-entity';
+import {
+  getCharacterScenes,
+  type CharacterScene
+} from '@/worker/db/models/chapter-scene/get-scenes';
 import { createWorkflowFunction, type WorkflowContext } from '@/worker/handler';
 import { getProvider } from '@/worker/providers';
 
 const PERSONALITY_MAX_CHARS = 10_000;
+const SCENARIO_PERSONALITY_MAX_CHARS = 4_000;
+const SCENARIO_START_SCRIPT_MAX_CHARS = 1_500;
 
 export interface PrepareAvatarPayload {
   characterId: string;
@@ -69,14 +87,22 @@ const runPrepareAvatar = createWorkflowFunction<
       throw new UnrecoverableError('Selected character not found');
     }
 
-    const [characterArcs, appearanceArcs, isolatedAppearanceArcs] = await Promise.all([
+    const [
+      characterArcs,
+      appearanceArcs,
+      isolatedAppearanceArcs,
+      relationshipArcs,
+      scenes
+    ] = await Promise.all([
       getBookArcsByBookIdAndTypesAndEntityIds(bookId, ['CHARACTER'], [characterId]),
       getBookArcsByBookIdAndTypesAndEntityIds(bookId, ['APPEARANCE'], [characterId]),
       getBookArcsByBookIdAndTypesAndEntityIds(
         bookId,
         ['APPEARANCE_ISOLATED'],
         [characterId]
-      )
+      ),
+      getBookArcsByBookIdAndTypesAndEntityIds(bookId, ['RELATIONSHIP'], [characterId]),
+      getCharacterScenes(bookId, character.name)
     ]);
 
     if (characterArcs.length === 0) {
@@ -95,11 +121,13 @@ const runPrepareAvatar = createWorkflowFunction<
       .withMetadata({
         character: character.name,
         characterArcs: characterArcs.length,
+        relationshipArcs: relationshipArcs.length,
+        scenes: scenes.length,
         portraitArcs: portraitArcs.length
       })
-      .info('Generating personality and reference portrait in parallel');
+      .info('Generating personality, portrait, and scenarios in parallel');
 
-    const [personality, portrait] = await Promise.all([
+    const [personality, portrait, scenarios] = await Promise.all([
       generatePersonality(character.name, characterArcs, ctx),
       generatePortrait(
         character.name,
@@ -108,7 +136,8 @@ const runPrepareAvatar = createWorkflowFunction<
         characterId,
         artStyle,
         ctx
-      )
+      ),
+      generateScenarios(character.name, characterArcs, relationshipArcs, scenes, ctx)
     ]);
 
     await upsertAvatar({
@@ -119,6 +148,9 @@ const runPrepareAvatar = createWorkflowFunction<
       artStyle,
       selectedArcFriendlyId: portrait.selectedArcFriendlyId
     });
+
+    await replaceScenarios(bookId, characterId, scenarios);
+    ctx.log.withMetadata({ scenarios: scenarios.length }).info('Scenarios saved');
 
     ctx.log
       .withMetadata({ characterId, imageUrl: portrait.imageUrl })
@@ -250,4 +282,113 @@ async function generatePortrait(
   await ctx.fs.write(parseAssetUrl(imageUrl).relPath, data);
 
   return { imageUrl, selectedArcFriendlyId };
+}
+
+interface ScenarioArc {
+  title: string | null;
+  content: string;
+  startChapterIdx: number;
+  endChapterIdx: number;
+}
+
+const MAX_SCENES_IN_PROMPT = 60;
+
+async function generateScenarios(
+  name: string,
+  characterArcs: ScenarioArc[],
+  relationshipArcs: ScenarioArc[],
+  scenes: CharacterScene[],
+  ctx: WorkflowContext
+): Promise<ScenarioInput[]> {
+  const promptText = characterScenarios.render({
+    characterArcs: characterArcs.map(toPromptArc),
+    relationshipArcs: relationshipArcs.map(toPromptArc),
+    scenes: scenes.slice(0, MAX_SCENES_IN_PROMPT).map((s) => ({
+      title: s.title,
+      chapterIdx: s.chapterIdx,
+      setting: s.setting ?? undefined
+    })),
+    maxPersonalityChars: SCENARIO_PERSONALITY_MAX_CHARS,
+    maxStartScriptChars: SCENARIO_START_SCRIPT_MAX_CHARS
+  });
+
+  const { model, apiKey, reasoning } = ctx.getPiModel('text');
+  const message = await completeOrThrow(
+    model,
+    { messages: [{ role: 'user', content: promptText, timestamp: Date.now() }] },
+    { apiKey, reasoning, sessionId: uuidv7() }
+  );
+  ctx.trackUsage(message);
+
+  const ast = parse(getAssistantText(message));
+  const elements = querySelectorAll(ast, 'scenario');
+
+  const scenarios: ScenarioInput[] = [];
+  const seenModes = new Set<string>();
+  elements.forEach((el, index) => {
+    const mode = getText(querySelector(el, 'mode')).trim();
+    const label = getText(querySelector(el, 'label')).trim();
+    const tagline = getText(querySelector(el, 'tagline')).trim();
+    const personality = getText(querySelector(el, 'personality')).trim();
+    const startScript = getText(querySelector(el, 'start_script')).trim();
+    const anchorTitle = getText(querySelector(el, 'anchor_scene')).trim();
+
+    if (!isScenarioMode(mode) || seenModes.has(mode)) return;
+    if (!label || !personality || !startScript) return;
+    seenModes.add(mode);
+
+    const anchorChapterIdx = matchAnchorChapter(anchorTitle, scenes);
+    const knowledge = buildKnowledge({
+      name,
+      characterArcs,
+      relationshipArcs,
+      scenes,
+      anchorChapterIdx
+    });
+
+    scenarios.push({
+      scenarioKey: mode,
+      mode,
+      label,
+      tagline,
+      startScript: startScript.slice(0, SCENARIO_START_SCRIPT_MAX_CHARS),
+      personality: personality.slice(0, SCENARIO_PERSONALITY_MAX_CHARS),
+      knowledge,
+      knowledgeHash: hashContent(knowledge),
+      anchorChapterIdx,
+      sortOrder: index
+    });
+  });
+
+  if (scenarios.length === 0) {
+    throw new RecoverableError(`No scenarios generated for ${name}`);
+  }
+  return scenarios;
+}
+
+function toPromptArc(arc: ScenarioArc) {
+  return {
+    friendlyId: '',
+    title: arc.title ?? undefined,
+    startChapterIdx: arc.startChapterIdx,
+    endChapterIdx: arc.endChapterIdx,
+    content: arc.content
+  };
+}
+
+// Match the LLM's chosen scene back to a real scene to recover its chapter for clamping.
+function matchAnchorChapter(
+  anchorTitle: string,
+  scenes: CharacterScene[]
+): number | null {
+  if (!anchorTitle) return null;
+  const normalized = anchorTitle.toLowerCase();
+  const exact = scenes.find((s) => s.title.toLowerCase() === normalized);
+  if (exact) return exact.chapterIdx;
+  const partial = scenes.find(
+    (s) =>
+      s.title.toLowerCase().includes(normalized) ||
+      normalized.includes(s.title.toLowerCase())
+  );
+  return partial?.chapterIdx ?? null;
 }
