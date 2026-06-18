@@ -1,7 +1,11 @@
+use std::time::Duration;
+
 use tauri::{AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder, webview::Color};
 
+use crate::cloud_state::CloudState;
 use crate::http_server::HttpPortState;
-use crate::phone_share::{PhoneShareEntry, PhoneShareState};
+use crate::iroh_share::IrohShareState;
+use crate::phone_share::{CLOUD_SLUG_WORDS, LOCAL_SLUG_WORDS, PhoneShareEntry, PhoneShareState};
 
 fn theme_background(dark: bool) -> Color {
     if dark {
@@ -42,14 +46,80 @@ pub fn get_path_phone_url(
     } else {
         http_port.0
     };
-    let slug = phone_share.register(PhoneShareEntry {
-        extension_id,
-        book_id,
-        token,
-        entry,
-        extension_name,
-    });
+    let slug = phone_share.register(
+        PhoneShareEntry {
+            extension_id,
+            book_id,
+            token,
+            entry,
+            extension_name,
+        },
+        LOCAL_SLUG_WORDS,
+    );
     Ok(format!("http://{ip}:{port}/p/{slug}"))
+}
+
+/// Subscriber-only cloud-share QR: a public bootstrap URL carrying the iroh endpoint-id + slug.
+#[allow(clippy::too_many_arguments)]
+#[tauri::command(rename_all = "camelCase")]
+pub async fn get_cloud_phone_url(
+    cloud_state: State<'_, CloudState>,
+    iroh_state: State<'_, IrohShareState>,
+    phone_share: State<'_, PhoneShareState>,
+    external_id: String,
+    extension_id: String,
+    book_id: String,
+    token: String,
+    entry: String,
+    extension_name: String,
+) -> Result<String, String> {
+    if external_id.is_empty() {
+        return Err("externalId is required".to_string());
+    }
+    if extension_id.is_empty() {
+        return Err("extensionId is required".to_string());
+    }
+    if book_id.is_empty() {
+        return Err("bookId is required".to_string());
+    }
+    if token.is_empty() {
+        return Err("token is required".to_string());
+    }
+    if entry.is_empty() {
+        return Err("entry is required".to_string());
+    }
+
+    let cloud = (*cloud_state).clone();
+    let phone_share = phone_share.inner().clone();
+
+    // Mint-time gate: refuse unless this account has an active subscription (cloud /token 403s otherwise).
+    cloud
+        .mint_or_get_jwt(&external_id)
+        .await
+        .map_err(|_| "Cloud sharing needs an active subscription".to_string())?;
+
+    // Bind lazily, then publish to discovery + reach a relay so the endpoint-id is dialable.
+    let endpoint = iroh_state.ensure_endpoint().await?;
+    tokio::time::timeout(Duration::from_secs(10), endpoint.online())
+        .await
+        .map_err(|_| {
+            "Couldn't reach the relay network. Check your connection and try again.".to_string()
+        })?;
+    let node = endpoint.id().to_string();
+
+    let slug = phone_share.register(
+        PhoneShareEntry {
+            extension_id,
+            book_id,
+            token,
+            entry,
+            extension_name,
+        },
+        CLOUD_SLUG_WORDS,
+    );
+    Ok(format!(
+        "https://share.branchfiction.com/connect?node={node}&slug={slug}"
+    ))
 }
 
 pub fn focus_or_open_main_window(app_handle: &AppHandle) -> Result<(), String> {

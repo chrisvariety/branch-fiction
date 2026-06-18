@@ -26,6 +26,7 @@ mod extension_task_sse;
 mod html_to_markdown;
 mod http_server;
 mod import_db;
+mod iroh_share;
 mod keepawake;
 mod langsmith;
 mod migrations;
@@ -92,8 +93,8 @@ use tauri::Manager;
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 use test_provider::{TestProviderState, test_provider_config};
 use window_commands::{
-    close_path_window, get_path_phone_url, open_book_window, open_import_window,
-    open_new_book_window, open_path_window, open_settings_window,
+    close_path_window, get_cloud_phone_url, get_path_phone_url, open_book_window,
+    open_import_window, open_new_book_window, open_path_window, open_settings_window,
 };
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
@@ -142,6 +143,7 @@ pub fn run() {
             open_import_window,
             open_book_window,
             get_path_phone_url,
+            get_cloud_phone_url,
             get_http_port,
             allocate_extension_port,
             get_or_create_secret_key,

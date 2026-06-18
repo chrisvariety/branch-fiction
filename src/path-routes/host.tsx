@@ -127,12 +127,15 @@ function PathHost() {
       }
       const origin = window.location.origin;
       const src = `${origin}/extension-assets/${encodeURIComponent(extensionId)}/${phone.entry}?token=${encodeURIComponent(phone.token)}`;
+      // Cloud's https gateway is one origin: allow-same-origin keeps the iframe same-site so its
+      // cookie-bound loads aren't cross-origin. LAN stays null-origin (no cookie) for isolation.
+      const cloud = window.location.protocol === 'https:';
       setBoot({
         src: withDark(src, darkRef.current),
         title: phone.name || extensionId,
         author: null,
         allow: buildExtensionIframeAllow(undefined),
-        sandbox: 'allow-scripts'
+        sandbox: cloud ? 'allow-scripts allow-same-origin' : 'allow-scripts'
       });
       return;
     }

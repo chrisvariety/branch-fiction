@@ -62,6 +62,10 @@ hkdf = "0.12"
 chacha20poly1305 = { version = "0.10", features = ["stream"] }
 ssh-key = { version = "0.6", features = ["ed25519"] }
 futures-util = "0.3"
+iroh = "1"
+hyper = { version = "1", features = ["server", "http1"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+tower = { version = "0.5", features = ["util"] }
 chrono = { version = "0.4", default-features = false, features = ["now", "std"] }
 jsonwebtoken = { version = "10", default-features = false, features = ["rust_crypto"] }
 

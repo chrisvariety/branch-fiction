@@ -45,13 +45,17 @@ pub fn new_state() -> PhoneShareState {
     Arc::new(PhoneShareInner::default())
 }
 
+// cloud shares = longer slug = slug guessing infeasible.
+pub const LOCAL_SLUG_WORDS: usize = 3;
+pub const CLOUD_SLUG_WORDS: usize = 5;
+
 impl PhoneShareInner {
-    pub fn register(&self, entry: PhoneShareEntry) -> String {
+    pub fn register(&self, entry: PhoneShareEntry, word_count: usize) -> String {
         let mut map = self.map.lock().expect("phone share state poisoned");
         // Supersede any existing share for this (extension, book) rather than accumulating stale slugs.
         map.retain(|_, e| e.extension_id != entry.extension_id || e.book_id != entry.book_id);
         loop {
-            let slug = generate_slug();
+            let slug = generate_slug(word_count);
             if !map.contains_key(&slug) {
                 map.insert(slug.clone(), entry);
                 return slug;
@@ -76,10 +80,10 @@ impl PhoneShareInner {
     }
 }
 
-fn generate_slug() -> String {
-    let mut bytes = [0u8; 12];
+fn generate_slug(word_count: usize) -> String {
+    let mut bytes = vec![0u8; word_count * 4];
     getrandom::fill(&mut bytes).expect("getrandom failed for phone share slug");
-    let words: Vec<&str> = (0..3)
+    let words: Vec<&str> = (0..word_count)
         .map(|i| {
             let idx = u32::from_le_bytes([
                 bytes[i * 4],
@@ -148,17 +152,19 @@ mod tests {
     }
 
     #[test]
-    fn slug_is_three_words() {
+    fn local_slug_is_three_words_cloud_is_five() {
         let state = PhoneShareInner::default();
-        let slug = state.register(entry("@local/cyoa", "book-1"));
-        assert_eq!(slug.split('-').count(), 3);
+        let local = state.register(entry("@local/cyoa", "book-1"), LOCAL_SLUG_WORDS);
+        assert_eq!(local.split('-').count(), 3);
+        let cloud = state.register(entry("@local/cyoa", "book-2"), CLOUD_SLUG_WORDS);
+        assert_eq!(cloud.split('-').count(), 5);
     }
 
     #[test]
     fn re_registering_same_extension_book_replaces() {
         let state = PhoneShareInner::default();
-        let s1 = state.register(entry("@local/cyoa", "book-1"));
-        let s2 = state.register(entry("@local/cyoa", "book-1"));
+        let s1 = state.register(entry("@local/cyoa", "book-1"), LOCAL_SLUG_WORDS);
+        let s2 = state.register(entry("@local/cyoa", "book-1"), LOCAL_SLUG_WORDS);
         assert!(state.lookup(&s1).is_none(), "old slug should be evicted");
         assert!(state.lookup(&s2).is_some());
     }
@@ -166,8 +172,8 @@ mod tests {
     #[test]
     fn revoke_for_extension_clears_all_books() {
         let state = PhoneShareInner::default();
-        let s1 = state.register(entry("@local/cyoa", "book-1"));
-        let s2 = state.register(entry("@local/cyoa", "book-2"));
+        let s1 = state.register(entry("@local/cyoa", "book-1"), LOCAL_SLUG_WORDS);
+        let s2 = state.register(entry("@local/cyoa", "book-2"), LOCAL_SLUG_WORDS);
         state.revoke_for_extension("@local/cyoa");
         assert!(state.lookup(&s1).is_none());
         assert!(state.lookup(&s2).is_none());

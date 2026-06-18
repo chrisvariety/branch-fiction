@@ -13,7 +13,6 @@ use tauri::{AppHandle, Manager};
 use tokio::fs;
 
 use tower_http::cors::{Any, CorsLayer};
-#[cfg(not(debug_assertions))]
 use tower_http::services::ServeDir;
 
 use crate::extension_assets::assets_handler;
@@ -68,16 +67,18 @@ pub fn spawn(app: &AppHandle) -> Result<u16, String> {
         .map_err(|e| format!("local_addr failed: {e}"))?
         .port();
 
-    #[cfg(not(debug_assertions))]
-    let dist_dir = match resolve_dist_dir(app) {
-        Ok(p) => Some(p),
-        Err(e) => {
-            eprintln!("http server: could not resolve dist dir: {e}");
-            None
+    // tauri dev lets Vite serve the frontend; any build (incl. --debug) bundles dist/ to serve.
+    let dist_dir = if tauri::is_dev() {
+        None
+    } else {
+        match resolve_dist_dir(app) {
+            Ok(p) => Some(p),
+            Err(e) => {
+                eprintln!("http server: could not resolve dist dir: {e}");
+                None
+            }
         }
     };
-    #[cfg(debug_assertions)]
-    let dist_dir: Option<PathBuf> = None;
 
     // Loopback origins for extension iframes, bound up front so each is reachable on demand.
     let mut pool_listeners = Vec::with_capacity(EXTENSION_PORT_POOL);
@@ -104,7 +105,6 @@ pub fn spawn(app: &AppHandle) -> Result<u16, String> {
     Ok(port)
 }
 
-#[cfg(not(debug_assertions))]
 fn resolve_dist_dir(app: &AppHandle) -> Result<PathBuf, String> {
     let resource_dir = app.path().resource_dir().map_err(|e| e.to_string())?;
     // tauri.conf.json maps "../dist" -> "dist", so the built frontend lands directly in Resources/dist
@@ -209,7 +209,6 @@ async fn run(
 
     let phone_share_router: Router = extension_router;
 
-    #[cfg(not(debug_assertions))]
     let phone_share_router = match dist_dir {
         Some(dir) => {
             eprintln!("http server: serving dist {}", dir.display());
@@ -217,12 +216,16 @@ async fn run(
         }
         None => phone_share_router,
     };
-    #[cfg(debug_assertions)]
-    let _ = dist_dir;
 
     let phone_share_router = phone_share_router.layer(middleware::from_fn_with_state(
         app.clone(),
         phone_share_guard,
+    ));
+
+    // iroh tunnel: a third ingress into the same phone-share surface, bound lazily on first share.
+    app.manage(crate::iroh_share::IrohShareState::new(
+        app.clone(),
+        phone_share_router.clone(),
     ));
 
     // Loopback-only routes: dev pairing, pipeline bridge, and provider test harness.
