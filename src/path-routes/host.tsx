@@ -64,14 +64,36 @@ function withDark(src: string, dark: boolean): string {
   return `${src}${sep}dark=${dark ? '1' : '0'}`;
 }
 
-function readPhoneBoot(): { token: string; entry: string; name: string } | null {
+// Permissions ride inside the signed session JWT, so tampering invalidates the token itself.
+function decodeTokenPermissions(token: string): ExtensionPermission[] {
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) return [];
+    const claims = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/'))) as {
+      permissions?: unknown;
+    };
+    if (!Array.isArray(claims.permissions)) return [];
+    return claims.permissions.filter(
+      (p): p is ExtensionPermission => typeof p === 'string'
+    );
+  } catch {
+    return [];
+  }
+}
+
+function readPhoneBoot(): {
+  token: string;
+  entry: string;
+  name: string;
+  permissions: ExtensionPermission[];
+} | null {
   if (typeof window === 'undefined') return null;
   const params = new URLSearchParams(window.location.search);
   const token = params.get('token');
   const entry = params.get('entry');
   const name = params.get('name') ?? '';
   if (!token || !entry) return null;
-  return { token, entry, name };
+  return { token, entry, name, permissions: decodeTokenPermissions(token) };
 }
 
 function PathHost() {
@@ -130,11 +152,12 @@ function PathHost() {
       // Cloud's https gateway is one origin: allow-same-origin keeps the iframe same-site so its
       // cookie-bound loads aren't cross-origin. LAN stays null-origin (no cookie) for isolation.
       const cloud = window.location.protocol === 'https:';
+      // Capture permissions need a secure context; only delegate them on the cloud transport.
       setBoot({
         src: withDark(src, darkRef.current),
         title: phone.name || extensionId,
         author: null,
-        allow: buildExtensionIframeAllow(undefined),
+        allow: buildExtensionIframeAllow(cloud ? phone.permissions : undefined),
         sandbox: cloud ? 'allow-scripts allow-same-origin' : 'allow-scripts'
       });
       return;

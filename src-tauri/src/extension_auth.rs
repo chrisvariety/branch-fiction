@@ -46,6 +46,9 @@ pub struct Claims {
     pub providers: Map<String, Value>,
     #[serde(default)]
     pub config: Value,
+    // Capture features (manifest-derived) the host may delegate to the iframe `allow`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub permissions: Vec<String>,
     pub iat: i64,
     pub exp: i64,
     pub jti: String,
@@ -86,6 +89,7 @@ impl ExtensionAuthState {
         book_id: Option<String>,
         providers: Map<String, Value>,
         config: Value,
+        permissions: Vec<String>,
         ttl_secs: i64,
     ) -> Result<String, String> {
         let now = chrono_now();
@@ -94,6 +98,7 @@ impl ExtensionAuthState {
             book_id,
             providers,
             config,
+            permissions,
             iat: now,
             exp: now + ttl_secs,
             jti: Uuid::new_v4().simple().to_string(),
@@ -189,10 +194,17 @@ pub async fn mint_extension_session_token(
     }
     prepare_extension_db(&app, &args.extension_id).await?;
 
-    let (providers, config) = build_session_grant(&app, &args.extension_id).await?;
+    let (providers, config, permissions) = build_session_grant(&app, &args.extension_id).await?;
 
     let ttl = args.ttl_secs.unwrap_or(DEFAULT_SESSION_TTL_SECS);
-    let token = auth.mint(&args.extension_id, args.book_id, providers, config, ttl)?;
+    let token = auth.mint(
+        &args.extension_id,
+        args.book_id,
+        providers,
+        config,
+        permissions,
+        ttl,
+    )?;
     let data_base_url = format!("http://127.0.0.1:{}/extension-data/{}", port.0, token);
     let proxy_base_url = format!("http://127.0.0.1:{}/extension-providers/{}", port.0, token);
     Ok(MintSessionResponse {
@@ -230,10 +242,30 @@ enum PendingArea {
     },
 }
 
+// Manifest permissions the host may delegate to the iframe `allow`; mirrors GATED_PERMISSIONS in the SDK.
+fn is_gated_permission(p: &str) -> bool {
+    matches!(p, "microphone" | "camera" | "display-capture")
+}
+
+fn parse_manifest_permissions(manifest_json: &str) -> Vec<String> {
+    serde_json::from_str::<Value>(manifest_json)
+        .ok()
+        .and_then(|m| {
+            m.get("permissions").and_then(Value::as_array).map(|arr| {
+                arr.iter()
+                    .filter_map(Value::as_str)
+                    .filter(|p| is_gated_permission(p))
+                    .map(str::to_string)
+                    .collect()
+            })
+        })
+        .unwrap_or_default()
+}
+
 async fn build_session_grant(
     app: &AppHandle,
     extension_id: &str,
-) -> Result<(Map<String, Value>, Value), String> {
+) -> Result<(Map<String, Value>, Value, Vec<String>), String> {
     let mut conn = open_main_db_ro(app).await?;
 
     let ext: Option<(i64, String, String)> =
@@ -249,6 +281,7 @@ async fn build_session_grant(
     }
     let config: Value =
         serde_json::from_str(&config_json).unwrap_or_else(|_| Value::Object(Map::new()));
+    let permissions = parse_manifest_permissions(&manifest_json);
 
     // `useSlot` areas reference the org text model; `options` areas read their binding.
     let mut pending: Vec<PendingArea> = Vec::new();
@@ -357,7 +390,7 @@ async fn build_session_grant(
         }
     }
 
-    Ok((providers, config))
+    Ok((providers, config, permissions))
 }
 
 #[cfg(test)]
@@ -381,6 +414,7 @@ mod tests {
                 Some("book-1".into()),
                 provider_keys(&["text", "image_generation_chat"]),
                 Value::Null,
+                vec!["microphone".into()],
                 3600,
             )
             .unwrap();
@@ -389,6 +423,17 @@ mod tests {
         assert_eq!(claims.book_id.as_deref(), Some("book-1"));
         assert!(claims.allows_provider("text"));
         assert!(!claims.allows_provider("segmentation"));
+        assert_eq!(claims.permissions, vec!["microphone".to_string()]);
+    }
+
+    #[test]
+    fn parse_manifest_permissions_keeps_only_gated() {
+        let json = r#"{"permissions":["microphone","geolocation","camera"]}"#;
+        assert_eq!(
+            parse_manifest_permissions(json),
+            vec!["microphone", "camera"]
+        );
+        assert!(parse_manifest_permissions("{}").is_empty());
     }
 
     #[test]
@@ -400,6 +445,7 @@ mod tests {
                 None,
                 provider_keys(&["text"]),
                 Value::Null,
+                Vec::new(),
                 3600,
             )
             .unwrap();
@@ -417,7 +463,14 @@ mod tests {
         let state_a = ExtensionAuthState::default();
         let state_b = ExtensionAuthState::default();
         let token = state_a
-            .mint("@local/cyoa", None, provider_keys(&[]), Value::Null, 3600)
+            .mint(
+                "@local/cyoa",
+                None,
+                provider_keys(&[]),
+                Value::Null,
+                Vec::new(),
+                3600,
+            )
             .unwrap();
         assert!(matches!(state_b.verify(&token), Err(AuthError::Invalid)));
     }

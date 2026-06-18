@@ -29,10 +29,12 @@ export function PhoneShareDialog({
   extensionId,
   bookId,
   extensionName,
-  entry
+  entry,
+  cloudOnly
 }: ShareProps & {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  cloudOnly: boolean;
 }) {
   const userQuery = useQuery({
     queryKey: ['user', DEFAULT_USER_ID],
@@ -48,7 +50,7 @@ export function PhoneShareDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Open “{extensionName}” on phone</DialogTitle>
-          {!externalId && (
+          {!externalId && !cloudOnly && (
             <DialogDescription>
               Scan with your phone’s camera. Phone must be on the same Wi-Fi. Link expires
               in about an hour.
@@ -56,7 +58,13 @@ export function PhoneShareDialog({
           )}
         </DialogHeader>
 
-        {externalId ? (
+        {cloudOnly ? (
+          externalId ? (
+            <CloudShare {...shared} externalId={externalId} active={open} />
+          ) : (
+            <CloudOnlyNotice extensionName={extensionName} />
+          )
+        ) : externalId ? (
           <Tabs value={tab} onValueChange={(value) => setTab(value as string)}>
             <TabsList className="mx-auto">
               <TabsTrigger value="local">Local network</TabsTrigger>
@@ -78,6 +86,18 @@ export function PhoneShareDialog({
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function CloudOnlyNotice({ extensionName }: { extensionName: string }) {
+  return (
+    <div className="flex min-h-80 flex-col items-center justify-center gap-2 px-6 text-center">
+      <p className="text-sm font-medium">Cloud Share required</p>
+      <p className="text-xs text-muted-foreground">
+        “{extensionName}” streams in real time, which only works over Cloud Share. That
+        needs an active subscription.
+      </p>
+    </div>
   );
 }
 
