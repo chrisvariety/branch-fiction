@@ -48,6 +48,7 @@ pub async fn start_task_handler(
     let port = app.state::<HttpPortState>().0;
     let providers_with_urls = inject_proxy_base_urls(
         claims.providers.clone(),
+        "http",
         &format!("127.0.0.1:{port}"),
         &token,
     );

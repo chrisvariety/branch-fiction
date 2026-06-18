@@ -10,7 +10,7 @@
     { "table": "worlds", "bookIdColumn": "book_id", "assetColumns": ["seed_image_url"] }
   ],
   "path": {
-    "phoneCompatible": false,
+    "phoneCompatible": "cloud",
     "entry": "dist/index.html",
     "worker": "dist/worker.js",
     "window": { "width": 1280, "height": 860 }

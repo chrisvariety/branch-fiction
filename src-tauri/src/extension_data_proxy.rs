@@ -366,7 +366,7 @@ pub async fn context_handler(
     headers: HeaderMap,
 ) -> Result<Json<ContextResponse>, (StatusCode, String)> {
     let claims = verify_path_token(&app, &token)?;
-    // Prefer X-Forwarded-Host (Vite proxy) so phone clients get LAN-IP proxyBaseURLs.
+    // Forwarded host+scheme so the proxyBaseURL origin matches the page (CSP rejects a scheme mismatch).
     let host = headers
         .get("x-forwarded-host")
         .and_then(|v| v.to_str().ok())
@@ -376,7 +376,11 @@ pub async fn context_handler(
                 .and_then(|v| v.to_str().ok())
         })
         .unwrap_or("127.0.0.1");
-    let providers = inject_proxy_base_urls(claims.providers, host, &token);
+    let scheme = headers
+        .get("x-forwarded-proto")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("http");
+    let providers = inject_proxy_base_urls(claims.providers, scheme, host, &token);
     Ok(Json(ContextResponse {
         extension_id: claims.sub,
         book_id: claims.book_id,
@@ -389,6 +393,7 @@ pub async fn context_handler(
 /// consumer should hit to forward through to the upstream provider.
 pub fn inject_proxy_base_urls(
     providers: Map<String, Value>,
+    scheme: &str,
     host: &str,
     token: &str,
 ) -> Map<String, Value> {
@@ -397,7 +402,7 @@ pub fn inject_proxy_base_urls(
         let mut entry = value;
         if let Some(obj) = entry.as_object_mut() {
             let encoded_key = urlencoding_simple(&key);
-            let proxy_url = format!("http://{host}/extension-providers/{token}/{encoded_key}");
+            let proxy_url = format!("{scheme}://{host}/extension-providers/{token}/{encoded_key}");
             obj.insert("proxyBaseURL".to_string(), Value::String(proxy_url));
         }
         out.insert(key, entry);

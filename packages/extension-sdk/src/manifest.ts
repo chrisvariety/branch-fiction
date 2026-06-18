@@ -113,8 +113,8 @@ export type ExtensionPath = {
   // Initial window sizing/launch options. Open-ended on purpose so future
   // launch hints (minSize, titleBarStyle, etc.) can be added here.
   window?: { width: number; height: number };
-  // Whether this path can be launched via the phone-share flow.
-  phoneCompatible?: boolean;
+  // Phone-share flow: true for any transport, 'cloud' to require the secure https one (WebRTC).
+  phoneCompatible?: boolean | 'cloud';
 };
 
 // Non-sensitive Permissions-Policy features always delegated to the extension iframe.
@@ -255,6 +255,15 @@ export function validateManifest(m: ExtensionManifestV1): void {
   if (m.path) {
     if (!m.path.entry) {
       throw new Error(`Extension ${m.id}: path.entry is required`);
+    }
+    if (
+      m.path.phoneCompatible !== undefined &&
+      typeof m.path.phoneCompatible !== 'boolean' &&
+      m.path.phoneCompatible !== 'cloud'
+    ) {
+      throw new Error(
+        `Extension ${m.id}: path.phoneCompatible must be a boolean or "cloud"`
+      );
     }
   }
 

@@ -127,5 +127,6 @@ style: fmt
 - **Never** use `--no-verify`. If a pre-commit hook fails, surface the error and fix the cause.
 - **Never** use `--amend` or force-push unless explicitly asked.
 - **Never** commit a group the user hasn't approved, and never silently fold in changes they excluded.
+- **Never** add a `Co-Authored-By` trailer unless you actually co-authored the code in this session. This skill only groups and commits pre-existing working-tree changes, so by default it did **not** author them.
 - **Always** show the plan before the first commit.
 - The Bash tool's shell may be `fish` — avoid heredocs. Use `git commit -m "..."`, or `git commit -F /tmp/msg.txt` for a multi-line message.

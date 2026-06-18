@@ -71,6 +71,7 @@ type PhoneTarget = {
   extensionId: string;
   extensionName: string;
   entry: string;
+  cloudOnly: boolean;
 };
 
 export function BookPage() {
@@ -100,7 +101,12 @@ export function BookPage() {
     if (intent === 'phone') {
       const entry = extension.manifest.path?.entry;
       if (!entry) return;
-      setPhoneTarget({ extensionId: extension.id, extensionName: extension.name, entry });
+      setPhoneTarget({
+        extensionId: extension.id,
+        extensionName: extension.name,
+        entry,
+        cloudOnly: extension.manifest.path?.phoneCompatible === 'cloud'
+      });
       return;
     }
     void openExtensionPath({ extensionId: extension.id, bookId: id });
@@ -235,6 +241,7 @@ export function BookPage() {
           extensionId={phoneTarget.extensionId}
           extensionName={phoneTarget.extensionName}
           entry={phoneTarget.entry}
+          cloudOnly={phoneTarget.cloudOnly}
           bookId={id}
         />
       )}
