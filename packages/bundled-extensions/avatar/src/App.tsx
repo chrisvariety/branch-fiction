@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
-
 import type { SessionCredentials } from '@runwayml/avatars-react';
+import { useEffect, useState } from 'react';
 
 import type { PickableCharacter } from '@/iframe/db/entities';
 import type { AvatarScenario } from '@/lib/db/types';

@@ -2,4 +2,4 @@
 
 import '@branch-fiction/extension-sdk/worker/env-soft';
 
-export { prepareAvatar } from './worker/prepare-avatar';
+export { prepareAvatar, generateAvatarScenarios } from './worker/prepare-avatar';

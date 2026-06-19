@@ -10,13 +10,22 @@ import {
   buildAssetUrl,
   parseAssetUrl
 } from '@branch-fiction/extension-sdk/media/transform-url';
-import { completeOrThrow, getAssistantText } from '@branch-fiction/extension-sdk/pi-ai';
+import {
+  completeOrThrow,
+  getAssistantText,
+  watchAgent
+} from '@branch-fiction/extension-sdk/pi-ai';
 import {
   RecoverableError,
   UnrecoverableError
 } from '@branch-fiction/extension-sdk/worker/error-types';
+import { Agent } from '@earendil-works/pi-agent-core';
 import { v7 as uuidv7 } from 'uuid';
 
+import {
+  createLookupRelatedEntityAppearanceTool,
+  getRelatedEntitiesFromArcs
+} from '@/lib/lit/related-entities';
 import characterPersonality from '@/lib/prompts/character-personality';
 import characterPortrait from '@/lib/prompts/character-portrait';
 import characterScenarios from '@/lib/prompts/character-scenarios';
@@ -40,8 +49,9 @@ import { getProvider } from '@/worker/providers';
 const PERSONALITY_MAX_CHARS = 10_000;
 const SCENARIO_PERSONALITY_MAX_CHARS = 4_000;
 const SCENARIO_START_SCRIPT_MAX_CHARS = 1_500;
+const MIN_ARC_PERCENTAGE = 5;
 
-export interface PrepareAvatarPayload {
+interface PrepareAvatarPayload {
   characterId: string;
   artStyle: string;
 }
@@ -58,6 +68,22 @@ export async function prepareAvatar(
 ): Promise<PrepareAvatarResult> {
   await ensureDbReady();
   return runPrepareAvatar({ executionId: uuidv7(), payload });
+}
+
+interface GenerateScenariosPayload {
+  characterId: string;
+}
+
+export interface GenerateScenariosResult {
+  characterId: string;
+  count: number;
+}
+
+export async function generateAvatarScenarios(
+  payload: GenerateScenariosPayload
+): Promise<GenerateScenariosResult> {
+  await ensureDbReady();
+  return runGenerateScenarios({ executionId: uuidv7(), payload });
 }
 
 interface ArcRow {
@@ -87,20 +113,9 @@ const runPrepareAvatar = createWorkflowFunction<
       throw new UnrecoverableError('Selected character not found');
     }
 
-    const [
-      characterArcs,
-      appearanceArcs,
-      isolatedAppearanceArcs,
-      relationshipArcs,
-      scenes
-    ] = await Promise.all([
+    const [characterArcs, appearanceArcs, relationshipArcs, scenes] = await Promise.all([
       getBookArcsByBookIdAndTypesAndEntityIds(bookId, ['CHARACTER'], [characterId]),
       getBookArcsByBookIdAndTypesAndEntityIds(bookId, ['APPEARANCE'], [characterId]),
-      getBookArcsByBookIdAndTypesAndEntityIds(
-        bookId,
-        ['APPEARANCE_ISOLATED'],
-        [characterId]
-      ),
       getBookArcsByBookIdAndTypesAndEntityIds(bookId, ['RELATIONSHIP'], [characterId]),
       getCharacterScenes(bookId, character.name)
     ]);
@@ -111,11 +126,16 @@ const runPrepareAvatar = createWorkflowFunction<
       );
     }
 
-    const portraitArcs = pickPortraitArcs(
-      appearanceArcs,
-      isolatedAppearanceArcs,
-      character.description
+    const arcsWithSpan = getArcsWithPercentageChapterSpan(appearanceArcs);
+    if (arcsWithSpan.length === 0) {
+      throw new UnrecoverableError(
+        `No appearance arcs found for ${character.name} — cannot draw a portrait.`
+      );
+    }
+    const significantArcs = arcsWithSpan.filter(
+      (arc) => arc.percentageChapterSpan >= MIN_ARC_PERCENTAGE
     );
+    const portraitArcs = significantArcs.length > 0 ? significantArcs : arcsWithSpan;
 
     ctx.log
       .withMetadata({
@@ -130,6 +150,7 @@ const runPrepareAvatar = createWorkflowFunction<
     const [personality, portrait, scenarios] = await Promise.all([
       generatePersonality(character.name, characterArcs, ctx),
       generatePortrait(
+        bookId,
         character.name,
         character.label,
         portraitArcs,
@@ -165,16 +186,80 @@ const runPrepareAvatar = createWorkflowFunction<
   }
 );
 
-// Prefer cumulative appearance arcs, then isolated, then the bare entity description.
-function pickPortraitArcs(
-  appearanceArcs: ArcRow[],
-  isolatedArcs: ArcRow[],
-  fallback: string | null
-): ArcRow[] {
-  if (appearanceArcs.length > 0) return appearanceArcs;
-  if (isolatedArcs.length > 0) return isolatedArcs;
-  if (fallback) return [{ friendlyId: 'description', title: null, content: fallback }];
-  return [];
+const runGenerateScenarios = createWorkflowFunction<
+  GenerateScenariosPayload,
+  GenerateScenariosPayload,
+  GenerateScenariosResult
+>(
+  {
+    name: 'Generate avatar scenarios'
+  },
+  async ({ characterId }, ctx): Promise<GenerateScenariosResult> => {
+    if (host.bookId === null) {
+      throw new UnrecoverableError(
+        'generateAvatarScenarios requires a bookId — launch from a book'
+      );
+    }
+    const bookId = host.bookId;
+
+    const character = await getBookEntityById(characterId);
+    if (!character || character.type !== 'CHARACTER') {
+      throw new UnrecoverableError('Selected character not found');
+    }
+
+    const [characterArcs, relationshipArcs, scenes] = await Promise.all([
+      getBookArcsByBookIdAndTypesAndEntityIds(bookId, ['CHARACTER'], [characterId]),
+      getBookArcsByBookIdAndTypesAndEntityIds(bookId, ['RELATIONSHIP'], [characterId]),
+      getCharacterScenes(bookId, character.name)
+    ]);
+
+    if (characterArcs.length === 0) {
+      throw new UnrecoverableError(
+        `No CHARACTER arcs found for ${character.name} — cannot build scenarios.`
+      );
+    }
+
+    ctx.log
+      .withMetadata({
+        character: character.name,
+        characterArcs: characterArcs.length,
+        relationshipArcs: relationshipArcs.length,
+        scenes: scenes.length
+      })
+      .info('Generating scenarios');
+
+    const scenarios = await generateScenarios(
+      character.name,
+      characterArcs,
+      relationshipArcs,
+      scenes,
+      ctx
+    );
+
+    await replaceScenarios(bookId, characterId, scenarios);
+    ctx.log.withMetadata({ scenarios: scenarios.length }).info('Scenarios saved');
+
+    return { characterId, count: scenarios.length };
+  }
+);
+
+// Returns arcs with their percentage chapter span (relative to total chapters covered).
+function getArcsWithPercentageChapterSpan<
+  T extends { startChapterIdx?: number | null; endChapterIdx?: number | null }
+>(arcs: T[]): Array<T & { percentageChapterSpan: number }> {
+  if (arcs.length === 0) return [];
+
+  const maxEndChapter = Math.max(...arcs.map((a) => a.endChapterIdx ?? 0));
+  const totalChapters = maxEndChapter + 1;
+
+  return arcs.map((arc) => {
+    const startIdx = arc.startChapterIdx ?? 0;
+    const endIdx = arc.endChapterIdx ?? 0;
+    const chapterSpan = Math.abs(endIdx - startIdx) + 1;
+    const percentageChapterSpan =
+      totalChapters > 0 ? (chapterSpan / totalChapters) * 100 : 0;
+    return { ...arc, percentageChapterSpan };
+  });
 }
 
 async function generatePersonality(
@@ -211,6 +296,7 @@ async function generatePersonality(
 }
 
 async function generatePortrait(
+  bookId: string,
   name: string,
   label: string | null,
   arcs: ArcRow[],
@@ -224,23 +310,63 @@ async function generatePortrait(
     );
   }
 
+  const baseDescription = arcs[0]?.content ?? '';
+  const relatedEntitiesResult = await getRelatedEntitiesFromArcs({
+    bookId,
+    bookEntityIds: [characterId],
+    searchTextForMentions: baseDescription
+  });
+  const relatedEntities = relatedEntitiesResult.entities.filter(
+    (e) => e.type !== 'CHARACTER' && e.type !== 'PLACE'
+  );
+  const hasRelatedEntities = relatedEntities.length > 0;
+
+  const { model, apiKey, reasoning } = ctx.getPiModel('text');
+  const agent = new Agent({
+    sessionId: uuidv7(),
+    initialState: {
+      model,
+      thinkingLevel: reasoning,
+      tools: hasRelatedEntities
+        ? [
+            createLookupRelatedEntityAppearanceTool(
+              bookId,
+              relatedEntitiesResult.contextEntityIds,
+              `visual appearance as visible on the head, shoulders, and neck while clothed, in a few concise sentences. Ignore or explicitly note as not visible any traits below the shoulders/neck (e.g., arm tattoos, belt accessories, leg armor). Prioritize describing how this entity appears on this specific character: ${name}. If the data includes appearance details for them, focus on those. Otherwise, write a generalized description of the entity's common form, noting any variation in how it manifests across characters.`,
+              ctx
+            )
+          ]
+        : []
+    },
+    getApiKey: () => apiKey
+  });
+
+  const watcher = watchAgent('generateCharacterPortrait', agent, ctx, 'portrait');
+
   const promptText = characterPortrait.render({
     character: {
       name,
       label: label ?? undefined,
       arcs: arcs.map((a) => ({ friendlyId: a.friendlyId, content: a.content }))
-    }
+    },
+    relatedEntities: hasRelatedEntities ? relatedEntities : undefined
   });
 
-  const { model, apiKey, reasoning } = ctx.getPiModel('text');
-  const message = await completeOrThrow(
-    model,
-    { messages: [{ role: 'user', content: promptText, timestamp: Date.now() }] },
-    { apiKey, reasoning, sessionId: uuidv7() }
-  );
-  ctx.trackUsage(message);
+  try {
+    await agent.prompt(promptText);
+  } catch (e) {
+    if (e instanceof Error && e.name === 'AbortError') {
+      ctx.log.warn('Portrait description generation aborted');
+    } else {
+      throw e;
+    }
+  }
 
-  const ast = parse(getAssistantText(message));
+  if (!watcher.xml) {
+    throw new RecoverableError(`Failed to generate portrait description for ${name}`);
+  }
+
+  const ast = parse(watcher.xml);
   const portraitEl = querySelector(ast, 'portrait');
   const description = portraitEl
     ? getText(querySelector(portraitEl, 'description')).trim()
@@ -263,7 +389,7 @@ async function generatePortrait(
     '',
     'Requirements:',
     '- Head and shoulders through upper chest, facing the camera directly, looking at the viewer',
-    '- Calm, natural expression with eyes open and mouth closed',
+    '- Calm, natural expression with eyes open and, if the character has a mouth, lips parted slightly',
     `- Rendered in a ${resolveArtStyle(artStyle)}`,
     '- Even, flattering lighting on the face',
     '- Plain, solid neutral background with no props, scenery, or other people',

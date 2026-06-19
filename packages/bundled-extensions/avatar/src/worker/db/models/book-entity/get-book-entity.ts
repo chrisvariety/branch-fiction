@@ -23,3 +23,28 @@ export async function getBookEntitiesByIds(ids: BookEntity['id'][], trx?: Transa
   const byId = new Map(entities.map((e) => [e.id, e]));
   return ids.flatMap((id) => byId.get(id) ?? []);
 }
+
+export async function getBookEntitiesByBookId(
+  bookId: BookEntity['bookId'],
+  trx?: Transaction
+) {
+  return (trx || getDb())
+    .selectFrom('bookEntities')
+    .selectAll()
+    .where('bookId', '=', bookId)
+    .orderBy('name', 'asc')
+    .execute();
+}
+
+export async function getBookEntityByBookIdAndFriendlyId(
+  bookId: BookEntity['bookId'],
+  friendlyId: BookEntity['friendlyId'],
+  trx?: Transaction
+) {
+  return (trx || getDb())
+    .selectFrom('bookEntities')
+    .selectAll()
+    .where('bookId', '=', bookId)
+    .where('friendlyId', '=', friendlyId)
+    .executeTakeFirst();
+}

@@ -15,6 +15,7 @@ import {
   type ScenarioSession
 } from '@/lib/runway';
 import { scenarioModeInfo } from '@/lib/scenarios';
+import type { GenerateScenariosResult } from '@/worker/prepare-avatar';
 
 function cardClasses(selected: boolean) {
   return `flex flex-col gap-1.5 border bg-card p-3 text-left transition-colors ${
@@ -47,6 +48,7 @@ export function SelectScenario({
   const [personalityDraft, setPersonalityDraft] = useState('');
   const [showPersonality, setShowPersonality] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<{ rejected: boolean; message: string } | null>(null);
 
   const docRef = useRef<{ id: string | null; hash: string | null }>({
@@ -75,6 +77,26 @@ export function SelectScenario({
       hash: selected.runwayDocumentHash
     };
   }, [selected]);
+
+  async function generate() {
+    setGenerating(true);
+    setError(null);
+    try {
+      await window.extensionSDK.worker.spawn<GenerateScenariosResult>(
+        'generateAvatarScenarios',
+        { characterId: character.id },
+        { singletonKey: `generateAvatarScenarios:${character.id}` }
+      );
+      await scenarios.refetch();
+    } catch (e) {
+      setError({
+        rejected: false,
+        message: e instanceof Error ? e.message : String(e)
+      });
+    } finally {
+      setGenerating(false);
+    }
+  }
 
   async function start() {
     setStarting(true);
@@ -145,17 +167,17 @@ export function SelectScenario({
       ) : rows.length === 0 ? (
         <div className="flex flex-col items-center gap-3 text-center">
           <p className="max-w-sm text-xs text-muted-foreground">
-            No openings have been generated for this character yet. You can still start a
-            call with the avatar’s default personality.
+            No openings have been generated for this character yet. Generate a set of
+            conversation openings grounded in the book’s arcs and scenes.
           </p>
           {error && <p className="max-w-sm text-xs text-destructive">{error.message}</p>}
           <button
             type="button"
-            disabled={starting}
-            onClick={() => void start()}
+            disabled={generating}
+            onClick={() => void generate()}
             className="bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
-            {starting ? 'Starting…' : 'Start call'}
+            {generating ? 'Generating…' : 'Generate openings'}
           </button>
         </div>
       ) : (
