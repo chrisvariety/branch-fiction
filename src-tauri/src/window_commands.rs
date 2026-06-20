@@ -18,6 +18,7 @@ fn theme_background(dark: bool) -> Color {
 }
 
 /// Returns a short LAN URL for phone-share QR; params are held in-memory, not baked into the QR.
+#[allow(clippy::too_many_arguments)]
 #[tauri::command(rename_all = "camelCase")]
 pub fn get_path_phone_url(
     http_port: State<'_, HttpPortState>,
@@ -27,6 +28,7 @@ pub fn get_path_phone_url(
     token: String,
     entry: String,
     extension_name: String,
+    theme: String,
 ) -> Result<String, String> {
     if extension_id.is_empty() {
         return Err("extensionId is required".to_string());
@@ -54,6 +56,7 @@ pub fn get_path_phone_url(
             token,
             entry,
             extension_name,
+            theme,
         },
         LOCAL_SLUG_WORDS,
     );
@@ -73,6 +76,7 @@ pub async fn get_cloud_phone_url(
     token: String,
     entry: String,
     extension_name: String,
+    theme: String,
 ) -> Result<String, String> {
     if external_id.is_empty() {
         return Err("externalId is required".to_string());
@@ -115,6 +119,7 @@ pub async fn get_cloud_phone_url(
             token,
             entry,
             extension_name,
+            theme,
         },
         CLOUD_SLUG_WORDS,
     );

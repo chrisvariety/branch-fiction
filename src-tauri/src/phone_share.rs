@@ -32,6 +32,8 @@ pub struct PhoneShareEntry {
     pub token: String,
     pub entry: String,
     pub extension_name: String,
+    // Sharer's appearance preference: "light" | "dark" | "system".
+    pub theme: String,
 }
 
 #[derive(Default)]
@@ -114,9 +116,12 @@ pub fn build_path_url(entry: &PhoneShareEntry) -> String {
     let token = encode_route_segment(&entry.token);
     let entry_path = encode_route_segment(&entry.entry);
     let name = encode_route_segment(&entry.extension_name);
+    let theme = encode_route_segment(&entry.theme);
     let extension = encode_route_segment(&entry.extension_id);
     let book = encode_route_segment(&entry.book_id);
-    format!("/path.html?token={token}&entry={entry_path}&name={name}#/{extension}?bookId={book}")
+    format!(
+        "/path.html?token={token}&entry={entry_path}&name={name}&theme={theme}#/{extension}?bookId={book}"
+    )
 }
 
 pub async fn phone_share_redirect_handler(
@@ -148,6 +153,7 @@ mod tests {
             token: "jwt".into(),
             entry: "dist/index.html".into(),
             extension_name: "Extension".into(),
+            theme: "system".into(),
         }
     }
 
