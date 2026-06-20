@@ -71,16 +71,16 @@ export function AvatarView({
   );
 
   return (
-    <div className="flex h-screen flex-col bg-neutral-950 p-3 pt-5">
-      <div className="relative flex-1 overflow-hidden rounded-2xl bg-black">
+    <div className="flex h-screen flex-col bg-background p-3 pt-5">
+      <div className="relative flex-1 overflow-hidden rounded-2xl bg-card">
         {error ? (
           <div className="grid h-full place-items-center p-8 text-center">
             <div className="flex max-w-sm flex-col gap-3">
-              <p className="text-sm text-red-400">{error}</p>
+              <p className="text-sm text-destructive">{error}</p>
               <button
                 type="button"
                 onClick={onExit}
-                className="rounded-full border border-white/30 px-4 py-1.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/10"
+                className="rounded-full border border-border px-4 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
               >
                 Back to characters
               </button>
@@ -119,19 +119,19 @@ function CallControls() {
         type="button"
         aria-label={isMicrophoneEnabled ? 'Mute microphone' : 'Unmute microphone'}
         onClick={() => void localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled)}
-        className="grid h-11 w-11 place-items-center rounded-full bg-black/40 text-white/90 backdrop-blur-sm transition-colors hover:bg-black/60"
+        className="grid h-11 w-11 place-items-center rounded-full border border-border bg-background/70 text-foreground backdrop-blur-sm transition-colors hover:bg-background"
       >
         {isMicrophoneEnabled ? (
           <IconMicrophone size={20} />
         ) : (
-          <IconMicrophoneOff size={20} className="text-red-400" />
+          <IconMicrophoneOff size={20} className="text-destructive" />
         )}
       </button>
       <button
         type="button"
         aria-label="End call"
         onClick={end}
-        className="grid h-11 w-11 place-items-center rounded-full bg-red-500/80 text-white backdrop-blur-sm transition-colors hover:bg-red-500"
+        className="grid h-11 w-11 place-items-center rounded-full bg-destructive text-white backdrop-blur-sm transition-colors hover:bg-destructive/90"
       >
         <IconPhoneOff size={20} />
       </button>
