@@ -13,6 +13,9 @@ import type { PrepareWorldResult } from '@/worker/prepare-world';
 import { HeliosControls } from './controls/HeliosControls';
 import { LingbotControls } from './controls/LingbotControls';
 
+// A long silence after the stream starts means delivery is blocked (often a VPN or Private Relay).
+const STALL_TIMEOUT_MS = 10000;
+
 export function WorldView({
   world,
   onExit
@@ -72,6 +75,7 @@ function WorldStage({
   const [terminated, setTerminated] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
   const [playing, setPlaying] = useState(false);
+  const [stalled, setStalled] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState(world.prompt);
 
   const conditionedRef = useRef(false);
@@ -84,6 +88,12 @@ function WorldStage({
     const video = stageRef.current?.querySelector('video');
     if (!video) return;
     video.muted = true;
+    // iOS gates muted autoplay on the attribute, not the property, unlike desktop.
+    video.setAttribute('muted', '');
+    // Without playsinline, WKWebView forces fullscreen and pause-on-dismiss resets us.
+    video.playsInline = true;
+    video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', '');
     try {
       await video.play();
       setPlaying(true);
@@ -174,6 +184,16 @@ function WorldStage({
     return () => clearInterval(id);
   }, [started, playing, tryPlay]);
 
+  // Flag a stall when the stream has started but no frame plays within the grace window.
+  useEffect(() => {
+    if (!started || playing) {
+      setStalled(false);
+      return;
+    }
+    const id = setTimeout(() => setStalled(true), STALL_TIMEOUT_MS);
+    return () => clearTimeout(id);
+  }, [started, playing]);
+
   return (
     <div className="flex h-screen items-center justify-center bg-neutral-950 p-3">
       <div
@@ -219,6 +239,30 @@ function WorldStage({
               </div>
             ) : error ? (
               <span className="text-sm text-red-400">{error}</span>
+            ) : stalled ? (
+              <div className="flex max-w-sm flex-col items-center gap-3">
+                <span className="text-sm font-medium text-white/90 drop-shadow">
+                  Your world isn’t loading
+                </span>
+                <span className="text-xs text-white/70 drop-shadow">
+                  A VPN or iCloud Private Relay can block the video stream. Try turning
+                  those off, then reconnect.
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    className="rounded-full bg-white px-4 py-1.5 text-sm font-medium text-black transition-colors hover:bg-white/90"
+                    onClick={onReconnect}
+                  >
+                    Reconnect
+                  </button>
+                  <button
+                    className="rounded-full border border-white/30 px-4 py-1.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/10"
+                    onClick={onExit}
+                  >
+                    Exit
+                  </button>
+                </div>
+              </div>
             ) : started ? (
               <button
                 className="text-sm font-medium text-white drop-shadow"
