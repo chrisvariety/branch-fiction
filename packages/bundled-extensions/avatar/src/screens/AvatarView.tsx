@@ -1,9 +1,11 @@
+import { useLocalParticipant } from '@livekit/components-react';
 import {
   AvatarCall,
   AvatarVideo,
-  ControlBar,
-  type SessionCredentials
+  type SessionCredentials,
+  useAvatarSession
 } from '@runwayml/avatars-react';
+import { IconMicrophone, IconMicrophoneOff, IconPhoneOff } from '@tabler/icons-react';
 import { useCallback, useRef, useState } from 'react';
 
 import { setScenarioDocument } from '@/iframe/db/models/avatar-scenario/update-scenario';
@@ -93,13 +95,46 @@ export function AvatarView({
             video={false}
             onEnd={onExit}
             onError={(e) => setError(e.message)}
-            className="h-full w-full"
+            className="h-full w-full justify-center"
           >
-            <AvatarVideo />
-            <ControlBar showCamera={false} />
+            <AvatarVideo className="aspect-video flex-none sm:aspect-auto sm:flex-1" />
+            <CallControls />
           </AvatarCall>
         )}
       </div>
+    </div>
+  );
+}
+
+// Runway's ControlBar enumerates video inputs with permission, prompting for camera on iOS.
+function CallControls() {
+  const { state, end } = useAvatarSession();
+  const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
+
+  if (state !== 'active') return null;
+
+  return (
+    <div className="relative z-10 flex shrink-0 justify-center gap-3 py-4 sm:absolute sm:inset-x-0 sm:bottom-4 sm:py-0">
+      <button
+        type="button"
+        aria-label={isMicrophoneEnabled ? 'Mute microphone' : 'Unmute microphone'}
+        onClick={() => void localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled)}
+        className="grid h-11 w-11 place-items-center rounded-full bg-black/40 text-white/90 backdrop-blur-sm transition-colors hover:bg-black/60"
+      >
+        {isMicrophoneEnabled ? (
+          <IconMicrophone size={20} />
+        ) : (
+          <IconMicrophoneOff size={20} className="text-red-400" />
+        )}
+      </button>
+      <button
+        type="button"
+        aria-label="End call"
+        onClick={end}
+        className="grid h-11 w-11 place-items-center rounded-full bg-red-500/80 text-white backdrop-blur-sm transition-colors hover:bg-red-500"
+      >
+        <IconPhoneOff size={20} />
+      </button>
     </div>
   );
 }

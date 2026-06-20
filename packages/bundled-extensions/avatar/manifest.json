@@ -15,7 +15,7 @@
     }
   ],
   "path": {
-    "phoneCompatible": false,
+    "phoneCompatible": "cloud",
     "entry": "dist/index.html",
     "worker": "dist/worker.js",
     "window": { "width": 1180, "height": 860 }
