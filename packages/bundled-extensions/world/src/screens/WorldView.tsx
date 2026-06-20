@@ -195,7 +195,7 @@ function WorldStage({
   }, [started, playing]);
 
   return (
-    <div className="flex h-screen items-center justify-center bg-neutral-950 p-3">
+    <div className="flex h-screen items-center justify-center bg-background p-3">
       <div className="relative flex w-full max-w-[calc((100vh-1.5rem)*16/9)] flex-col">
         <div
           ref={stageRef}

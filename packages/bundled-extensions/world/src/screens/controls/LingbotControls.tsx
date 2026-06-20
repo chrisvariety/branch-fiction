@@ -163,7 +163,7 @@ function Cross({
           />
         ))}
       </div>
-      <span className="mt-1 text-[10px] tracking-wide text-white/60 uppercase drop-shadow">
+      <span className="mt-1 text-[10px] tracking-wide text-muted-foreground uppercase drop-shadow">
         {caption}
       </span>
     </div>
@@ -195,8 +195,8 @@ function Cap({
       onPointerCancel={() => onRelease(k)}
       className={`grid h-9 w-9 cursor-pointer touch-none place-items-center rounded-md border text-sm font-medium backdrop-blur-sm transition-colors select-none ${
         on
-          ? 'border-white bg-white/90 text-black'
-          : 'border-white/30 bg-black/40 text-white/90'
+          ? 'border-primary bg-primary text-primary-foreground'
+          : 'border-border bg-card/70 text-foreground'
       }`}
     >
       {label}
