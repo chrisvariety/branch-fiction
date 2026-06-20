@@ -196,87 +196,89 @@ function WorldStage({
 
   return (
     <div className="flex h-screen items-center justify-center bg-neutral-950 p-3">
-      <div
-        ref={stageRef}
-        className="relative aspect-video max-h-full w-full max-w-[calc((100vh-1.5rem)*16/9)] overflow-hidden rounded-2xl bg-black"
-      >
-        <ReactorView className="h-full w-full" videoObjectFit="cover" />
-        <button
-          aria-label="Exit"
-          className="absolute top-3 right-3 z-10 grid h-8 w-8 place-items-center rounded-full border border-white/20 bg-black/40 text-lg leading-none text-white/80 backdrop-blur-sm transition-colors hover:bg-black/60 hover:text-white"
-          onClick={onExit}
+      <div className="relative flex w-full max-w-[calc((100vh-1.5rem)*16/9)] flex-col">
+        <div
+          ref={stageRef}
+          className="relative aspect-video max-h-full w-full flex-none overflow-hidden rounded-2xl bg-black"
         >
-          ✕
-        </button>
-        <img
-          src={seedSrc}
-          alt=""
-          aria-hidden
-          className={`pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover blur-2xl transition-opacity duration-1000 ${
-            playing ? 'opacity-0' : 'opacity-100'
-          }`}
-        />
+          <ReactorView className="h-full w-full" videoObjectFit="cover" />
+          <button
+            aria-label="Exit"
+            className="absolute top-3 right-3 z-10 grid h-8 w-8 place-items-center rounded-full border border-white/20 bg-black/40 text-lg leading-none text-white/80 backdrop-blur-sm transition-colors hover:bg-black/60 hover:text-white"
+            onClick={onExit}
+          >
+            ✕
+          </button>
+          <img
+            src={seedSrc}
+            alt=""
+            aria-hidden
+            className={`pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover blur-2xl transition-opacity duration-1000 ${
+              playing ? 'opacity-0' : 'opacity-100'
+            }`}
+          />
 
-        {!playing && (
-          <div className="absolute inset-0 grid place-items-center px-8 text-center">
-            {terminated ? (
-              <div className="flex max-w-sm flex-col items-center gap-3">
-                <span className="text-sm text-white/90 drop-shadow">{terminated}</span>
-                <div className="flex gap-2">
-                  <button
-                    className="rounded-full bg-white px-4 py-1.5 text-sm font-medium text-black transition-colors hover:bg-white/90"
-                    onClick={onReconnect}
-                  >
-                    Reconnect
-                  </button>
-                  <button
-                    className="rounded-full border border-white/30 px-4 py-1.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/10"
-                    onClick={onExit}
-                  >
-                    Exit
-                  </button>
+          {!playing && (
+            <div className="absolute inset-0 grid place-items-center px-8 text-center">
+              {terminated ? (
+                <div className="flex max-w-sm flex-col items-center gap-3">
+                  <span className="text-sm text-white/90 drop-shadow">{terminated}</span>
+                  <div className="flex gap-2">
+                    <button
+                      className="rounded-full bg-white px-4 py-1.5 text-sm font-medium text-black transition-colors hover:bg-white/90"
+                      onClick={onReconnect}
+                    >
+                      Reconnect
+                    </button>
+                    <button
+                      className="rounded-full border border-white/30 px-4 py-1.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/10"
+                      onClick={onExit}
+                    >
+                      Exit
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ) : error ? (
-              <span className="text-sm text-red-400">{error}</span>
-            ) : stalled ? (
-              <div className="flex max-w-sm flex-col items-center gap-3">
-                <span className="text-sm font-medium text-white/90 drop-shadow">
-                  Your world isn’t loading
-                </span>
-                <span className="text-xs text-white/70 drop-shadow">
-                  A VPN or iCloud Private Relay can block the video stream. Try turning
-                  those off, then reconnect.
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    className="rounded-full bg-white px-4 py-1.5 text-sm font-medium text-black transition-colors hover:bg-white/90"
-                    onClick={onReconnect}
-                  >
-                    Reconnect
-                  </button>
-                  <button
-                    className="rounded-full border border-white/30 px-4 py-1.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/10"
-                    onClick={onExit}
-                  >
-                    Exit
-                  </button>
+              ) : error ? (
+                <span className="text-sm text-red-400">{error}</span>
+              ) : stalled ? (
+                <div className="flex max-w-sm flex-col items-center gap-3">
+                  <span className="text-sm font-medium text-white/90 drop-shadow">
+                    Your world isn’t loading
+                  </span>
+                  <span className="text-xs text-white/70 drop-shadow">
+                    A VPN or iCloud Private Relay can block the video stream. Try turning
+                    those off, then reconnect.
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      className="rounded-full bg-white px-4 py-1.5 text-sm font-medium text-black transition-colors hover:bg-white/90"
+                      onClick={onReconnect}
+                    >
+                      Reconnect
+                    </button>
+                    <button
+                      className="rounded-full border border-white/30 px-4 py-1.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/10"
+                      onClick={onExit}
+                    >
+                      Exit
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ) : started ? (
-              <button
-                className="text-sm font-medium text-white drop-shadow"
-                onClick={() => void tryPlay()}
-              >
-                ▶ Tap to enter your world
-              </button>
-            ) : (
-              <span className="text-sm text-white/80 drop-shadow">
-                {statusMessage(status, phase)}
-              </span>
-            )}
-          </div>
-        )}
+              ) : started ? (
+                <button
+                  className="text-sm font-medium text-white drop-shadow"
+                  onClick={() => void tryPlay()}
+                >
+                  ▶ Tap to enter your world
+                </button>
+              ) : (
+                <span className="text-sm text-white/80 drop-shadow">
+                  {statusMessage(status, phase)}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
 
         {playing &&
           (world.model === 'helios' ? (

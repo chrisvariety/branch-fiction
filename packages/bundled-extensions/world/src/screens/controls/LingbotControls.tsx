@@ -92,8 +92,8 @@ export function LingbotControls({ sendCommand }: { sendCommand: SendCommand }) {
   }, [sendCommand]);
 
   return (
-    <>
-      <div className="absolute bottom-4 left-4">
+    <div className="flex justify-between gap-4 px-4 pt-3 sm:contents">
+      <div className="sm:absolute sm:bottom-4 sm:left-4">
         <Cross
           top={{ k: 'w', label: 'W' }}
           row={[
@@ -107,7 +107,7 @@ export function LingbotControls({ sendCommand }: { sendCommand: SendCommand }) {
           onRelease={release}
         />
       </div>
-      <div className="absolute right-4 bottom-4">
+      <div className="sm:absolute sm:right-4 sm:bottom-4">
         <Cross
           top={{ k: 'arrowup', label: '↑' }}
           row={[
@@ -121,7 +121,7 @@ export function LingbotControls({ sendCommand }: { sendCommand: SendCommand }) {
           onRelease={release}
         />
       </div>
-    </>
+    </div>
   );
 }
 

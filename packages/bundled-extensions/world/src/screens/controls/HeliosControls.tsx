@@ -61,7 +61,7 @@ export function HeliosControls({
   }
 
   return (
-    <div className="absolute inset-x-0 bottom-4 flex justify-center px-4">
+    <div className="flex justify-center px-4 pt-3 sm:absolute sm:inset-x-0 sm:bottom-4 sm:pt-0">
       <div className="w-full max-w-2xl">
         {(error || busy) && (
           <div className="mb-1 text-center text-xs drop-shadow">
