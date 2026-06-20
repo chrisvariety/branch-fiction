@@ -1,0 +1,48 @@
+{
+  "name": "@local/avatar-extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build && tsdown",
+    "dev": "branch-fiction-extension-dev",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "@earendil-works/pi-agent-core": "catalog:",
+    "@earendil-works/pi-ai": "catalog:",
+    "@huggingface/jinja": "catalog:",
+    "@livekit/components-react": "^2.9.19",
+    "@runwayml/avatars-react": "^0.16.0",
+    "@stablelib/base64": "catalog:",
+    "@tabler/icons-react": "catalog:",
+    "@tanstack/react-query": "catalog:",
+    "class-variance-authority": "catalog:",
+    "clsx": "catalog:",
+    "css-select": "catalog:",
+    "dom-serializer": "catalog:",
+    "domhandler": "catalog:",
+    "domutils": "catalog:",
+    "htmlparser2": "catalog:",
+    "kysely": "catalog:",
+    "kysely-plugin-serialize": "catalog:",
+    "livekit-client": "^2.18.2",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "tailwind-merge": "catalog:",
+    "uuid": "catalog:",
+    "valibot": "catalog:"
+  },
+  "devDependencies": {
+    "@branch-fiction/extension-sdk": "workspace:*",
+    "@tailwindcss/vite": "catalog:",
+    "@types/deno": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "tailwindcss": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  }
+}

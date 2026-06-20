@@ -1,0 +1,67 @@
+{
+  "manifestVersion": "v1",
+  "id": "@local/avatar",
+  "name": "Talk to a Character",
+  "version": "0.1.0",
+  "author": "Chris McC",
+  "description": "Bring a character to life as a real-time AI avatar. Pick a character, generate a reference portrait and personality from the book's own arcs, create a Runway Character, then have a face-to-face conversation.",
+  "repository": "https://github.com/chrisvariety/branch-fiction/tree/release/packages/bundled-extensions/avatar",
+  "seed": "seed.db.gz",
+  "bookData": [
+    {
+      "table": "avatars",
+      "bookIdColumn": "book_id",
+      "assetColumns": ["image_url"]
+    }
+  ],
+  "path": {
+    "phoneCompatible": "cloud",
+    "entry": "dist/index.html",
+    "worker": "dist/worker.js",
+    "window": { "width": 1180, "height": 860 }
+  },
+  "providers": [
+    {
+      "key": "text",
+      "role": "Prompt augmentation (LLM)",
+      "useSlot": "piText"
+    },
+    {
+      "key": "image_generation_reference",
+      "role": "Reference image generation",
+      "options": [
+        {
+          "baseURL": "https://generativelanguage.googleapis.com/v1beta",
+          "auth": { "kind": "header", "header": "x-goog-api-key" },
+          "model": "gemini-3.1-flash-image-preview",
+          "credentialHelp": "Get an API key from [Google AI Studio](https://aistudio.google.com)"
+        },
+        {
+          "baseURL": "https://api.openai.com/v1",
+          "auth": { "kind": "bearer" },
+          "model": "gpt-image-2"
+        },
+        {
+          "baseURL": "https://fal.run",
+          "auth": { "kind": "bearer", "headerPrefix": "Key" },
+          "model": "fal-ai/nano-banana-2",
+          "credentialHelp": "Get an API key from [Fal](https://fal.ai/dashboard/keys)"
+        }
+      ]
+    },
+    {
+      "key": "runway_api_key",
+      "role": "Runway API Key",
+      "options": [
+        {
+          "baseURL": "https://api.dev.runwayml.com",
+          "auth": { "kind": "bearer" },
+          "credentialHelp": "Get an API key (key_…) from your [Runway dashboard](https://dev.runwayml.com/keys)"
+        }
+      ]
+    }
+  ],
+  "config": [],
+  "permissions": ["microphone"],
+  "net": ["api.dev.runwayml.com", "*.runwayml.com", "*.livekit.cloud", "*.livekit.run"]
+}
