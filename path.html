@@ -3,18 +3,29 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#fdfcfb" />
     <title>Extension</title>
     <script>
       (function () {
         try {
-          var t = localStorage.getItem('ui-theme') || 'system';
+          // Phone shares carry the sharer's preference in ?theme; localStorage is empty there.
+          var t =
+            new URLSearchParams(location.search).get('theme') ||
+            localStorage.getItem('ui-theme') ||
+            'system';
           var dark =
             t === 'dark' ||
             (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var bg = dark ? '#1c1916' : '#fdfcfb';
           var root = document.documentElement;
           root.classList.add(dark ? 'dark' : 'light');
-          root.style.backgroundColor = dark ? '#1c1916' : '#fdfcfb';
+          root.style.backgroundColor = bg;
+          // Tints the iOS safe-area / status bar to match the resolved theme.
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', bg);
         } catch (e) {}
       })();
     </script>

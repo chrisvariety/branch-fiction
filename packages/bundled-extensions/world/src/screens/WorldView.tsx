@@ -13,6 +13,9 @@ import type { PrepareWorldResult } from '@/worker/prepare-world';
 import { HeliosControls } from './controls/HeliosControls';
 import { LingbotControls } from './controls/LingbotControls';
 
+// A long silence after the stream starts means delivery is blocked (often a VPN or Private Relay).
+const STALL_TIMEOUT_MS = 10000;
+
 export function WorldView({
   world,
   onExit
@@ -72,6 +75,7 @@ function WorldStage({
   const [terminated, setTerminated] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
   const [playing, setPlaying] = useState(false);
+  const [stalled, setStalled] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState(world.prompt);
 
   const conditionedRef = useRef(false);
@@ -84,6 +88,12 @@ function WorldStage({
     const video = stageRef.current?.querySelector('video');
     if (!video) return;
     video.muted = true;
+    // iOS gates muted autoplay on the attribute, not the property, unlike desktop.
+    video.setAttribute('muted', '');
+    // Without playsinline, WKWebView forces fullscreen and pause-on-dismiss resets us.
+    video.playsInline = true;
+    video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', '');
     try {
       await video.play();
       setPlaying(true);
@@ -174,65 +184,101 @@ function WorldStage({
     return () => clearInterval(id);
   }, [started, playing, tryPlay]);
 
-  return (
-    <div className="flex h-screen items-center justify-center bg-neutral-950 p-3">
-      <div
-        ref={stageRef}
-        className="relative aspect-video max-h-full w-full max-w-[calc((100vh-1.5rem)*16/9)] overflow-hidden rounded-2xl bg-black"
-      >
-        <ReactorView className="h-full w-full" videoObjectFit="cover" />
-        <button
-          aria-label="Exit"
-          className="absolute top-3 right-3 z-10 grid h-8 w-8 place-items-center rounded-full border border-white/20 bg-black/40 text-lg leading-none text-white/80 backdrop-blur-sm transition-colors hover:bg-black/60 hover:text-white"
-          onClick={onExit}
-        >
-          ✕
-        </button>
-        <img
-          src={seedSrc}
-          alt=""
-          aria-hidden
-          className={`pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover blur-2xl transition-opacity duration-1000 ${
-            playing ? 'opacity-0' : 'opacity-100'
-          }`}
-        />
+  // Flag a stall when the stream has started but no frame plays within the grace window.
+  useEffect(() => {
+    if (!started || playing) {
+      setStalled(false);
+      return;
+    }
+    const id = setTimeout(() => setStalled(true), STALL_TIMEOUT_MS);
+    return () => clearTimeout(id);
+  }, [started, playing]);
 
-        {!playing && (
-          <div className="absolute inset-0 grid place-items-center px-8 text-center">
-            {terminated ? (
-              <div className="flex max-w-sm flex-col items-center gap-3">
-                <span className="text-sm text-white/90 drop-shadow">{terminated}</span>
-                <div className="flex gap-2">
-                  <button
-                    className="rounded-full bg-white px-4 py-1.5 text-sm font-medium text-black transition-colors hover:bg-white/90"
-                    onClick={onReconnect}
-                  >
-                    Reconnect
-                  </button>
-                  <button
-                    className="rounded-full border border-white/30 px-4 py-1.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/10"
-                    onClick={onExit}
-                  >
-                    Exit
-                  </button>
+  return (
+    <div className="flex h-screen items-center justify-center bg-background p-3">
+      <div className="relative flex w-full max-w-[calc((100vh-1.5rem)*16/9)] flex-col">
+        <div
+          ref={stageRef}
+          className="relative aspect-video max-h-full w-full flex-none overflow-hidden rounded-2xl bg-black"
+        >
+          <ReactorView className="h-full w-full" videoObjectFit="cover" />
+          <button
+            aria-label="Exit"
+            className="absolute top-3 right-3 z-10 grid h-8 w-8 place-items-center rounded-full border border-white/20 bg-black/40 text-lg leading-none text-white/80 backdrop-blur-sm transition-colors hover:bg-black/60 hover:text-white"
+            onClick={onExit}
+          >
+            ✕
+          </button>
+          <img
+            src={seedSrc}
+            alt=""
+            aria-hidden
+            className={`pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover blur-2xl transition-opacity duration-1000 ${
+              playing ? 'opacity-0' : 'opacity-100'
+            }`}
+          />
+
+          {!playing && (
+            <div className="absolute inset-0 grid place-items-center px-8 text-center">
+              {terminated ? (
+                <div className="flex max-w-sm flex-col items-center gap-3">
+                  <span className="text-sm text-white/90 drop-shadow">{terminated}</span>
+                  <div className="flex gap-2">
+                    <button
+                      className="rounded-full bg-white px-4 py-1.5 text-sm font-medium text-black transition-colors hover:bg-white/90"
+                      onClick={onReconnect}
+                    >
+                      Reconnect
+                    </button>
+                    <button
+                      className="rounded-full border border-white/30 px-4 py-1.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/10"
+                      onClick={onExit}
+                    >
+                      Exit
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ) : error ? (
-              <span className="text-sm text-red-400">{error}</span>
-            ) : started ? (
-              <button
-                className="text-sm font-medium text-white drop-shadow"
-                onClick={() => void tryPlay()}
-              >
-                ▶ Tap to enter your world
-              </button>
-            ) : (
-              <span className="text-sm text-white/80 drop-shadow">
-                {statusMessage(status, phase)}
-              </span>
-            )}
-          </div>
-        )}
+              ) : error ? (
+                <span className="text-sm text-red-400">{error}</span>
+              ) : stalled ? (
+                <div className="flex max-w-sm flex-col items-center gap-3">
+                  <span className="text-sm font-medium text-white/90 drop-shadow">
+                    Your world isn’t loading
+                  </span>
+                  <span className="text-xs text-white/70 drop-shadow">
+                    A VPN or iCloud Private Relay can block the video stream. Try turning
+                    those off, then reconnect.
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      className="rounded-full bg-white px-4 py-1.5 text-sm font-medium text-black transition-colors hover:bg-white/90"
+                      onClick={onReconnect}
+                    >
+                      Reconnect
+                    </button>
+                    <button
+                      className="rounded-full border border-white/30 px-4 py-1.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/10"
+                      onClick={onExit}
+                    >
+                      Exit
+                    </button>
+                  </div>
+                </div>
+              ) : started ? (
+                <button
+                  className="text-sm font-medium text-white drop-shadow"
+                  onClick={() => void tryPlay()}
+                >
+                  ▶ Tap to enter your world
+                </button>
+              ) : (
+                <span className="text-sm text-white/80 drop-shadow">
+                  {statusMessage(status, phase)}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
 
         {playing &&
           (world.model === 'helios' ? (

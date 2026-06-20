@@ -41,6 +41,13 @@ export function ThemeProvider({
             : 'light'
           : theme;
       root.classList.add(resolved);
+      // path.html opts into safe-area tinting via a theme-color meta; sync it so iOS insets track theme.
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) {
+        const bg = resolved === 'dark' ? '#1c1916' : '#fdfcfb';
+        meta.setAttribute('content', bg);
+        root.style.backgroundColor = bg;
+      }
     };
     apply();
     if (theme !== 'system') return;

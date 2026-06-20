@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { QRCodeSVG } from 'qrcode.react';
 import { useState } from 'react';
 
+import { useTheme } from '@/components/theme-provider';
 import {
   Dialog,
   DialogContent,
@@ -110,8 +111,9 @@ function LocalShare({
 }: ShareProps & {
   active: boolean;
 }) {
+  const { theme } = useTheme();
   const { data, error } = useQuery({
-    queryKey: ['phone-share', 'local', extensionId, bookId],
+    queryKey: ['phone-share', 'local', extensionId, bookId, theme],
     enabled: active,
     staleTime: Infinity,
     gcTime: 0,
@@ -127,7 +129,8 @@ function LocalShare({
         bookId,
         token,
         entry,
-        extensionName
+        extensionName,
+        theme
       });
     }
   });
@@ -151,8 +154,9 @@ function CloudShare({
   externalId: string;
   active: boolean;
 }) {
+  const { theme } = useTheme();
   const { data, error } = useQuery({
-    queryKey: ['phone-share', 'cloud', extensionId, bookId],
+    queryKey: ['phone-share', 'cloud', extensionId, bookId, theme],
     enabled: active,
     staleTime: Infinity,
     gcTime: 0,
@@ -169,7 +173,8 @@ function CloudShare({
         bookId,
         token,
         entry,
-        extensionName
+        extensionName,
+        theme
       });
     }
   });

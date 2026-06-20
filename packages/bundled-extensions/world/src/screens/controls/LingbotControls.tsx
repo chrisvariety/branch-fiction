@@ -92,8 +92,8 @@ export function LingbotControls({ sendCommand }: { sendCommand: SendCommand }) {
   }, [sendCommand]);
 
   return (
-    <>
-      <div className="absolute bottom-4 left-4">
+    <div className="flex justify-between gap-4 px-4 pt-3 sm:contents">
+      <div className="sm:absolute sm:bottom-4 sm:left-4">
         <Cross
           top={{ k: 'w', label: 'W' }}
           row={[
@@ -107,7 +107,7 @@ export function LingbotControls({ sendCommand }: { sendCommand: SendCommand }) {
           onRelease={release}
         />
       </div>
-      <div className="absolute right-4 bottom-4">
+      <div className="sm:absolute sm:right-4 sm:bottom-4">
         <Cross
           top={{ k: 'arrowup', label: '↑' }}
           row={[
@@ -121,7 +121,7 @@ export function LingbotControls({ sendCommand }: { sendCommand: SendCommand }) {
           onRelease={release}
         />
       </div>
-    </>
+    </div>
   );
 }
 
@@ -163,7 +163,7 @@ function Cross({
           />
         ))}
       </div>
-      <span className="mt-1 text-[10px] tracking-wide text-white/60 uppercase drop-shadow">
+      <span className="mt-1 text-[10px] tracking-wide text-muted-foreground uppercase drop-shadow">
         {caption}
       </span>
     </div>
@@ -195,8 +195,8 @@ function Cap({
       onPointerCancel={() => onRelease(k)}
       className={`grid h-9 w-9 cursor-pointer touch-none place-items-center rounded-md border text-sm font-medium backdrop-blur-sm transition-colors select-none ${
         on
-          ? 'border-white bg-white/90 text-black'
-          : 'border-white/30 bg-black/40 text-white/90'
+          ? 'border-primary bg-primary text-primary-foreground'
+          : 'border-border bg-card/70 text-foreground'
       }`}
     >
       {label}
