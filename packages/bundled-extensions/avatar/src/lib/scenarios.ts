@@ -1,6 +1,10 @@
 // Conversational modes the avatar can open in: each pairs a persona + opener with a knowledge scope.
 
-export type ScenarioMode = 'in_the_moment' | 'reflective' | 'reunion' | 'relationship';
+export type ScenarioMode =
+  | 'in_the_moment'
+  | 'the_decision'
+  | 'the_event'
+  | 'relationship';
 
 export interface ScenarioModeInfo {
   mode: ScenarioMode;
@@ -20,17 +24,17 @@ export const SCENARIO_MODES: ScenarioModeInfo[] = [
     sceneAnchored: true
   },
   {
-    mode: 'reflective',
-    title: 'Looking back',
+    mode: 'the_decision',
+    title: 'At a crossroads',
     blurb:
-      'They speak from the far side of the story, willing to turn over their choices and what they cost.',
+      'They lay out a hard choice they faced and ask you outright what you would do — argue it through with them.',
     sceneAnchored: false
   },
   {
-    mode: 'reunion',
-    title: 'Reunion',
+    mode: 'the_event',
+    title: 'What really happened',
     blurb:
-      'A warm, guarded meeting — they treat you as someone worth their time, and talk plainly.',
+      'Ask them to walk you through a pivotal moment from the story, the real version, in their own words.',
     sceneAnchored: false
   },
   {

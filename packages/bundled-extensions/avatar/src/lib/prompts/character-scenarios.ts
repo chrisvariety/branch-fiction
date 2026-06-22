@@ -56,12 +56,12 @@ Below is the character's data, drawn from the book. Chapter indices show WHEN in
 
 ## The four modes
 
-Produce exactly one scenario for each of these modes, in this order:
+Produce exactly one scenario for each of these modes, in this order. Every mode must make it OBVIOUS what the user does next — the opening hands them a clear first move (a scene to act in, a choice to weigh in on, or a specific thing to ask about). Never leave the user staring at an open-ended monologue with no idea how to respond.
 
-1. **in_the_moment** — Pick ONE vivid, iconic scene from the candidate scenes (ideally an early or mid-story turning point). The avatar is living that scene as it happens and the user is present with them. The persona and opening must reflect ONLY what the character knows at that point in the story — ignore every arc whose chapters come after the chosen scene. Set <anchor_scene> to the exact title of the scene you chose.
-2. **reflective** — The character speaks from the far side of the whole story, looking back, willing to examine their choices and what they cost. Uses the full arc (end-state).
-3. **reunion** — A warm or guarded personal meeting; the character treats the user as someone worth their time and speaks plainly about themselves. End-state.
-4. **relationship** — The character opens the door to the people who shaped them (allies, rivals, loves), inviting the user to ask about them. End-state.
+1. **in_the_moment** — Pick ONE vivid, iconic scene from the candidate scenes (ideally an early or mid-story turning point). The avatar is living that scene as it happens and the user is right there in it with them. The persona and opening must reflect ONLY what the character knows at that point in the story — ignore every arc whose chapters come after the chosen scene. The opening drops the user into the action with something immediate to react to or do. Set <anchor_scene> to the exact title of the scene you chose.
+2. **the_decision** — The character lays out ONE specific, hard choice from their story — a real fork with real stakes — and genuinely wants the user's take. Full arc (end-state). The opening states the dilemma plainly and ends by putting the question directly to the user: what would you do?
+3. **the_event** — The character offers to tell the user what REALLY happened at ONE specific, pivotal moment of the story, from their side. Full arc (end-state). The opening names the event and explicitly invites the user to ask about it.
+4. **relationship** — The character opens the door to the people who shaped them (allies, rivals, loves), inviting the user to ask about them. Full arc (end-state). The opening names a person or two by first name and invites the user to ask about them.
 
 ## Naming rules (CRITICAL — applies to the persona AND the opening line)
 
@@ -84,7 +84,7 @@ The avatar already IS this character inside the platform and knows their own nam
 
 - This is the FIRST thing the avatar says out loud when the call connects. It must land the voice instantly and set the mode.
 - Ground it in the real material above — a real moment, a real tension, a real person — not generic greeting filler.
-- For in_the_moment, open inside the scene. For the others, open as the mode describes.
+- CRITICAL — hand the user a clear first move. End the opening with something concrete to respond to: a scene to react to (in_the_moment), a direct question (the_decision), an explicit invitation to ask about a named event (the_event) or person (relationship). Never end on a closed, self-contained statement that leaves the user unsure what to say.
 - Follow the naming rules above: never name yourself, and refer to others by first name only.
 - Under {{ maxStartScriptChars }} characters. One short, spoken paragraph.
 
@@ -95,7 +95,7 @@ The avatar already IS this character inside the platform and knows their own nam
     <mode>in_the_moment</mode>
     <label>[3-5 word title for this conversation]</label>
     <tagline>[one short sentence enticing the reader to pick this]</tagline>
-    <anchor_scene>[exact scene title, or empty for non-anchored modes]</anchor_scene>
+    <anchor_scene>[exact scene title for in_the_moment; empty for the other modes]</anchor_scene>
     <personality>[the second-person persona]</personality>
     <start_script>[the spoken opening line]</start_script>
   </scenario>
