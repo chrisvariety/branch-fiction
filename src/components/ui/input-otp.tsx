@@ -1,4 +1,4 @@
-import { OTPFieldPreview as OTPField } from '@base-ui/react/otp-field';
+import { OTPField } from '@base-ui/react/otp-field';
 import { IconMinus } from '@tabler/icons-react';
 import * as React from 'react';
 

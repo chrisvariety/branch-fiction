@@ -11,7 +11,7 @@
   "dependencies": {
     "@earendil-works/pi-agent-core": "catalog:",
     "@earendil-works/pi-ai": "catalog:",
-    "@google/genai": "^2.8.0",
+    "@google/genai": "^2.9.0",
     "@huggingface/jinja": "catalog:",
     "@reactor-team/js-sdk": "^2.12.0",
     "@stablelib/base64": "catalog:",
@@ -26,7 +26,7 @@
     "htmlparser2": "catalog:",
     "kysely": "catalog:",
     "kysely-plugin-serialize": "catalog:",
-    "openai": "^6.42.0",
+    "openai": "^6.44.0",
     "p-retry": "^8.0.0",
     "react": "catalog:",
     "react-dom": "catalog:",
