@@ -334,6 +334,8 @@ pub async fn run_extension_task_internal(
     let deno_args = vec![
         "run".to_string(),
         "--no-config".to_string(),
+        // Non-interactive sidecar: fail ungranted permissions instead of prompting (hangs on Windows).
+        "--no-prompt".to_string(),
         format!("--allow-read={allow_read}"),
         format!("--allow-write={allow_write}"),
         format!("--allow-net={allow_net}"),

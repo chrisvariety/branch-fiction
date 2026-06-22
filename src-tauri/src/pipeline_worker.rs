@@ -158,6 +158,8 @@ async fn spawn_worker(
     let args = vec![
         "run".to_string(),
         "--no-config".to_string(),
+        // Non-interactive sidecar: fail ungranted permissions instead of prompting (hangs on Windows).
+        "--no-prompt".to_string(),
         format!("--allow-read={},{}", book_imports_dir, storage_dir),
         format!("--allow-write={}", book_imports_dir),
         "--allow-net".to_string(),
