@@ -44,11 +44,7 @@ pub fn get_path_phone_url(
     }
     let ip = local_ip_address::local_ip().map_err(|e| e.to_string())?;
     // Only `tauri dev` runs Vite on 1420 (proxying /p/ to axum); builds use the real axum port.
-    let port = if tauri::is_dev() {
-        1420
-    } else {
-        http_port.0
-    };
+    let port = if tauri::is_dev() { 1420 } else { http_port.0 };
     let slug = phone_share.register(
         PhoneShareEntry {
             extension_id,

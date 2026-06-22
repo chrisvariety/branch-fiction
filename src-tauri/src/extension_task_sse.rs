@@ -231,7 +231,10 @@ async fn load_extension_runtime_meta(
         .unwrap_or_default();
 
     let mut worker_path = PathBuf::from(&path);
-    for part in worker_entry.split('/').filter(|s| !s.is_empty() && *s != ".") {
+    for part in worker_entry
+        .split('/')
+        .filter(|s| !s.is_empty() && *s != ".")
+    {
         worker_path.push(part);
     }
     let worker_url = tauri::Url::from_file_path(&worker_path)
