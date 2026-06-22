@@ -8,7 +8,7 @@ import { setDataRoot } from '@/host-fs';
 import { serveRPC } from '@/rpc-worker';
 
 let initialized = false;
-let extensionWorkerPath: string | null = null;
+let extensionWorkerUrl: string | null = null;
 
 type InitArgs = {
   extensionId: string;
@@ -18,7 +18,7 @@ type InitArgs = {
   dbPath: string;
   dataDir: string;
   modelsCatalogPath?: string | null;
-  extensionWorkerPath: string;
+  extensionWorkerUrl: string;
 };
 
 // overlay lives on globalThis, so this also covers the extension worker bundle
@@ -45,25 +45,23 @@ const api = {
       config: args.config,
       dbPath: args.dbPath
     });
-    extensionWorkerPath = args.extensionWorkerPath;
+    extensionWorkerUrl = args.extensionWorkerUrl;
     initialized = true;
     return { ok: true } as const;
   },
 
   async runTask({ task, payload }: { task: string; payload?: unknown }) {
     if (!initialized) throw new Error('runTask called before init');
-    if (!extensionWorkerPath) throw new Error('extension worker path missing');
-
-    const url = extensionWorkerPath.startsWith('file://')
-      ? extensionWorkerPath
-      : `file://${extensionWorkerPath}`;
+    if (!extensionWorkerUrl) throw new Error('extension worker url missing');
 
     let mod: Record<string, unknown>;
     try {
-      mod = (await import(url)) as Record<string, unknown>;
+      mod = (await import(extensionWorkerUrl)) as Record<string, unknown>;
     } catch (e) {
       const err = e as Error;
-      throw new Error(`failed to import extension worker (${url}): ${err.message}`);
+      throw new Error(
+        `failed to import extension worker (${extensionWorkerUrl}): ${err.message}`
+      );
     }
     const handler = (mod[task] ?? mod.default) as
       | ((payload: unknown) => unknown)

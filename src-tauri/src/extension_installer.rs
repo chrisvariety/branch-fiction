@@ -211,6 +211,10 @@ pub async fn commit_extension_install(app: AppHandle, plan: InstallPlan) -> Resu
             .clone()
             .ok_or_else(|| "configure mode requires existingPath".to_string())?
     };
+    // Normalize so stored paths never carry a Windows `\\?\` prefix.
+    let dest_path = dunce::canonicalize(&dest_path)
+        .map(|p| p.to_string_lossy().into_owned())
+        .map_err(|e| format!("canonicalize install path {dest_path}: {e}"))?;
 
     let mut conn = open_main_db_rw(&app).await?;
     let mut tx = conn.begin().await.map_err(|e| format!("begin: {e}"))?;

@@ -1,4 +1,5 @@
 use std::convert::Infallible;
+use std::path::PathBuf;
 use std::time::Duration;
 
 use axum::{
@@ -41,7 +42,7 @@ pub async fn start_task_handler(
 ) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, (StatusCode, String)> {
     let claims = verify_path_token(&app, &token)?;
 
-    let (install_dir, worker_path, net_allowlist) = load_extension_runtime_meta(&app, &claims.sub)
+    let (install_dir, worker_url, net_allowlist) = load_extension_runtime_meta(&app, &claims.sub)
         .await
         .map_err(|e| (StatusCode::BAD_REQUEST, e))?;
 
@@ -57,7 +58,7 @@ pub async fn start_task_handler(
         extension_id: claims.sub.clone(),
         book_id: claims.book_id.clone(),
         extension_install_dir: install_dir,
-        extension_worker_path: worker_path,
+        extension_worker_url: worker_url,
         task: body.task,
         payload: body.payload,
         providers: Value::Object(providers_with_urls),
@@ -229,12 +230,12 @@ async fn load_extension_runtime_meta(
         })
         .unwrap_or_default();
 
-    let worker_path = join_path(&path, &worker_entry);
-    Ok((path, worker_path, net_allowlist))
-}
-
-fn join_path(dir: &str, rel: &str) -> String {
-    let trimmed_dir = dir.trim_end_matches('/');
-    let trimmed_rel = rel.trim_start_matches("./").trim_start_matches('/');
-    format!("{trimmed_dir}/{trimmed_rel}")
+    let mut worker_path = PathBuf::from(&path);
+    for part in worker_entry.split('/').filter(|s| !s.is_empty() && *s != ".") {
+        worker_path.push(part);
+    }
+    let worker_url = tauri::Url::from_file_path(&worker_path)
+        .map_err(|_| format!("invalid worker path: {}", worker_path.display()))?
+        .to_string();
+    Ok((path, worker_url, net_allowlist))
 }

@@ -69,7 +69,7 @@ use extension_installer::{
     uninstall_extension,
 };
 use extension_ports::allocate_extension_port;
-use extension_runtime::{ExtensionRuntimeState, cancel_extension_task, start_extension_task};
+use extension_runtime::ExtensionRuntimeState;
 use extension_sdk::{ExtensionSdkState, set_extension_sdk_source};
 use extension_signature::verify_extension_signature_cmd;
 use extension_slots::{auto_configure_cloud_extensions, set_extension_provider_model};
@@ -187,8 +187,6 @@ pub fn run() {
             apply_book_seeds,
             mint_extension_session_token,
             revoke_extension_session_tokens,
-            start_extension_task,
-            cancel_extension_task,
             extension_dev_code_create,
             extension_dev_clients_list,
             extension_dev_client_revoke,

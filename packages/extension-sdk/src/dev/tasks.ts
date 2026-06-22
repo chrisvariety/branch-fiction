@@ -1,6 +1,8 @@
 import { type ChildProcess, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
+import { resolve as resolvePath } from 'node:path';
 import { createInterface } from 'node:readline';
+import { pathToFileURL } from 'node:url';
 
 import type { ProviderHandle } from './tokens';
 
@@ -121,7 +123,9 @@ async function* pump(
           config: args.config,
           dbPath: args.dbPath,
           dataDir: args.assetsDir,
-          extensionWorkerPath: `${args.extensionDir.replace(/\/+$/, '')}/${args.workerEntry.replace(/^\.?\/+/, '')}`
+          extensionWorkerUrl: pathToFileURL(
+            resolvePath(args.extensionDir, args.workerEntry)
+          ).href
         }
       ]
     }) + '\n';

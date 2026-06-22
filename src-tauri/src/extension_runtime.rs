@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 
-use serde::Deserialize;
 use serde_json::{Value, json};
 use tauri::path::BaseDirectory;
-use tauri::{AppHandle, Emitter, Manager, State};
+use tauri::{AppHandle, Manager};
 use tauri_plugin_shell::ShellExt;
 use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tokio::sync::{mpsc, oneshot};
@@ -22,35 +21,12 @@ pub struct ExtensionRuntimeState {
     pub(crate) singletons: Mutex<HashMap<String, String>>,
 }
 
-#[derive(Deserialize, Clone)]
-pub struct StartExtensionTaskArgs {
-    #[serde(rename = "taskId")]
-    task_id: String,
-    #[serde(rename = "extensionId")]
-    extension_id: String,
-    #[serde(rename = "bookId")]
-    book_id: Option<String>,
-    #[serde(rename = "extensionInstallDir")]
-    extension_install_dir: String,
-    #[serde(rename = "extensionWorkerPath")]
-    extension_worker_path: String,
-    task: String,
-    #[serde(default)]
-    payload: Option<Value>,
-    #[serde(default)]
-    providers: Value,
-    #[serde(default)]
-    config: Value,
-    #[serde(default)]
-    net_allowlist: Vec<String>,
-}
-
 #[derive(Clone, Debug)]
 pub struct RunExtensionTaskRequest {
     pub extension_id: String,
     pub book_id: Option<String>,
     pub extension_install_dir: String,
-    pub extension_worker_path: String,
+    pub extension_worker_url: String,
     pub task: String,
     pub payload: Option<Value>,
     pub providers: Value,
@@ -89,91 +65,6 @@ fn is_valid_net_entry(s: &str) -> bool {
         return false;
     }
     true
-}
-
-#[tauri::command(rename_all = "camelCase")]
-pub async fn start_extension_task(
-    app: AppHandle,
-    state: State<'_, ExtensionRuntimeState>,
-    args: StartExtensionTaskArgs,
-) -> Result<Value, String> {
-    {
-        let map = state.tasks.lock().map_err(|e| e.to_string())?;
-        if map.contains_key(&args.task_id) {
-            return Err(format!("extension task already running: {}", args.task_id));
-        }
-    }
-
-    let task_id = args.task_id.clone();
-    let req = RunExtensionTaskRequest {
-        extension_id: args.extension_id,
-        book_id: args.book_id,
-        extension_install_dir: args.extension_install_dir,
-        extension_worker_path: args.extension_worker_path,
-        task: args.task,
-        payload: args.payload,
-        providers: args.providers,
-        config: args.config,
-        net_allowlist: args.net_allowlist,
-    };
-
-    let (cancel_tx, cancel_rx) = oneshot::channel::<()>();
-    let (event_tx, mut event_rx) = mpsc::channel::<ExtensionTaskEvent>(64);
-
-    {
-        let mut map = state.tasks.lock().map_err(|e| e.to_string())?;
-        map.insert(task_id.clone(), cancel_tx);
-    }
-
-    let app_for_run = app.clone();
-    let runner = tauri::async_runtime::spawn(async move {
-        run_extension_task_internal(app_for_run, req, event_tx, cancel_rx).await;
-    });
-
-    let mut outcome: Result<Value, String> =
-        Err("extension worker exited without returning a result".to_string());
-    while let Some(event) = event_rx.recv().await {
-        match event {
-            ExtensionTaskEvent::Log(args) => {
-                let _ = app.emit(
-                    "extension-task:log",
-                    json!({ "taskId": task_id, "args": args }),
-                );
-            }
-            ExtensionTaskEvent::Result(v) => {
-                outcome = Ok(v);
-                break;
-            }
-            ExtensionTaskEvent::Error(e) => {
-                outcome = Err(e);
-                break;
-            }
-        }
-    }
-
-    let _ = runner.await;
-
-    {
-        let mut map = state.tasks.lock().map_err(|e| e.to_string())?;
-        map.remove(&task_id);
-    }
-
-    outcome
-}
-
-#[tauri::command(rename_all = "camelCase")]
-pub fn cancel_extension_task(
-    state: State<'_, ExtensionRuntimeState>,
-    task_id: String,
-) -> Result<(), String> {
-    let kill_tx = {
-        let mut map = state.tasks.lock().map_err(|e| e.to_string())?;
-        map.remove(&task_id)
-    };
-    if let Some(tx) = kill_tx {
-        let _ = tx.send(());
-    }
-    Ok(())
 }
 
 /// Cancel a task by id from an `AppHandle` (no State extractor needed).
@@ -373,7 +264,7 @@ pub async fn run_extension_task_internal(
         db_path_str,
         data_dir_str,
         models_catalog_path,
-        req.extension_worker_path,
+        req.extension_worker_url,
         req.task,
         req.payload,
         child,
@@ -393,7 +284,7 @@ async fn pump_worker(
     db_path: String,
     data_dir: String,
     models_catalog_path: Option<String>,
-    extension_worker_path: String,
+    extension_worker_url: String,
     task_name: String,
     payload: Option<Value>,
     mut child: CommandChild,
@@ -413,7 +304,7 @@ async fn pump_worker(
             "dbPath": db_path,
             "dataDir": data_dir,
             "modelsCatalogPath": models_catalog_path,
-            "extensionWorkerPath": extension_worker_path,
+            "extensionWorkerUrl": extension_worker_url,
         }]
     });
 

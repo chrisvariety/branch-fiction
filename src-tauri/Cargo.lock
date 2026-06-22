@@ -662,6 +662,7 @@ dependencies = [
  "chacha20poly1305",
  "chrono",
  "dbus-secret-service-keyring-store",
+ "dunce",
  "flate2",
  "futures-util",
  "getrandom 0.4.2",
