@@ -46,8 +46,8 @@ import {
 import { createWorkflowFunction, type WorkflowContext } from '@/worker/handler';
 import { getProvider } from '@/worker/providers';
 
-const PERSONALITY_MAX_CHARS = 10_000;
-const SCENARIO_PERSONALITY_MAX_CHARS = 4_000;
+const PERSONALITY_MAX_CHARS = 1_500;
+const SCENARIO_PERSONALITY_MAX_CHARS = 1_500;
 const SCENARIO_START_SCRIPT_MAX_CHARS = 1_500;
 const MIN_ARC_PERCENTAGE = 5;
 

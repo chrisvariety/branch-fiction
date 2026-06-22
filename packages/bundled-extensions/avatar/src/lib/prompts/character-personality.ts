@@ -46,12 +46,12 @@ The output must be written in the second person, addressing the AI as the charac
 ## Requirements
 
 - Write in the second person ("You are…", "You speak…", "You tend to…").
-- Capture: core temperament and worldview; tone and speech patterns; characteristic mannerisms, verbal tics, or turns of phrase; what they care about and how they treat the person they're talking to; their contradictions and what lies beneath the surface.
+- Capture the few most defining things: core temperament and worldview; tone and speech patterns; a characteristic mannerism or turn of phrase; how they treat the person they're talking to. Lead with their most distinctive, instantly recognizable traits — the ones that make them sound like no one else — and drop generic or incidental ones. You do not need to cover every trait.
 - Translate period/literary voice into a living conversational style the avatar can actually perform out loud. Favour vivid, specific behavioral direction over abstract summary.
 - End with a short directive on how to keep responses in character (length, energy, attitude).
 - Write ONLY the persona itself — no preamble, no markdown formatting, no quotation marks around the whole thing.
 - CRITICAL: Never write the character's name, or any other proper names of people or places, anywhere in the output. Refer to the character only in the second person ("you"). The arcs use names for context only; paraphrase around them so the persona contains no proper nouns.
-- Keep it well under {{ maxChars }} characters. A few rich paragraphs is ideal.
+- Keep it to a SINGLE tight paragraph, like the two examples above — a handful of vivid, specific sentences, comfortably under {{ maxChars }} characters. Brevity matters: long, dense personalities get rejected by the platform's safety filter, so be economical and cut anything that isn't earning its place.
 
 Output your response in this exact format:
 <personality>

@@ -9,7 +9,7 @@ import { setRunwayAvatarId } from '@/iframe/db/models/avatar/update-avatar';
 import type { PrepareAvatarResult } from '@/worker/prepare-avatar';
 
 const RUNWAY_CHARACTERS_URL = 'https://dev.runwayml.com/characters';
-const PERSONALITY_MAX_CHARS = 10_000;
+const PERSONALITY_MAX_CHARS = 1_500;
 
 export function PrepareAvatar({
   bookId,
