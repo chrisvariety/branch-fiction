@@ -107,6 +107,9 @@ jobs:
       - name: Build and publish release
         uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5
         env:
+          # Windows cargo+schannel chokes on crates.io HTTP/2; disable multiplexing there.
+          CARGO_HTTP_MULTIPLEXING: ${{ startsWith(matrix.platform, 'windows') && 'false' || 'true' }}
+          CARGO_NET_RETRY: '5'
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
