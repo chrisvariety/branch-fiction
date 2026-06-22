@@ -24,7 +24,9 @@ const DENO_SHA256 = {
   'aarch64-unknown-linux-gnu':
     '48647189aee6454ed9b9852fa700a77f92b39465c04c625901d165bc8e937afc',
   'x86_64-pc-windows-msvc':
-    '6fe073b11cabeba2f2726d8a3d1592b198aec5f23dab3473d0dc8d5ec7aee1c9'
+    '6fe073b11cabeba2f2726d8a3d1592b198aec5f23dab3473d0dc8d5ec7aee1c9',
+  'aarch64-pc-windows-msvc':
+    '37c68c1c78042a0775ed6770da09815572f28f0ee59ab018d409908165cae27d'
 };
 
 const skipIfExists = process.argv.includes('--skip-if-exists');
@@ -94,7 +96,7 @@ function detectHost() {
     return arch === 'arm64' ? 'aarch64-unknown-linux-gnu' : 'x86_64-unknown-linux-gnu';
   }
   if (platform === 'win32') {
-    return 'x86_64-pc-windows-msvc';
+    return arch === 'arm64' ? 'aarch64-pc-windows-msvc' : 'x86_64-pc-windows-msvc';
   }
   throw new Error(`unsupported host platform: ${platform}/${arch}`);
 }
