@@ -7,7 +7,7 @@ import {
   IconPencil,
   IconPhoto,
   IconPuzzle,
-  IconSettings,
+  IconTrash,
   IconUsers
 } from '@tabler/icons-react';
 import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
@@ -21,7 +21,6 @@ import { useEffect, useRef, useState } from 'react';
 import { CloudAccess } from '@/components/cloud/access';
 import { ConsentScreen } from '@/components/extension/consent';
 import { PhoneShareDialog } from '@/components/phone-share-dialog';
-import { Titlebar } from '@/components/titlebar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,7 +54,8 @@ import { getBookById } from '@/lib/db/models/book/get-book';
 import { updateBookById } from '@/lib/db/models/book/update-book';
 import type { Book } from '@/lib/db/types';
 import { extensionAssetUrl, transformImageUrl } from '@/lib/media/transform-url';
-import { BookCoverFigure } from '@/main/book-cover';
+
+import bookBgUrl from '../assets/book-bg.svg?url';
 
 function isDark() {
   return document.documentElement.classList.contains('dark');
@@ -78,7 +78,7 @@ export function BookPage() {
   const { bookId } = useParams({ strict: false }) as { bookId?: string };
   const id = bookId ?? '';
 
-  const { data: book } = useQuery({
+  const { data: book, isPending } = useQuery({
     queryKey: ['book', id],
     queryFn: () => getBookById(id),
     enabled: !!id
@@ -86,7 +86,6 @@ export function BookPage() {
   const { data: extensions } = useSuspenseQuery(extensionsQueryOptions);
   const { data: bindings } = useSuspenseQuery(extensionBindingsQueryOptions);
 
-  const [editing, setEditing] = useState(false);
   const [setupTarget, setSetupTarget] = useState<{
     extensionId: string;
     intent: LaunchIntent;
@@ -176,51 +175,59 @@ export function BookPage() {
     await getCurrentWindow().close();
   };
 
+  if (isPending) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <p className="text-xs text-muted-foreground">Loading…</p>
+      </div>
+    );
+  }
+
+  if (!book) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-1 text-center">
+        <p className="text-sm text-muted-foreground">Book not found</p>
+        <p className="max-w-xs text-xs text-muted-foreground/70">
+          This book may have been deleted. You can close this window.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <>
-      <Titlebar
-        title={book?.title ?? 'Book'}
-        rightActions={
-          book && (
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                className="flex size-7 items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-muted/80"
-                aria-label="Book actions"
-              >
-                <IconDots className="size-3.5" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  disabled={!canUpdateSelection}
-                  onClick={handleUpdateSelection}
-                >
-                  <IconUsers className="size-4 shrink-0 text-muted-foreground" />
-                  Update
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setEditing(true)}>
-                  <IconPencil className="size-4 shrink-0 text-muted-foreground" />
-                  Rename
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  disabled={book.status !== 'completed'}
-                  onClick={() => void handleExport()}
-                >
-                  <IconFileExport className="size-4 shrink-0 text-muted-foreground" />
-                  Export…
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem variant="destructive" onClick={handleDelete}>
-                  Delete Book
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )
-        }
-      />
-      <section className="flex min-w-0 flex-1 flex-col p-6 md:p-8">
-        {editing && book ? (
-          <BookSettings book={book} onClose={() => setEditing(false)} />
-        ) : setupTarget && setupExtension ? (
+      <div className="absolute top-10 right-3 z-10">
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className="flex size-7 items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-muted/80"
+            aria-label="Book actions"
+          >
+            <IconDots className="size-3.5" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              disabled={!canUpdateSelection}
+              onClick={handleUpdateSelection}
+            >
+              <IconUsers className="size-4 shrink-0 text-muted-foreground" />
+              Update
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={book.status !== 'completed'}
+              onClick={() => void handleExport()}
+            >
+              <IconFileExport className="size-4 shrink-0 text-muted-foreground" />
+              Export…
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem variant="destructive" onClick={handleDelete}>
+              Delete Book
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      {setupTarget && setupExtension ? (
+        <section className="flex min-w-0 flex-1 flex-col p-6 md:p-8">
           <ExtensionSetupFlow
             key={setupTarget.extensionId}
             extension={setupExtension}
@@ -228,12 +235,10 @@ export function BookPage() {
             onLaunch={() => launch(setupExtension, setupTarget.intent)}
             onClose={() => setSetupTarget(null)}
           />
-        ) : tiles.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <ExtensionGrid extensions={tiles} onActivate={handleActivate} />
-        )}
-      </section>
+        </section>
+      ) : (
+        <BookView book={book} extensions={tiles} onActivate={handleActivate} />
+      )}
       {phoneTarget && (
         <PhoneShareDialog
           open={!!phoneTarget}
@@ -463,7 +468,15 @@ function ExtensionConfigureStep({
   );
 }
 
-function BookSettings({ book, onClose }: { book: Book; onClose: () => void }) {
+function BookView({
+  book,
+  extensions,
+  onActivate
+}: {
+  book: Book;
+  extensions: InstalledExtension[];
+  onActivate: (extension: InstalledExtension, intent: LaunchIntent) => void;
+}) {
   const queryClient = useQueryClient();
   const { pickCoverImage, writeCoverImage } = useCoverPicker();
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -516,129 +529,173 @@ function BookSettings({ book, onClose }: { book: Book; onClose: () => void }) {
     await persist({ imageUrl: null });
   };
 
+  const coverActions = coverUrl ? (
+    <>
+      <button
+        type="button"
+        disabled={busy}
+        className="flex items-center gap-1.5 bg-background/90 px-3 py-1.5 text-xs font-medium text-foreground ring-1 ring-border/60 backdrop-blur-sm hover:bg-background disabled:opacity-60"
+        onClick={() => void handleChooseCover()}
+      >
+        <IconPhoto className="size-3.5" />
+        Change cover
+      </button>
+      <button
+        type="button"
+        disabled={busy}
+        className="flex items-center gap-1.5 bg-background/90 px-3 py-1.5 text-xs font-medium text-foreground ring-1 ring-border/60 backdrop-blur-sm hover:bg-background disabled:opacity-60"
+        onClick={() => void handleRemoveCover()}
+      >
+        <IconTrash className="size-3.5" />
+        Remove
+      </button>
+    </>
+  ) : (
+    <button
+      type="button"
+      disabled={busy}
+      className="flex items-center gap-1.5 bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+      onClick={() => void handleChooseCover()}
+    >
+      <IconPhoto className="size-3.5" />
+      Add cover
+    </button>
+  );
+
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
-      <div className="flex flex-col items-center gap-3 text-center">
-        {isEditingTitle ? (
-          <InputGroup className="w-full max-w-xs">
-            <InputGroupInput
-              value={titleDraft}
-              onChange={(e) => setTitleDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void handleSaveTitle();
-                if (e.key === 'Escape') setIsEditingTitle(false);
-              }}
-              autoFocus
+    <div className="relative flex flex-1">
+      <div className="flex w-full flex-1 perspective-[2400px]">
+        <div className="relative size-full ring-1 ring-border transform-3d">
+          <div className="absolute inset-y-0 left-0 w-1/2 overflow-hidden bg-card book-page-gradient-mirror">
+            <BookCoverPane
+              title={book.title}
+              coverUrl={coverUrl}
+              actions={coverActions}
             />
-            <InputGroupAddon align="inline-end">
-              <InputGroupButton variant="default" onClick={() => void handleSaveTitle()}>
-                Save
-              </InputGroupButton>
-            </InputGroupAddon>
-          </InputGroup>
-        ) : (
-          <div className="relative">
-            <h2 className="font-serif text-xl tracking-tight text-balance">
-              {book.title}
-            </h2>
-            <button
-              type="button"
-              className="absolute top-1/2 left-full ml-2 -translate-y-1/2 text-muted-foreground/40 hover:text-foreground"
-              onClick={startEditTitle}
-              aria-label="Edit title"
-            >
-              <IconPencil className="size-3.5" />
-            </button>
           </div>
-        )}
-        <div className="h-px w-8 bg-border" />
-      </div>
 
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-32">
-          <BookCoverFigure title={book.title} imageUrl={coverUrl} />
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            disabled={busy}
-            className="flex items-center gap-1.5 bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
-            onClick={() => void handleChooseCover()}
-          >
-            <IconPhoto className="size-3.5" />
-            {coverUrl ? 'Change cover' : 'Add cover'}
-          </button>
-          {coverUrl && (
-            <button
-              type="button"
-              disabled={busy}
-              className="bg-muted px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted/80 disabled:opacity-60"
-              onClick={() => void handleRemoveCover()}
-            >
-              Remove
-            </button>
-          )}
+          <div className="absolute inset-y-0 right-0 w-1/2 overflow-hidden bg-card book-page-gradient">
+            <div className="absolute inset-0 flex flex-col overflow-y-auto px-10 pt-10 pb-10">
+              <div className="flex flex-col items-center gap-3 text-center">
+                {isEditingTitle ? (
+                  <InputGroup className="w-full max-w-xs">
+                    <InputGroupInput
+                      value={titleDraft}
+                      onChange={(e) => setTitleDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') void handleSaveTitle();
+                        if (e.key === 'Escape') setIsEditingTitle(false);
+                      }}
+                      autoFocus
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupButton
+                        variant="default"
+                        onClick={() => void handleSaveTitle()}
+                      >
+                        Save
+                      </InputGroupButton>
+                    </InputGroupAddon>
+                  </InputGroup>
+                ) : (
+                  <div className="relative">
+                    <h2 className="font-serif text-xl tracking-tight text-balance">
+                      {book.title}
+                    </h2>
+                    <button
+                      type="button"
+                      className="absolute top-1/2 left-full ml-2 -translate-y-1/2 text-muted-foreground/40 hover:text-foreground"
+                      onClick={startEditTitle}
+                      aria-label="Edit title"
+                    >
+                      <IconPencil className="size-3.5" />
+                    </button>
+                  </div>
+                )}
+                <div className="h-px w-8 bg-border" />
+              </div>
+
+              <div className="mt-6 flex-1">
+                {extensions.length === 0 ? (
+                  <p className="text-center text-xs leading-relaxed text-muted-foreground">
+                    No extensions are enabled yet. Install one to start exploring this
+                    book.
+                  </p>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {extensions.map((extension) => (
+                      <ExtensionRow
+                        key={extension.id}
+                        extension={extension}
+                        onActivate={onActivate}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-6 flex justify-center">
+                <button
+                  type="button"
+                  onClick={openSettingsToExtensions}
+                  className="flex items-center gap-1.5 bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                >
+                  <IconPuzzle className="size-3.5" />
+                  Install extensions
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-
-      <button
-        type="button"
-        className="font-serif text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
-        onClick={onClose}
-      >
-        Done
-      </button>
     </div>
   );
 }
 
-function EmptyState() {
+function BookCoverPane({
+  title,
+  coverUrl,
+  actions
+}: {
+  title: string;
+  coverUrl: string | null;
+  actions: React.ReactNode;
+}) {
+  if (coverUrl) {
+    return (
+      <div className="relative size-full overflow-hidden">
+        <img
+          src={coverUrl}
+          alt=""
+          aria-hidden
+          className="absolute inset-0 size-full scale-110 object-cover blur-xl"
+        />
+        <img src={coverUrl} alt={title} className="relative size-full object-contain" />
+        <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2">
+          {actions}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
-      <p className="max-w-sm text-sm text-muted-foreground">
-        No extensions are enabled. Enable an extension to start exploring this book.
-      </p>
-      <button
-        type="button"
-        onClick={openSettingsToExtensions}
-        className="flex items-center gap-1.5 bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-      >
-        <IconSettings className="size-3.5" />
-        Open extension settings
-      </button>
+    <div className="relative flex size-full items-center justify-center">
+      <div
+        aria-hidden
+        className="absolute inset-0"
+        style={{ backgroundImage: `url(${bookBgUrl})`, backgroundRepeat: 'repeat' }}
+      />
+      <div className="relative flex items-center gap-2">{actions}</div>
     </div>
   );
 }
 
-function ExtensionGrid({
-  extensions,
+function ExtensionRow({
+  extension,
   onActivate
 }: {
-  extensions: InstalledExtension[];
-  onActivate: (extension: InstalledExtension, intent: LaunchIntent) => void;
-}) {
-  return (
-    <div className="grid grid-cols-3 gap-x-6 gap-y-8 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
-      {extensions.map((p) => (
-        <ExtensionTile
-          key={p.id}
-          extension={p}
-          onLaunch={() => onActivate(p, 'open')}
-          onOpenOnPhone={() => onActivate(p, 'phone')}
-        />
-      ))}
-    </div>
-  );
-}
-
-function ExtensionTile({
-  extension,
-  onLaunch,
-  onOpenOnPhone
-}: {
   extension: InstalledExtension;
-  onLaunch: () => void;
-  onOpenOnPhone: () => void;
+  onActivate: (extension: InstalledExtension, intent: LaunchIntent) => void;
 }) {
   const phoneCompatible = !!extension.manifest.path?.phoneCompatible;
 
@@ -646,11 +703,11 @@ function ExtensionTile({
     return (
       <button
         type="button"
-        onClick={onLaunch}
-        className="group flex flex-col items-center gap-2 text-center outline-none"
+        onClick={() => onActivate(extension, 'open')}
+        className="flex w-full items-center gap-3 border border-border p-3 text-left transition-colors hover:bg-muted/40"
       >
-        <ExtensionIcon extension={extension} />
-        <ExtensionLabel name={extension.name} />
+        <ExtensionRowIcon extension={extension} />
+        <span className="min-w-0 truncate text-sm font-medium">{extension.name}</span>
       </button>
     );
   }
@@ -661,16 +718,18 @@ function ExtensionTile({
         render={
           <button
             type="button"
-            className="group flex flex-col items-center gap-2 text-center outline-none"
+            className="flex w-full items-center gap-3 border border-border p-3 text-left transition-colors hover:bg-muted/40"
           />
         }
       >
-        <ExtensionIcon extension={extension} />
-        <ExtensionLabel name={extension.name} />
+        <ExtensionRowIcon extension={extension} />
+        <span className="min-w-0 truncate text-sm font-medium">{extension.name}</span>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="center" sideOffset={6} className="w-48">
-        <DropdownMenuItem onClick={onLaunch}>Open</DropdownMenuItem>
-        <DropdownMenuItem onClick={onOpenOnPhone}>
+      <DropdownMenuContent align="start" className="w-48">
+        <DropdownMenuItem onClick={() => onActivate(extension, 'open')}>
+          Open
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onActivate(extension, 'phone')}>
           <IconDeviceMobile className="size-4 shrink-0 text-muted-foreground" />
           Open on Phone
         </DropdownMenuItem>
@@ -679,29 +738,21 @@ function ExtensionTile({
   );
 }
 
-function ExtensionIcon({ extension }: { extension: InstalledExtension }) {
+function ExtensionRowIcon({ extension }: { extension: InstalledExtension }) {
   const iconPath = extension.manifest.path?.icon;
   const [failed, setFailed] = useState(false);
   const src = iconPath ? extensionAssetUrl(extension.id, iconPath) : null;
 
-  return (
-    <div className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-2xl bg-muted/60 ring-1 ring-border transition-transform group-hover:-translate-y-0.5 group-hover:shadow-md">
-      {src && !failed ? (
-        <img
-          src={src}
-          alt=""
-          className="size-full object-cover"
-          onError={() => setFailed(true)}
-        />
-      ) : (
-        <IconPuzzle className="size-1/2 text-muted-foreground/60" />
-      )}
-    </div>
-  );
-}
+  if (!src || failed) return null;
 
-function ExtensionLabel({ name }: { name: string }) {
   return (
-    <span className="line-clamp-2 max-w-full text-xs text-foreground/90">{name}</span>
+    <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted/60 ring-1 ring-border">
+      <img
+        src={src}
+        alt=""
+        className="size-full object-cover"
+        onError={() => setFailed(true)}
+      />
+    </div>
   );
 }

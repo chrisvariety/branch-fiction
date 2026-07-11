@@ -312,8 +312,8 @@ pub fn open_book_window_impl(
 
     let builder = WebviewWindowBuilder::new(app_handle, &label, WebviewUrl::App(url_path.into()))
         .title("Book")
-        .inner_size(720.0, 560.0)
-        .min_inner_size(480.0, 380.0)
+        .inner_size(BOOK_IMPORT_SIZE.0, BOOK_IMPORT_SIZE.1)
+        .min_inner_size(BOOK_IMPORT_MIN_SIZE.0, BOOK_IMPORT_MIN_SIZE.1)
         .center()
         .background_color(theme_background(dark));
 
