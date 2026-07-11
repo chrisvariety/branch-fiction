@@ -1,4 +1,5 @@
 import {
+  IconChevronRight,
   IconDeviceMobile,
   IconDots,
   IconFileExport,
@@ -17,6 +18,11 @@ import { useEffect, useRef, useState } from 'react';
 
 import { ConsentScreen } from '@/components/extension/consent';
 import { PhoneShareDialog } from '@/components/phone-share-dialog';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger
+} from '@/components/ui/collapsible';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -603,34 +609,50 @@ function ExtensionRow({
         className="flex w-full items-center gap-3 border border-border p-3 text-left transition-colors hover:bg-muted/40"
       >
         <ExtensionRowIcon extension={extension} />
-        <span className="min-w-0 truncate text-sm font-medium">{extension.name}</span>
+        <ExtensionRowLabel extension={extension} />
       </button>
     );
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
+    <Collapsible>
+      <CollapsibleTrigger className="flex w-full items-center gap-3 border border-border p-3 text-left transition-colors hover:bg-muted/40 [&[data-panel-open]_.chevron]:rotate-90">
+        <ExtensionRowIcon extension={extension} />
+        <ExtensionRowLabel extension={extension} />
+        <IconChevronRight className="chevron ml-auto size-4 shrink-0 text-muted-foreground transition-transform" />
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="flex flex-col border-x border-b border-border">
           <button
             type="button"
-            className="flex w-full items-center gap-3 border border-border p-3 text-left transition-colors hover:bg-muted/40"
-          />
-        }
-      >
-        <ExtensionRowIcon extension={extension} />
-        <span className="min-w-0 truncate text-sm font-medium">{extension.name}</span>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-48">
-        <DropdownMenuItem onClick={() => onActivate(extension, 'open')}>
-          Open
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onActivate(extension, 'phone')}>
-          <IconDeviceMobile className="size-4 shrink-0 text-muted-foreground" />
-          Open on Phone
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+            onClick={() => onActivate(extension, 'open')}
+            className="flex items-center gap-3 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/40"
+          >
+            Open
+          </button>
+          <button
+            type="button"
+            onClick={() => onActivate(extension, 'phone')}
+            className="flex items-center gap-3 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/40"
+          >
+            <IconDeviceMobile className="size-4 shrink-0 text-muted-foreground" />
+            Open on Phone
+          </button>
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
+function ExtensionRowLabel({ extension }: { extension: InstalledExtension }) {
+  const { description } = extension.manifest;
+  return (
+    <span className="flex min-w-0 flex-col">
+      <span className="truncate text-sm font-medium">{extension.name}</span>
+      {description && (
+        <span className="line-clamp-2 text-xs text-muted-foreground">{description}</span>
+      )}
+    </span>
   );
 }
 
