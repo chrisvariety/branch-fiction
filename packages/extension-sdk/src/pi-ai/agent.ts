@@ -1,5 +1,5 @@
 import type { Agent } from '@earendil-works/pi-agent-core';
-import { complete, type AssistantMessage } from '@earendil-works/pi-ai';
+import { complete, type AssistantMessage } from '@earendil-works/pi-ai/compat';
 
 import { extractWrappedXml } from '../llm/xml';
 

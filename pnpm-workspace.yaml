@@ -4,8 +4,8 @@ packages:
   - "."
 catalog:
   "@base-ui/react": ^1.6.0
-  "@earendil-works/pi-agent-core": ^0.79.9
-  "@earendil-works/pi-ai": ^0.79.9
+  "@earendil-works/pi-agent-core": ^0.80.3
+  "@earendil-works/pi-ai": ^0.80.3
   "@huggingface/jinja": ^0.5.9
   "@stablelib/base64": ^2.0.1
   "@tabler/icons-react": ^3.44.0
@@ -61,6 +61,3 @@ allowBuilds:
   protobufjs: false
 nodeVersion: 25.9.0
 engineStrict: true
-minimumReleaseAgeExclude:
-  - '@earendil-works/pi-agent-core@0.78.1'
-  - '@earendil-works/pi-ai@0.78.1'

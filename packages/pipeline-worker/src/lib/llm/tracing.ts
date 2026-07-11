@@ -6,7 +6,7 @@ import {
   type Context,
   type Model,
   type ProviderStreamOptions
-} from '@earendil-works/pi-ai';
+} from '@earendil-works/pi-ai/compat';
 import { Client, RunTree } from 'langsmith';
 import { serializeError } from 'serialize-error';
 import { v7 as uuidv7 } from 'uuid';

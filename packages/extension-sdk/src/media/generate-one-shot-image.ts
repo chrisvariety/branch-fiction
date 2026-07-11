@@ -1,14 +1,10 @@
-import {
-  generateImages,
-  type ImagesInputContent,
-  type ProviderImagesOptions
-} from '@earendil-works/pi-ai';
+import type { ImagesInputContent } from '@earendil-works/pi-ai';
 import { decode } from '@stablelib/base64';
 
 import type { OneShotImageOptions } from './image-apis/options';
+import { getImagesApi } from './image-apis/register';
 import { withGenAIRetry } from './image-retry';
 import type { AspectRatio, GeneratedImage, InlineImage } from './image-types';
-import './image-apis/register';
 import { buildImagesModel } from './images-model';
 
 const defaultOnRetry = (error: Error, attempt: number, maxRetries: number) => {
@@ -42,10 +38,10 @@ export async function generateOneShotImage(
 
   const image = await withGenAIRetry(
     async () => {
-      const result = await generateImages(
+      const result = await getImagesApi(model.api).generateImages(
         model,
         { input },
-        options as ProviderImagesOptions
+        options
       );
       if (result.stopReason === 'error') {
         throw new Error(result.errorMessage ?? 'Image generation failed');

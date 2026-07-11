@@ -1,6 +1,6 @@
 import '@branch-fiction/extension-sdk/worker/env-soft';
 import { Agent } from '@earendil-works/pi-agent-core';
-import { getModel } from '@earendil-works/pi-ai';
+import { getBuiltinModel } from '@earendil-works/pi-ai/providers/all';
 import { encode } from '@toon-format/toon';
 import { v7 as uuidv7 } from 'uuid';
 
@@ -52,7 +52,7 @@ if (!apiKey) {
   Deno.exit(1);
 }
 
-const model = getModel('google', modelId as never);
+const model = getBuiltinModel('google', modelId as never);
 
 const prompt = `You are an expert literary analyst and data engineer. Compare two lists of entities extracted from the same book (Book ID: ${BOOK_ID}).
 

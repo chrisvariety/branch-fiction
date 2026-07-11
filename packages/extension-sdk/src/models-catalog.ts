@@ -1,7 +1,45 @@
 // runtime overlay for pi-ai's baked-in model catalog; lookups prefer the overlay
 
-import type { Api, KnownProvider, Model } from '@earendil-works/pi-ai';
-import { getModel, getModels, getProviders } from '@earendil-works/pi-ai';
+import type { Api, Model, Models } from '@earendil-works/pi-ai';
+import { createModels } from '@earendil-works/pi-ai';
+import { builtinProviders } from '@earendil-works/pi-ai/providers/all';
+
+// mirrors src-tauri/src/provider_catalog.rs
+// ollama and openai_compatible/anthropic_compatible variants have no built-in catalog, so they are omitted here.
+// if this is a problem in the future, we could just use the preconfigured `all`
+const SUPPORTED_PI_PROVIDERS = new Set<string>([
+  'google',
+  'openai',
+  'anthropic',
+  'openrouter',
+  'xai',
+  'cerebras',
+  'deepseek',
+  'fireworks',
+  'groq',
+  'huggingface',
+  'minimax',
+  'mistral',
+  'moonshotai',
+  'nvidia',
+  'together',
+  'vercel-ai-gateway',
+  'xiaomi',
+  'zai'
+]);
+
+let builtinModels: Models | undefined;
+
+function builtins(): Models {
+  if (!builtinModels) {
+    const models = createModels();
+    for (const provider of builtinProviders()) {
+      if (SUPPORTED_PI_PROVIDERS.has(provider.id)) models.setProvider(provider);
+    }
+    builtinModels = models;
+  }
+  return builtinModels;
+}
 
 export type ModelsCatalogJson = Record<string, Record<string, unknown>>;
 
@@ -69,14 +107,14 @@ export function getCatalogModel(
 ): Model<Api> | undefined {
   const overlay = getCatalogState()?.models.get(provider)?.get(modelId);
   if (overlay) return overlay;
-  return getModel(provider as KnownProvider, modelId as never) as Model<Api> | undefined;
+  return builtins().getModel(provider, modelId);
 }
 
 // overlay first, then baked-only leftovers so configured models keep resolving
 export function getCatalogModels(provider: string): Model<Api>[] {
   const overlay = getCatalogState()?.models.get(provider);
-  const baked = getModels(provider as KnownProvider) as Model<Api>[];
-  if (!overlay) return baked;
+  const baked = builtins().getModels(provider);
+  if (!overlay) return [...baked];
   const merged = Array.from(overlay.values());
   for (const m of baked) {
     if (!overlay.has(m.id)) merged.push(m);
@@ -86,7 +124,9 @@ export function getCatalogModels(provider: string): Model<Api>[] {
 
 export function getCatalogProviders(): string[] {
   const state = getCatalogState();
-  const baked = getProviders() as string[];
+  const baked = builtins()
+    .getProviders()
+    .map((p) => p.id);
   if (!state) return baked;
   return Array.from(new Set([...state.models.keys(), ...baked]));
 }

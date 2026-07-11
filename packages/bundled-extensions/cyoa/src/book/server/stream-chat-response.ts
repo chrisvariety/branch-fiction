@@ -4,7 +4,7 @@ import {
   querySelector,
   querySelectorAll
 } from '@branch-fiction/extension-sdk/llm/xml';
-import { type Message, streamSimple } from '@earendil-works/pi-ai';
+import { type Message, streamSimple } from '@earendil-works/pi-ai/compat';
 import { v7 as uuidv7 } from 'uuid';
 
 import { DEFAULT_USER_ID } from '@/lib/auth';

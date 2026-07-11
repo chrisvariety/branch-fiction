@@ -1,6 +1,6 @@
 import { getAssistantText } from '@branch-fiction/extension-sdk/pi-ai';
 import { type AgentTool } from '@earendil-works/pi-agent-core';
-import { complete, Type } from '@earendil-works/pi-ai';
+import { complete, Type } from '@earendil-works/pi-ai/compat';
 import dedent from 'dedent';
 import { v7 as uuidv7 } from 'uuid';
 

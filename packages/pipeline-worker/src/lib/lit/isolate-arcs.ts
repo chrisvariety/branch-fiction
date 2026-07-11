@@ -10,7 +10,7 @@ import {
   RecoverableError,
   UnrecoverableError
 } from '@branch-fiction/extension-sdk/worker/error-types';
-import { complete } from '@earendil-works/pi-ai';
+import { complete } from '@earendil-works/pi-ai/compat';
 import { v7 as uuidv7 } from 'uuid';
 import * as v from 'valibot';
 

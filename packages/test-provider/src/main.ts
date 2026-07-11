@@ -3,7 +3,7 @@
 import '@/env-soft';
 import { applyModelsCatalog } from '@branch-fiction/extension-sdk/models-catalog';
 import { buildPiModel } from '@branch-fiction/extension-sdk/pi-handle';
-import { complete } from '@earendil-works/pi-ai';
+import { complete } from '@earendil-works/pi-ai/compat';
 
 type Params = {
   providerType: string;
