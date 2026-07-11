@@ -11,7 +11,7 @@ export type CharacterContext = {
 };
 
 const IMAGE_MODELS = {
-  'gemini-2.5-flash-image': {
+  'gemini-3.1-flash-lite-image': {
     // technically gemini supports many more reference images,
     // but I've found when the scene is provided as a standalone reference image,
     // Gemini is hesitant to make big changes to the scene.
@@ -21,7 +21,7 @@ const IMAGE_MODELS = {
     imageTag: (i: number) => `${i + 1}.`,
     compositeImageTag: 'the reference image'
   },
-  // honestly seems worse or on-par w/ gemini-2.5-flash-image and much more expensive...
+  // honestly seems worse or on-par w/ gemini-3.1-flash-lite-image and much more expensive...
   'gemini-3.1-flash-image-preview': {
     maxReferenceImages: 1, // at least for initial generation, 1 seems best here
     imageTag: (i: number) => `${i + 1}.`,

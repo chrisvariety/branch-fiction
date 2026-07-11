@@ -119,7 +119,7 @@
         {
           "baseURL": "https://generativelanguage.googleapis.com/v1beta",
           "auth": { "kind": "header", "header": "x-goog-api-key" },
-          "model": "gemini-2.5-flash-image",
+          "model": "gemini-3.1-flash-lite-image",
           "credentialHelp": "Get an API key from [Google AI Studio](https://aistudio.google.com)"
         },
         {
@@ -149,7 +149,7 @@
         {
           "baseURL": "https://generativelanguage.googleapis.com/v1beta",
           "auth": { "kind": "header", "header": "x-goog-api-key" },
-          "model": "gemini-2.5-flash-image",
+          "model": "gemini-3.1-flash-lite-image",
           "credentialHelp": "Get an API key from [Google AI Studio](https://aistudio.google.com)"
         },
         {
