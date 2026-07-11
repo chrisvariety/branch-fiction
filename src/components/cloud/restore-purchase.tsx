@@ -47,7 +47,7 @@ export function RestorePurchase({
       }>(res);
 
       if (!data.result?.hasActiveSubscription) {
-        throw new Error('No active subscription found for this email');
+        throw new Error('No membership found for this email');
       }
       await linkCloudAccount(data.result.userId);
       return data.result;

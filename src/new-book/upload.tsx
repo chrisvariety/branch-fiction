@@ -44,7 +44,6 @@ import { useCoverPicker } from '@/hooks/use-cover-picker';
 import { useWindowTitle } from '@/hooks/use-window-title';
 import { DEFAULT_USER_ID } from '@/lib/auth';
 import { CLOUD_PROVIDER_TYPE } from '@/lib/cloud';
-import { linkCloudAccount as linkCloudAccountModel } from '@/lib/cloud-link';
 import { broadcastInvalidate } from '@/lib/cross-window-invalidate';
 import { createBookImport } from '@/lib/db/models/book-import/create-book-import';
 import { setOrganizationTextModel } from '@/lib/db/models/organization-text-model/organization-text-model';
@@ -259,10 +258,6 @@ export function UploadPage() {
         right={
           <ProviderSetup
             {...providerFormProps}
-            linkCloudAccount={async ({ externalId }) => {
-              await linkCloudAccountModel(externalId);
-              return { ok: true } as const;
-            }}
             onOpenExternal={(url) => {
               void openUrl(url);
             }}

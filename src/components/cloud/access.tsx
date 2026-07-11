@@ -1,11 +1,6 @@
-import {
-  IconCreditCard,
-  IconKey,
-  IconRefresh,
-  IconShieldLock
-} from '@tabler/icons-react';
+import { IconCloud, IconDeviceMobile, IconHeart, IconRefresh } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 
 import { RestorePurchase } from '@/components/cloud/restore-purchase';
 import { Button } from '@/components/ui/button';
@@ -64,11 +59,11 @@ export function CloudAccess({
       if (!res.ok) throw new Error('Failed to fetch checkout status');
       const data = (await res.json()) as {
         success: boolean;
-        result: { status: string; userId: string | null };
+        result: { status: string; paid: boolean; userId: string | null };
       };
 
       if (
-        data.result.status === 'succeeded' &&
+        data.result.paid &&
         data.result.userId &&
         (provisionMutation.isIdle || provisionMutation.isError)
       ) {
@@ -80,7 +75,7 @@ export function CloudAccess({
     enabled: !!checkoutId,
     refetchInterval: (query) => {
       const status = query.state.data?.status;
-      return status === 'open' || status === 'confirmed' ? 3000 : false;
+      return status === 'open' ? 3000 : false;
     }
   });
 
@@ -102,7 +97,7 @@ export function CloudAccess({
           <div className="h-px w-8 bg-border" />
           {!checkoutId && (
             <p className="text-xs text-muted-foreground">
-              The simplest way to get started, just sign up and add your first book.
+              A one-time, pay-what-you-can unlock for the cloud features. No subscription.
             </p>
           )}
         </div>
@@ -134,38 +129,17 @@ export function CloudAccess({
           </div>
         ) : (
           <>
-            <ul className="space-y-3">
+            <CloudBenefits>
               <li className="flex items-start gap-3">
-                <IconCreditCard className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                <IconHeart className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                 <div className="space-y-0.5">
-                  <p className="text-sm font-medium">$10 per month</p>
+                  <p className="text-sm font-medium">Pay what you can</p>
                   <p className="text-xs leading-relaxed text-muted-foreground">
-                    Includes $10 of LLM usage each month. Extra usage is charged at the
-                    underlying provider's rates.
+                    One payment, no subscription!
                   </p>
                 </div>
               </li>
-              <li className="flex items-start gap-3">
-                <IconKey className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                <div className="space-y-0.5">
-                  <p className="text-sm font-medium">No API keys</p>
-                  <p className="text-xs leading-relaxed text-muted-foreground">
-                    No separate accounts or keys to juggle. One subscription handles
-                    everything.
-                  </p>
-                </div>
-              </li>
-              <li className="flex items-start gap-3">
-                <IconShieldLock className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                <div className="space-y-0.5">
-                  <p className="text-sm font-medium">Private by default</p>
-                  <p className="text-xs leading-relaxed text-muted-foreground">
-                    Requests are passed straight through to the provider. We never log or
-                    store anything.
-                  </p>
-                </div>
-              </li>
-            </ul>
+            </CloudBenefits>
 
             <Button
               className="w-full"
@@ -202,5 +176,33 @@ export function CloudAccess({
         )}
       </div>
     </div>
+  );
+}
+
+export function CloudBenefits({ children }: { children?: ReactNode }) {
+  return (
+    <ul className="space-y-3">
+      <li className="flex items-start gap-3">
+        <IconCloud className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+        <div className="space-y-0.5">
+          <p className="text-sm font-medium">Cloud backups</p>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Keep encrypted backups of your whole library online and restore them on any
+            device. The recovery key stays on your device, so only you can read them.
+          </p>
+        </div>
+      </li>
+      <li className="flex items-start gap-3">
+        <IconDeviceMobile className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+        <div className="space-y-0.5">
+          <p className="text-sm font-medium">Phone sharing anywhere</p>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Open your books on your phone over any network, even cellular (not just when
+            you're both on the same Wi-Fi).
+          </p>
+        </div>
+      </li>
+      {children}
+    </ul>
   );
 }

@@ -8,6 +8,9 @@ use serde::Deserialize;
 use crate::provider_proxy::AuthShape;
 
 pub const CLOUD_PROVIDER_TYPE: &str = "cloud";
+
+pub const CLOUD_DISABLED_MESSAGE: &str = "Cloud access is no longer available.";
+
 const CLOUD_TOKEN_URL: &str = "https://cloud.branchfiction.com/token";
 const CLOUD_CATALOG_URL: &str = "https://cloud.branchfiction.com/catalog";
 

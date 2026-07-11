@@ -96,7 +96,7 @@ function CloudOnlyNotice({ extensionName }: { extensionName: string }) {
       <p className="text-sm font-medium">Cloud Share required</p>
       <p className="text-xs text-muted-foreground">
         “{extensionName}” streams in real time, which only works over Cloud Share. That
-        needs an active subscription.
+        needs an active membership.
       </p>
     </div>
   );

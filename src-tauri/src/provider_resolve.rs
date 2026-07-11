@@ -4,7 +4,9 @@ use serde_json::Value;
 use sqlx::{Connection, SqliteConnection};
 use tauri::{AppHandle, Manager};
 
-use crate::cloud_state::{CLOUD_PROVIDER_TYPE, CloudCatalog, CloudProvider, CloudSlot, CloudState};
+use crate::cloud_state::{
+    CLOUD_DISABLED_MESSAGE, CLOUD_PROVIDER_TYPE, CloudCatalog, CloudProvider, CloudSlot, CloudState,
+};
 use crate::db_path::open_main_db_ro;
 use crate::provider_catalog::{base_url_for_type, provider_type_for_origin_and_auth};
 use crate::provider_proxy::{AuthShape, ResolvedProvider};
@@ -262,6 +264,10 @@ pub async fn resolve_text_model_transport(
         .and_then(|v| u32::try_from(v).ok());
 
     if ptype == CLOUD_PROVIDER_TYPE {
+        // Cloud access is disabled. Remove this early return to restore cloud proxying.
+        let _ = role;
+        return Err(CLOUD_DISABLED_MESSAGE.to_string());
+        #[allow(unreachable_code)]
         let external_id = cloud_external_id(&mut conn).await?;
         let _ = conn.close().await;
         let cloud = app.state::<CloudState>();

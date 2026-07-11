@@ -93,11 +93,11 @@ pub async fn get_cloud_phone_url(
     let cloud = (*cloud_state).clone();
     let phone_share = phone_share.inner().clone();
 
-    // Mint-time gate: refuse unless this account has an active subscription (cloud /token 403s otherwise).
+    // Mint-time gate: refuse unless this account has an active membership (cloud /token 403s otherwise).
     cloud
         .mint_or_get_jwt(&external_id)
         .await
-        .map_err(|_| "Cloud sharing needs an active subscription".to_string())?;
+        .map_err(|_| "Cloud sharing needs an active membership".to_string())?;
 
     // Bind lazily, then publish to discovery + reach a relay so the endpoint-id is dialable.
     let endpoint = iroh_state.ensure_endpoint().await?;

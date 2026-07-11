@@ -10,7 +10,7 @@ import {
   IconKey
 } from '@tabler/icons-react';
 import { useMutation } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { v7 as uuidv7 } from 'uuid';
 
 import { getProviderIcon } from '@/components/icons/provider-icons';
@@ -129,16 +129,20 @@ export function AdvancedProviderForm({
   onProvider,
   onOpenExternal,
   provider: editProvider,
+  title,
+  intro,
   testProviderConfig,
   upsertProvider,
   upsertProviderModel,
   removeProviderModel,
   createProviderWithModel
 }: {
-  onBack: () => void;
+  onBack?: () => void;
   onProvider: () => void;
   onOpenExternal: (url: string) => void;
   provider?: ProviderPreview;
+  title?: string;
+  intro?: ReactNode;
   listProviders: ListProviders;
   testProviderConfig: TestProviderConfig;
   upsertProvider: UpsertProvider;
@@ -391,13 +395,16 @@ export function AdvancedProviderForm({
       <div className="w-full max-w-sm space-y-6">
         <div className="flex flex-col items-center gap-3 text-center">
           <h2 className="font-serif text-xl tracking-tight text-balance">
-            {isEditing ? `Edit ${editProvider!.name}` : 'Bring your own key'}
+            {isEditing ? `Edit ${editProvider!.name}` : (title ?? 'Bring your own key')}
           </h2>
           <div className="h-px w-8 bg-border" />
           {isEditing && (
             <p className="text-xs text-muted-foreground">
               Update credentials or connection details for this provider.
             </p>
+          )}
+          {!isEditing && intro && (
+            <p className="text-xs leading-relaxed text-muted-foreground">{intro}</p>
           )}
         </div>
 
@@ -914,13 +921,15 @@ export function AdvancedProviderForm({
           {saveMutation.isPending ? 'Saving...' : isEditing ? 'Save' : 'Save & Continue'}
         </Button>
 
-        <button
-          type="button"
-          className="w-full text-center text-xs text-muted-foreground underline underline-offset-2"
-          onClick={onBack}
-        >
-          Back
-        </button>
+        {onBack && (
+          <button
+            type="button"
+            className="w-full text-center text-xs text-muted-foreground underline underline-offset-2"
+            onClick={onBack}
+          >
+            Back
+          </button>
+        )}
       </div>
     </div>
   );

@@ -212,7 +212,7 @@ function ProviderCard({
         <p className="truncate text-sm font-medium">{provider.name}</p>
         <p className="truncate text-xs text-muted-foreground">
           {isCloud ? (
-            'This provider is managed by your cloud subscription'
+            'This provider is managed by your cloud membership'
           ) : (
             <>
               {typeLabel} · {credentialLabel(provider)}

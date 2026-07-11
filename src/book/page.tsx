@@ -1,9 +1,7 @@
 import {
-  IconCloud,
   IconDeviceMobile,
   IconDots,
   IconFileExport,
-  IconKey,
   IconPencil,
   IconPhoto,
   IconPuzzle,
@@ -15,10 +13,8 @@ import { useParams } from '@tanstack/react-router';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { ask, message, save } from '@tauri-apps/plugin-dialog';
-import { openUrl } from '@tauri-apps/plugin-opener';
 import { useEffect, useRef, useState } from 'react';
 
-import { CloudAccess } from '@/components/cloud/access';
 import { ConsentScreen } from '@/components/extension/consent';
 import { PhoneShareDialog } from '@/components/phone-share-dialog';
 import {
@@ -45,7 +41,6 @@ import {
 import { providersQueryOptions } from '@/hooks/queries/settings';
 import { useCoverPicker } from '@/hooks/use-cover-picker';
 import { useWindowTitle } from '@/hooks/use-window-title';
-import { linkCloudAccount as linkCloudAccountModel } from '@/lib/cloud-link';
 import { broadcastInvalidate } from '@/lib/cross-window-invalidate';
 import { getBookImportByBookId } from '@/lib/db/models/book-import/get-book-import';
 import { updateBookImportById } from '@/lib/db/models/book-import/update-book-import';
@@ -266,7 +261,6 @@ function ExtensionSetupFlow({
   onClose: () => void;
 }) {
   const providers = useQuery(providersQueryOptions);
-  const [view, setView] = useState<'chooser' | 'cloud' | 'byok'>('chooser');
 
   const hasProviders = (providers.data?.length ?? 0) > 0;
   const needsConfig = extensionNeedsSetup(extension.manifest, extension.config, bindings);
@@ -294,42 +288,11 @@ function ExtensionSetupFlow({
   }
 
   if (!hasProviders) {
-    if (view === 'cloud') {
-      return (
-        <div className="mx-auto w-full max-w-md">
-          <CloudAccess
-            onBack={() => setView('chooser')}
-            onOpenExternal={(url) => {
-              void openUrl(url);
-            }}
-            invalidationQueryKeys={[
-              ['providers'],
-              ['extensions'],
-              ['extension-bindings']
-            ]}
-            linkCloudAccount={async (externalId) => {
-              await linkCloudAccountModel(externalId);
-              void broadcastInvalidate();
-            }}
-          />
-        </div>
-      );
-    }
-    if (view === 'byok') {
-      return (
-        <ExtensionConfigureStep
-          extensionId={extension.id}
-          onSuccess={launchAndClose}
-          onClose={() => setView('chooser')}
-        />
-      );
-    }
     return (
-      <ExtensionProviderChooser
-        extensionName={extension.name}
-        onCloud={() => setView('cloud')}
-        onByok={() => setView('byok')}
-        onCancel={onClose}
+      <ExtensionConfigureStep
+        extensionId={extension.id}
+        onSuccess={launchAndClose}
+        onClose={onClose}
       />
     );
   }
@@ -345,73 +308,6 @@ function ExtensionSetupFlow({
   }
 
   return null;
-}
-
-function ExtensionProviderChooser({
-  extensionName,
-  onCloud,
-  onByok,
-  onCancel
-}: {
-  extensionName: string;
-  onCloud: () => void;
-  onByok: () => void;
-  onCancel: () => void;
-}) {
-  return (
-    <div className="flex flex-1 flex-col items-center p-6">
-      <div className="flex flex-col items-center gap-3 text-center">
-        <h2 className="font-serif text-xl tracking-tight text-balance">
-          Choose a provider
-        </h2>
-        <div className="h-px w-8 bg-border" />
-      </div>
-
-      <div className="mt-6 w-full max-w-sm space-y-6">
-        <p className="text-center text-xs leading-relaxed text-muted-foreground">
-          {extensionName} needs an LLM provider. Pick how you'd like to connect.
-        </p>
-
-        <div className="space-y-2">
-          <button
-            type="button"
-            onClick={onCloud}
-            className="flex w-full items-start gap-3 border border-border p-4 text-left transition-colors hover:bg-muted/40"
-          >
-            <IconCloud className="mt-0.5 size-4 shrink-0" />
-            <div className="space-y-1">
-              <p className="text-sm font-medium">Cloud Access</p>
-              <p className="text-xs text-muted-foreground">
-                One subscription, no API keys to manage.
-              </p>
-            </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={onByok}
-            className="flex w-full items-start gap-3 border border-border p-4 text-left transition-colors hover:bg-muted/40"
-          >
-            <IconKey className="mt-0.5 size-4 shrink-0" />
-            <div className="space-y-1">
-              <p className="text-sm font-medium">Bring your own key</p>
-              <p className="text-xs text-muted-foreground">
-                Use your own API keys for the providers this extension needs.
-              </p>
-            </div>
-          </button>
-        </div>
-
-        <button
-          type="button"
-          className="w-full text-center text-xs text-muted-foreground underline underline-offset-2"
-          onClick={onCancel}
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  );
 }
 
 function ExtensionConfigureStep({

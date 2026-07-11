@@ -6,7 +6,7 @@ use axum::{
 use sqlx::Connection;
 use tauri::{AppHandle, Manager};
 
-use crate::cloud_state::{CLOUD_PROVIDER_TYPE, CloudState};
+use crate::cloud_state::{CLOUD_DISABLED_MESSAGE, CLOUD_PROVIDER_TYPE, CloudState};
 use crate::db_path::open_main_db_ro;
 use crate::extension_auth::verify_path_token;
 use crate::provider_catalog::base_url_for_type;
@@ -184,6 +184,10 @@ async fn resolve_options_transport(
     let rpm_limit = row.6.filter(|v| *v > 0).and_then(|v| u32::try_from(v).ok());
 
     if provider_type == CLOUD_PROVIDER_TYPE {
+        // Cloud access is disabled. Remove this early return to restore cloud proxying.
+        let _ = &external_id;
+        return Err(CLOUD_DISABLED_MESSAGE.to_string());
+        #[allow(unreachable_code)]
         let external_id = external_id.filter(|s| !s.is_empty()).ok_or_else(|| {
             "user has no cloud externalId — link your cloud account first".to_string()
         })?;
