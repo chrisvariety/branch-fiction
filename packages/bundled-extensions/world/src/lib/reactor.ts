@@ -4,7 +4,7 @@ import type { WorldModel } from '@/lib/db/types';
 
 export const MODEL_NAMES: Record<WorldModel, string> = {
   helios: 'helios',
-  lingbot: 'lingbot'
+  lingbot: 'reactor/lingbot-world-2'
 };
 
 const TOKEN_LIFETIME_SECONDS = 3600;

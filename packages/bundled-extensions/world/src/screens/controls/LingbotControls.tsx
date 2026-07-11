@@ -2,23 +2,27 @@ import { useEffect, useState } from 'react';
 
 type SendCommand = (command: string, data: unknown) => Promise<void>;
 
-type Movement = 'idle' | 'forward' | 'back' | 'strafe_left' | 'strafe_right';
+type Longitudinal = 'idle' | 'forward' | 'back';
+type Lateral = 'idle' | 'strafe_left' | 'strafe_right';
 type LookH = 'idle' | 'left' | 'right';
 type LookV = 'idle' | 'up' | 'down';
 
-const MOVEMENT_KEYS: Record<string, Movement> = {
-  w: 'forward',
-  s: 'back',
-  a: 'strafe_left',
-  d: 'strafe_right'
-};
+// World 2 splits movement into independent axes, so W/S and A/D can be held together.
+const LONGITUDINAL_KEYS: Record<string, Longitudinal> = { w: 'forward', s: 'back' };
+const LATERAL_KEYS: Record<string, Lateral> = { a: 'strafe_left', d: 'strafe_right' };
 const LOOK_H_KEYS: Record<string, LookH> = { arrowleft: 'left', arrowright: 'right' };
 const LOOK_V_KEYS: Record<string, LookV> = { arrowup: 'up', arrowdown: 'down' };
 
 // Each key sets its axis to a value while held; releasing resets that axis to idle.
 function commandFor(k: string): { command: string; field: string; value: string } | null {
-  if (MOVEMENT_KEYS[k])
-    return { command: 'set_movement', field: 'movement', value: MOVEMENT_KEYS[k] };
+  if (LONGITUDINAL_KEYS[k])
+    return {
+      command: 'set_move_longitudinal',
+      field: 'move_longitudinal',
+      value: LONGITUDINAL_KEYS[k]
+    };
+  if (LATERAL_KEYS[k])
+    return { command: 'set_move_lateral', field: 'move_lateral', value: LATERAL_KEYS[k] };
   if (LOOK_H_KEYS[k])
     return {
       command: 'set_look_horizontal',
