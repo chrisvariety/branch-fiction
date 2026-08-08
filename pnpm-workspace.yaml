@@ -38,8 +38,8 @@ catalog:
   kysely-plugin-serialize: ^0.8.2
   mdast-util-from-markdown: ^2.0.3
   mdast-util-to-markdown: ^2.1.2
-  oxfmt: ^0.55.0
-  oxlint: ^1.70.0
+  oxfmt: ^0.62.0
+  oxlint: ^1.77.0
   p-queue: ^9.3.0
   pluralize-esm: ^9.0.5
   postcss: ^8.5.15

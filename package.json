@@ -57,7 +57,7 @@
     "domutils": "catalog:",
     "htmlparser2": "catalog:",
     "kysely": "catalog:",
-    "kysely-dialect-tauri": "^1.2.1",
+    "kysely-dialect-tauri": "^2.0.1",
     "kysely-plugin-serialize": "catalog:",
     "mdast-util-from-markdown": "catalog:",
     "mdast-util-to-markdown": "catalog:",

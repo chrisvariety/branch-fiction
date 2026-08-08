@@ -10,6 +10,8 @@ const pragma = (sql: string) => CompiledQuery.raw(sql);
 
 const dialect = new TauriSqliteDialect({
   database: async (prefix) => Database.load(`${prefix}branch-fiction.db`),
+  // route PRAGMAs to `select`
+  isQuery: (sql) => /^\s*pragma\b/i.test(sql),
   onCreateConnection: async (connection) => {
     await connection.executeQuery(pragma('PRAGMA journal_mode = WAL'));
     await connection.executeQuery(pragma('PRAGMA busy_timeout = 5000'));
