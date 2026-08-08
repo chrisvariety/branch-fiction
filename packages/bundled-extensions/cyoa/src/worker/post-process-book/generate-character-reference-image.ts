@@ -15,6 +15,7 @@ import {
   UnrecoverableError
 } from '@branch-fiction/extension-sdk/worker/error-types';
 import { Agent } from '@earendil-works/pi-agent-core';
+import { streamSimple } from '@earendil-works/pi-ai/compat';
 import { encode } from '@stablelib/base64';
 import { v7 as uuidv7 } from 'uuid';
 
@@ -112,6 +113,7 @@ export const handler = createWorkflowFunction<
     const hasRelatedEntities = filteredRelatedEntities.length > 0;
     const { model, apiKey, reasoning } = ctx.getPiModel('text');
     const agent = new Agent({
+      streamFn: streamSimple,
       sessionId: uuidv7(),
       initialState: {
         model,

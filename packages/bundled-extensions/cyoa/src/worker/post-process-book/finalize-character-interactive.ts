@@ -11,6 +11,7 @@ import {
 import { watchAgent } from '@branch-fiction/extension-sdk/pi-ai';
 import { UnrecoverableError } from '@branch-fiction/extension-sdk/worker/error-types';
 import { Agent } from '@earendil-works/pi-agent-core';
+import { streamSimple } from '@earendil-works/pi-ai/compat';
 import { encode } from '@stablelib/base64';
 import dedent from 'dedent';
 import { Jimp } from 'jimp';
@@ -419,6 +420,7 @@ async function extractCharacterDescription(
 }> {
   const { model, apiKey, reasoning } = ctx.getPiModel('text');
   const agent = new Agent({
+    streamFn: streamSimple,
     sessionId: uuidv7(),
     initialState: {
       model,

@@ -1,6 +1,9 @@
 import '@branch-fiction/extension-sdk/worker/env-soft';
 import { findEnvKeys } from '@earendil-works/pi-ai/compat';
-import { getBuiltinModel } from '@earendil-works/pi-ai/providers/all';
+import {
+  type BuiltinProvider,
+  getBuiltinModel
+} from '@earendil-works/pi-ai/providers/all';
 import type { Kysely } from 'kysely';
 import { v7 as uuidv7 } from 'uuid';
 
@@ -49,7 +52,7 @@ async function resetProvider(mainDb: Kysely<DB>) {
     throw new Error(`Unknown provider type "${PROVIDER_TYPE}" — not a pi provider`);
   }
 
-  const model = getBuiltinModel(piProvider, MODEL_KEY as never);
+  const model = getBuiltinModel(piProvider as BuiltinProvider, MODEL_KEY as never);
   const secretEnvVar = findEnvKeys(piProvider)?.[0];
   if (!secretEnvVar) {
     throw new Error(`No known env var for pi provider "${piProvider}"`);

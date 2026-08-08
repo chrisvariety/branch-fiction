@@ -10,6 +10,7 @@ import {
   UnrecoverableError
 } from '@branch-fiction/extension-sdk/worker/error-types';
 import { Agent } from '@earendil-works/pi-agent-core';
+import { streamSimple } from '@earendil-works/pi-ai/compat';
 import { v7 as uuidv7 } from 'uuid';
 import * as v from 'valibot';
 
@@ -551,6 +552,7 @@ async function extractRelationshipArc(
 
     const { model, apiKey, reasoning } = ctx.getPiModel('piText');
     const agent = new Agent({
+      streamFn: streamSimple,
       sessionId: uuidv7(),
       initialState: {
         model,

@@ -1,5 +1,6 @@
 import { Agent, type AgentTool } from '@earendil-works/pi-agent-core';
 import { Type } from '@earendil-works/pi-ai';
+import { streamSimple } from '@earendil-works/pi-ai/compat';
 import { v5 as uuidv5, v7 as uuidv7 } from 'uuid';
 
 const RELATIONSHIP_SESSION_NAMESPACE = '9b7d2e4a-3c5f-4a1d-b2e9-c4f6a8d1e3b5';
@@ -363,6 +364,7 @@ async function runExtractionAgent(
 
   const { model, apiKey, reasoning } = ctx.getPiModel('piText');
   const agent = new Agent({
+    streamFn: streamSimple,
     sessionId,
     initialState: {
       model,

@@ -1,5 +1,6 @@
 import '@branch-fiction/extension-sdk/worker/env-soft';
 import { Agent } from '@earendil-works/pi-agent-core';
+import { streamSimple } from '@earendil-works/pi-ai/compat';
 import { getBuiltinModel } from '@earendil-works/pi-ai/providers/all';
 import { encode } from '@toon-format/toon';
 import { v7 as uuidv7 } from 'uuid';
@@ -106,6 +107,7 @@ console.log(`Comparing extractions using ${modelId}...`);
 console.log('---');
 
 const agent = new Agent({
+  streamFn: streamSimple,
   sessionId: uuidv7(),
   initialState: {
     model,

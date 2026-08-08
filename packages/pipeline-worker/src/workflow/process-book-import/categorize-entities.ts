@@ -5,6 +5,7 @@ import {
 } from '@branch-fiction/extension-sdk/worker/error-types';
 import { Agent, type AgentTool } from '@earendil-works/pi-agent-core';
 import { Type } from '@earendil-works/pi-ai';
+import { streamSimple } from '@earendil-works/pi-ai/compat';
 import { encode } from '@toon-format/toon';
 import { v7 as uuidv7 } from 'uuid';
 
@@ -433,6 +434,7 @@ ${existingEntityEncoded}
 
     const { model, apiKey, reasoning } = ctx.getPiModel('piText');
     const agent = new Agent({
+      streamFn: streamSimple,
       sessionId: uuidv7(),
       initialState: {
         model,

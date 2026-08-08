@@ -1,4 +1,5 @@
 import { Agent } from '@earendil-works/pi-agent-core';
+import { streamSimple } from '@earendil-works/pi-ai/compat';
 import { v5 as uuidv5, v7 as uuidv7 } from 'uuid';
 import * as v from 'valibot';
 
@@ -299,6 +300,7 @@ async function extractChapterEntityAttributes(
 
   const { model, apiKey, reasoning } = ctx.getPiModel('piText');
   const agent = new Agent({
+    streamFn: streamSimple,
     sessionId,
     initialState: { model, thinkingLevel: reasoning, tools: [] },
     getApiKey: () => apiKey
