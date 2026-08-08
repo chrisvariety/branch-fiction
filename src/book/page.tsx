@@ -1,5 +1,6 @@
 import {
   IconChevronRight,
+  IconDeviceDesktop,
   IconDeviceMobile,
   IconDots,
   IconFileExport,
@@ -628,7 +629,8 @@ function ExtensionRow({
             onClick={() => onActivate(extension, 'open')}
             className="flex items-center gap-3 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/40"
           >
-            Open
+            <IconDeviceDesktop className="size-4 shrink-0 text-muted-foreground" />
+            Open in App
           </button>
           <button
             type="button"
