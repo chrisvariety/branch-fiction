@@ -2,10 +2,11 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 
 import { getCharacters, getPlaces, type PickableEntity } from '@/iframe/db/entities';
-import type { WorldModel } from '@/lib/db/types';
+import type { ActiveWorld, OysterModel, WorldModel } from '@/lib/db/types';
 import type { PrepareWorldPayload, PrepareWorldResult } from '@/worker/prepare-world';
 
-import { ModelStep } from './ModelStep';
+import { ModelStep, type ModelChoice } from './ModelStep';
+import { OysterStartStep } from './OysterStartStep';
 
 const ART_STYLE_IMAGES = import.meta.glob('./art-styles/*.jpg', {
   eager: true,
@@ -77,28 +78,31 @@ function artImage(id: string): string | undefined {
   return ART_STYLE_IMAGES[`./art-styles/${id}.jpg`];
 }
 
-const STEPS = [
-  {
-    eyebrow: 'Step one',
+type StepKey = 'model' | 'oysterStart' | 'character' | 'place' | 'artStyle';
+
+const STEPS: Record<StepKey, { title: string; description?: string }> = {
+  model: {
+    title: 'Choose a world model',
+    description: 'How you will steer and move through the world.'
+  },
+  oysterStart: {
+    title: 'Pick up or begin'
+  },
+  character: {
     title: 'Choose a character',
     description: 'Who you will explore the world as.'
   },
-  {
-    eyebrow: 'Step two',
+  place: {
     title: 'Choose a place',
     description: 'Where the scene unfolds around them.'
   },
-  {
-    eyebrow: 'Step three',
+  artStyle: {
     title: 'Choose an art style',
     description: 'The look for the generated world.'
-  },
-  {
-    eyebrow: 'Step four',
-    title: 'Choose a world model',
-    description: 'How you will steer and move through the world.'
   }
-];
+};
+
+const ORDINALS = ['one', 'two', 'three', 'four', 'five'];
 
 interface Choice {
   id: string;
@@ -245,10 +249,10 @@ function ArtStyleStep({
 
 export function SelectWorld({
   bookId,
-  onPrepared
+  onEnter
 }: {
   bookId: string;
-  onPrepared: (world: PrepareWorldResult) => void;
+  onEnter: (world: ActiveWorld) => void;
 }) {
   const characters = useQuery({
     queryKey: ['characters', bookId],
@@ -265,10 +269,18 @@ export function SelectWorld({
   const [placeId, setPlaceId] = useState('');
   const [artStyleId, setArtStyleId] = useState('');
   const [customStyle, setCustomStyle] = useState('');
-  const [model, setModel] = useState<WorldModel>('helios');
+  const [modelChoice, setModelChoice] = useState<ModelChoice>('helios');
+  const [oysterModel, setOysterModel] = useState<OysterModel | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const stepKeys: StepKey[] =
+    modelChoice === 'oyster'
+      ? ['model', 'oysterStart', 'character', 'place', 'artStyle']
+      : ['model', 'character', 'place', 'artStyle'];
+  const stepKey = stepKeys[Math.min(step, stepKeys.length - 1)];
+  const model: WorldModel = modelChoice === 'oyster' ? oysterModel! : modelChoice;
 
   useEffect(() => {
     let el: HTMLElement | null = rootRef.current?.parentElement ?? null;
@@ -286,11 +298,17 @@ export function SelectWorld({
       ? customStyle.trim()
       : (ART_STYLES.find((s) => s.id === artStyleId)?.prompt ?? '');
 
-  const canSubmit = characterId && placeId && artStyle && !busy;
-  const stepReady = [Boolean(characterId), Boolean(placeId), Boolean(artStyle), true][
-    step
-  ];
-  const isLastStep = step === 3;
+  const STEP_READY: Record<StepKey, boolean> = {
+    model: true,
+    oysterStart: oysterModel !== null,
+    character: Boolean(characterId),
+    place: Boolean(placeId),
+    artStyle: Boolean(artStyle)
+  };
+
+  const canSubmit = Boolean(characterId && placeId && artStyle && !busy);
+  const stepReady = STEP_READY[stepKey];
+  const isLastStep = step === stepKeys.length - 1;
 
   async function enter() {
     if (!canSubmit) return;
@@ -301,7 +319,7 @@ export function SelectWorld({
       const result = await window.extensionSDK.worker
         .spawn<PrepareWorldResult>('prepareWorld', payload)
         .onLog((args) => setStatus(args.map(String).join(' ')));
-      onPrepared(result);
+      onEnter({ ...result, encryptedWorldId: null });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -309,7 +327,7 @@ export function SelectWorld({
     }
   }
 
-  const current = STEPS[step];
+  const current = STEPS[stepKey];
 
   return (
     <div
@@ -318,18 +336,41 @@ export function SelectWorld({
     >
       <div className="flex flex-col items-center gap-3 text-center">
         <p className="text-[10px] tracking-[0.3em] text-muted-foreground uppercase">
-          {current.eyebrow}
+          Step {ORDINALS[step]}
         </p>
         <h1 className="font-serif text-xl tracking-tight text-balance">
           {current.title}
         </h1>
-        <div className="h-px w-12 bg-border" />
-        <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">
-          {current.description}
-        </p>
+        {current.description && (
+          <>
+            <div className="h-px w-12 bg-border" />
+            <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">
+              {current.description}
+            </p>
+          </>
+        )}
       </div>
 
-      {step === 0 && (
+      {stepKey === 'model' && (
+        <ModelStep
+          model={modelChoice}
+          onSelect={(choice) => {
+            setModelChoice(choice);
+            if (choice !== 'oyster') setOysterModel(null);
+          }}
+        />
+      )}
+
+      {stepKey === 'oysterStart' && (
+        <OysterStartStep
+          bookId={bookId}
+          selected={oysterModel}
+          onSelectNew={setOysterModel}
+          onReturn={onEnter}
+        />
+      )}
+
+      {stepKey === 'character' && (
         <ChoiceGrid
           label={current.title}
           loading={characters.isLoading}
@@ -339,7 +380,7 @@ export function SelectWorld({
         />
       )}
 
-      {step === 1 && (
+      {stepKey === 'place' && (
         <ChoiceGrid
           label={current.title}
           loading={places.isLoading}
@@ -349,7 +390,7 @@ export function SelectWorld({
         />
       )}
 
-      {step === 2 && (
+      {stepKey === 'artStyle' && (
         <ArtStyleStep
           selectedId={artStyleId}
           custom={customStyle}
@@ -357,8 +398,6 @@ export function SelectWorld({
           onCustom={setCustomStyle}
         />
       )}
-
-      {step === 3 && <ModelStep model={model} onSelect={setModel} />}
 
       <div className="flex flex-col items-center gap-2">
         <div className="flex gap-2">

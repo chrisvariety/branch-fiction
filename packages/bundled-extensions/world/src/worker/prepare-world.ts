@@ -18,12 +18,21 @@ import type { WorldModel } from '@/lib/db/types';
 import { convertArcFriendlyIdPrefixToIsolated } from '@/lib/lit/arc-types';
 import heliosWorld from '@/lib/prompts/helios-world';
 import lingbotWorld from '@/lib/prompts/lingbot-world';
+import oysterAdventureWorld from '@/lib/prompts/oyster-adventure-world';
+import oysterDirectingWorld from '@/lib/prompts/oyster-directing-world';
 import worldSeed from '@/lib/prompts/world-seed';
 import { ensureDbReady, getDb } from '@/worker/db';
 import { getBookArcsByBookIdAndTypesAndEntityIds } from '@/worker/db/models/book-arc/get-book-arc';
 import { getBookEntityById } from '@/worker/db/models/book-entity/get-book-entity';
 import { createWorkflowFunction, type WorkflowContext } from '@/worker/handler';
 import { getProvider } from '@/worker/providers';
+
+const WORLD_TEMPLATES = {
+  helios: heliosWorld,
+  lingbot: lingbotWorld,
+  'oyster-adventure': oysterAdventureWorld,
+  'oyster-directing': oysterDirectingWorld
+} satisfies Record<WorldModel, unknown>;
 
 export interface PrepareWorldPayload {
   characterId: string;
@@ -197,8 +206,7 @@ const runPrepareWorld = createWorkflowFunction<
       })
       .info('Selecting place-appropriate appearance and augmenting into world prompt');
 
-    const template = model === 'helios' ? heliosWorld : lingbotWorld;
-    const promptText = template.render({
+    const promptText = WORLD_TEMPLATES[model].render({
       character: {
         name: character.name,
         appearances: characterAppearances.map((a) => ({
@@ -265,7 +273,9 @@ const runPrepareWorld = createWorkflowFunction<
         placeEntityId: placeId,
         model,
         prompt: worldPrompt,
-        seedImageUrl
+        seedImageUrl,
+        suggestedActions,
+        encryptedWorldId: null
       })
       .execute();
 

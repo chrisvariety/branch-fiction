@@ -53,15 +53,16 @@ pub async fn assets_handler(
         .and_then(|v| v.to_str().ok())
         .unwrap_or("http");
     let self_origin = format!("{scheme}://{host}");
-    // Manifest `net` hosts widen the iframe's CSP egress (WebRTC signaling, HLS).
+    // Manifest `net` hosts widen CSP egress; scheme-less matches our scheme + https, wss does not.
     let net_hosts = read_manifest_net(&canonical_root).await;
     let mut net_sources = String::new();
     for h in &net_hosts {
-        net_sources.push_str(&format!(" https://{h} wss://{h}"));
+        net_sources.push_str(&format!(" {h} wss://{h}"));
     }
     let csp = format!(
         "default-src {origin} data: blob:; \
          script-src {origin} 'unsafe-inline' 'unsafe-eval'{net}; \
+         worker-src {origin} blob:; \
          style-src {origin} 'unsafe-inline'; \
          img-src {origin} data: blob:{net}; \
          media-src {origin} data: blob:{net}; \

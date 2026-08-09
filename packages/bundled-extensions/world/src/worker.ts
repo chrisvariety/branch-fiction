@@ -4,3 +4,4 @@ import '@branch-fiction/extension-sdk/worker/env-soft';
 
 export { evolveHeliosPrompt } from './worker/evolve-helios-prompt';
 export { prepareWorld } from './worker/prepare-world';
+export { suggestDirections } from './worker/suggest-directions';

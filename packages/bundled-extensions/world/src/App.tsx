@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import type { PrepareWorldResult } from '@/worker/prepare-world';
+import type { ActiveWorld } from '@/lib/db/types';
 
 import { SelectWorld } from './screens/SelectWorld';
 import { WorldView } from './screens/WorldView';
@@ -8,7 +8,7 @@ import { WorldView } from './screens/WorldView';
 export function App() {
   const [bookId, setBookId] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
-  const [world, setWorld] = useState<PrepareWorldResult | null>(null);
+  const [world, setWorld] = useState<ActiveWorld | null>(null);
 
   useEffect(() => {
     window.extensionSDK.onReady((ctx) => {
@@ -35,5 +35,5 @@ export function App() {
     return <WorldView world={world} onExit={() => setWorld(null)} />;
   }
 
-  return <SelectWorld bookId={bookId} onPrepared={setWorld} />;
+  return <SelectWorld bookId={bookId} onEnter={setWorld} />;
 }

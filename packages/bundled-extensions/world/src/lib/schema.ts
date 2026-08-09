@@ -8,10 +8,17 @@ const STATEMENTS = [
     model TEXT NOT NULL,
     prompt TEXT NOT NULL,
     seed_image_url TEXT NOT NULL,
+    suggested_actions TEXT,
+    encrypted_world_id TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   )`,
   `CREATE INDEX IF NOT EXISTS worlds_book_id_idx ON worlds (book_id)`
+];
+
+const ADDITIVE_STATEMENTS = [
+  `ALTER TABLE worlds ADD COLUMN suggested_actions TEXT`,
+  `ALTER TABLE worlds ADD COLUMN encrypted_world_id TEXT`
 ];
 
 export async function ensureSchema(db: {
@@ -20,4 +27,16 @@ export async function ensureSchema(db: {
   for (const stmt of STATEMENTS) {
     await db.query(stmt);
   }
+  for (const stmt of ADDITIVE_STATEMENTS) {
+    try {
+      await db.query(stmt);
+    } catch (error) {
+      if (!isDuplicateColumnError(error)) throw error;
+    }
+  }
+}
+
+function isDuplicateColumnError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes('duplicate column name');
 }

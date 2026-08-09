@@ -12,7 +12,7 @@ export default defineConfig({
   base: './',
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, 'src')
+      '@': path.resolve(import.meta.dirname, 'src')
     }
   },
   build: {
@@ -20,7 +20,7 @@ export default defineConfig({
     emptyOutDir: true,
     sourcemap: true,
     rollupOptions: {
-      input: { index: path.resolve(__dirname, 'src/index.html') },
+      input: { index: path.resolve(import.meta.dirname, 'src/index.html') },
       output: {
         entryFileNames: 'assets/[name]-[hash].js'
       }

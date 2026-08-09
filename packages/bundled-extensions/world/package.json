@@ -13,6 +13,7 @@
     "@earendil-works/pi-ai": "catalog:",
     "@google/genai": "^2.9.0",
     "@huggingface/jinja": "catalog:",
+    "@reactor-models/happy-oyster": "^0.3.0",
     "@reactor-team/js-sdk": "^2.12.0",
     "@stablelib/base64": "catalog:",
     "@tabler/icons-react": "catalog:",

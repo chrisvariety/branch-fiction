@@ -58,6 +58,7 @@ catalog:
 allowBuilds:
   '@google/genai': false
   better-sqlite3: false
+  core-js: false
   protobufjs: false
 nodeVersion: 25.9.0
 engineStrict: true
