@@ -1,6 +1,6 @@
 {
   "name": "@branch-fiction/extension-sdk",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "SDK and dev tooling for building Branch Fiction extensions.",
   "homepage": "https://github.com/chrisvariety/branch-fiction/tree/main/packages/extension-sdk",
   "license": "MIT",
