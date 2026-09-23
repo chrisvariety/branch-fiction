@@ -58,7 +58,6 @@ catalog:
 allowBuilds:
   '@google/genai': false
   better-sqlite3: false
-  core-js: false
   esbuild: false
   protobufjs: false
 minimumReleaseAgeExclude:

@@ -7,9 +7,7 @@ import type {
   Transaction as KyselyTransaction
 } from 'kysely';
 
-export type WorldModel = 'helios' | 'lingbot' | 'oyster-adventure' | 'oyster-directing';
-
-export type OysterModel = Extract<WorldModel, 'oyster-adventure' | 'oyster-directing'>;
+export type WorldModel = 'helios' | 'lingbot';
 
 // extension-owned tables follow
 
@@ -22,8 +20,6 @@ export interface WorldsTable {
   prompt: string;
   seedImageUrl: string;
   suggestedActions: string[] | null;
-  // Happy Oyster only
-  encryptedWorldId: string | null;
   createdAt: Generated<string>;
   updatedAt: Generated<string>;
 }
@@ -34,7 +30,6 @@ export interface ActiveWorld {
   prompt: string;
   seedImageUrl: string;
   suggestedActions: string[];
-  encryptedWorldId: string | null;
 }
 
 export type World = Selectable<WorldsTable>;

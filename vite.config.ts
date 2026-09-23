@@ -68,11 +68,11 @@ export default defineConfig(async () => ({
     target: 'es2022',
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'index.html'),
-        settings: resolve(__dirname, 'settings.html'),
-        'new-book': resolve(__dirname, 'new-book.html'),
-        book: resolve(__dirname, 'book.html'),
-        path: resolve(__dirname, 'path.html')
+        main: resolve(import.meta.dirname, 'index.html'),
+        settings: resolve(import.meta.dirname, 'settings.html'),
+        'new-book': resolve(import.meta.dirname, 'new-book.html'),
+        book: resolve(import.meta.dirname, 'book.html'),
+        path: resolve(import.meta.dirname, 'path.html')
       }
     }
   }

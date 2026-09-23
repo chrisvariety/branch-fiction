@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 
-export type ModelChoice = 'helios' | 'lingbot' | 'oyster';
+import type { WorldModel } from '@/lib/db/types';
 
-const MODELS: { value: ModelChoice; label: string; blurb: string }[] = [
+const MODELS: { value: WorldModel; label: string; blurb: string }[] = [
   {
     value: 'helios',
     label: 'Helios',
@@ -12,11 +12,6 @@ const MODELS: { value: ModelChoice; label: string; blurb: string }[] = [
     value: 'lingbot',
     label: 'LingBot',
     blurb: 'Walkable world. Move with WASD and look with the arrow keys.'
-  },
-  {
-    value: 'oyster',
-    label: 'Happy Oyster',
-    blurb: 'Direct the world, like a movie.'
   }
 ];
 
@@ -179,46 +174,6 @@ function LingbotPreview() {
   );
 }
 
-function OysterPreview() {
-  const reduced = usePrefersReducedMotion();
-  const [rotation, setRotation] = useState(0);
-  const [directing, setDirecting] = useState(false);
-
-  useEffect(() => {
-    if (reduced) return;
-    const id = setInterval(() => {
-      setDirecting((d) => !d);
-      setRotation((r) => r + 90);
-    }, 1800);
-    return () => clearInterval(id);
-  }, [reduced]);
-
-  return (
-    <div className="flex h-44 flex-col items-center justify-between py-4">
-      <div className="flex flex-1 items-center">
-        <Cube rotation={rotation} />
-      </div>
-      {directing ? (
-        <div className="flex w-full max-w-50 items-center gap-2 rounded-full border border-border bg-background/60 py-1 pr-1 pl-3">
-          <span className="flex-1 truncate font-mono text-xs text-foreground">
-            she turns
-            <span className="ml-px inline-block w-px animate-pulse">|</span>
-          </span>
-          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-foreground/60">
-            →
-          </span>
-        </div>
-      ) : (
-        <div className="flex gap-1">
-          <ArrowKey label="←" on={false} />
-          <ArrowKey label="↑" on={true} />
-          <ArrowKey label="→" on={false} />
-        </div>
-      )}
-    </div>
-  );
-}
-
 function ArrowKey({ label, on }: { label: string; on: boolean }) {
   return (
     <span
@@ -237,14 +192,14 @@ export function ModelStep({
   model,
   onSelect
 }: {
-  model: ModelChoice;
-  onSelect: (model: ModelChoice) => void;
+  model: WorldModel;
+  onSelect: (model: WorldModel) => void;
 }) {
   return (
     <div
       role="radiogroup"
       aria-label="World model"
-      className="grid w-full max-w-3xl gap-3 sm:grid-cols-3"
+      className="grid w-full max-w-2xl gap-3 sm:grid-cols-2"
     >
       {MODELS.map((m) => {
         const selected = m.value === model;
@@ -261,13 +216,7 @@ export function ModelStep({
                 : 'border-border hover:border-muted-foreground/40'
             }`}
           >
-            {m.value === 'helios' ? (
-              <HeliosPreview />
-            ) : m.value === 'lingbot' ? (
-              <LingbotPreview />
-            ) : (
-              <OysterPreview />
-            )}
+            {m.value === 'helios' ? <HeliosPreview /> : <LingbotPreview />}
             <span className="font-serif text-sm">{m.label}</span>
             <span className="text-xs leading-relaxed text-muted-foreground">
               {m.blurb}

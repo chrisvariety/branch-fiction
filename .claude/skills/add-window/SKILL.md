@@ -84,7 +84,7 @@ Copy `book.html` (or whichever existing window is closest to yours) verbatim, ch
 Add to `build.rollupOptions.input`:
 
 ```ts
-'<name>': resolve(__dirname, '<name>.html')
+'<name>': resolve(import.meta.dirname, '<name>.html')
 ```
 
 ### 6. React entry — `src/<name>/index.tsx`

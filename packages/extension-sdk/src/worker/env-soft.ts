@@ -53,3 +53,15 @@ Deno.env.delete = (key: string): void => {
     throw e;
   }
 };
+
+// pi-ai's User-Agent reads `os.release()`, which needs `--allow-sys=osRelease`.
+const realOsRelease = Deno.osRelease.bind(Deno);
+
+Deno.osRelease = (): string => {
+  try {
+    return realOsRelease();
+  } catch (e) {
+    if (isNotCapable(e)) return 'unknown';
+    throw e;
+  }
+};

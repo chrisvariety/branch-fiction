@@ -18,8 +18,6 @@ import type { WorldModel } from '@/lib/db/types';
 import { convertArcFriendlyIdPrefixToIsolated } from '@/lib/lit/arc-types';
 import heliosWorld from '@/lib/prompts/helios-world';
 import lingbotWorld from '@/lib/prompts/lingbot-world';
-import oysterAdventureWorld from '@/lib/prompts/oyster-adventure-world';
-import oysterDirectingWorld from '@/lib/prompts/oyster-directing-world';
 import worldSeed from '@/lib/prompts/world-seed';
 import { ensureDbReady, getDb } from '@/worker/db';
 import { getBookArcsByBookIdAndTypesAndEntityIds } from '@/worker/db/models/book-arc/get-book-arc';
@@ -29,9 +27,7 @@ import { getProvider } from '@/worker/providers';
 
 const WORLD_TEMPLATES = {
   helios: heliosWorld,
-  lingbot: lingbotWorld,
-  'oyster-adventure': oysterAdventureWorld,
-  'oyster-directing': oysterDirectingWorld
+  lingbot: lingbotWorld
 } satisfies Record<WorldModel, unknown>;
 
 export interface PrepareWorldPayload {
@@ -274,8 +270,7 @@ const runPrepareWorld = createWorkflowFunction<
         model,
         prompt: worldPrompt,
         seedImageUrl,
-        suggestedActions,
-        encryptedWorldId: null
+        suggestedActions
       })
       .execute();
 

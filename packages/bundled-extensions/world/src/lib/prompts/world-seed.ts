@@ -2,7 +2,7 @@ import { createPrompt, PromptMeta } from '@branch-fiction/extension-sdk/llm/prom
 import * as v from 'valibot';
 
 const InputSchema = v.object({
-  model: v.picklist(['lingbot', 'helios', 'oyster-adventure', 'oyster-directing']),
+  model: v.picklist(['lingbot', 'helios']),
   artStyle: v.string(),
   worldPrompt: v.string(),
   character: v.object({
@@ -30,10 +30,8 @@ Scene composition (this is the shot to render — match where {{ character.name 
 {{ character.name }}: {{ character.appearance }}
 
 Requirements:
-{% if model == 'lingbot' or model == 'oyster-adventure' -%}
+{% if model == 'lingbot' -%}
 - Third-person over-the-shoulder view following {{ character.name }}, with {{ character.name }} centered in frame and seen from behind, the world opening up ahead. Pose {{ character.name }} in the way that fits what they are, e.g. a winged creature or dragon airborne with wings spread, an ordinary person on foot, a sprite floating in the air, etc.
-{% elif model == 'oyster-directing' -%}
-- Establishing shot of {{ character.name }} within the environment, staged as the literal opening frame of a scene. {{ character.name }} need not face the camera — compose for the moment described above, and leave visible room for the scene to develop.
 {% else -%}
 - Establishing shot of {{ character.name }} present in the environment, {{ character.name }} facing the camera (front-facing or three-quarter).
 {% endif -%}

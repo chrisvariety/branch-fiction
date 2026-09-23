@@ -12,7 +12,7 @@ const REACTOR_WASM_DIR = path.join(
 );
 
 // js-sdk lazy-loads ./wasm/ relative to its chunk via a vite-ignored import, so emit it alongside.
-function reactorWasm(): Plugin {
+export function reactorWasm(): Plugin {
   return {
     name: 'reactor-wasm',
     apply: 'build',

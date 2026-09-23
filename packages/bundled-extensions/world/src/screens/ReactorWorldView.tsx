@@ -4,36 +4,31 @@ import {
   useReactor,
   useReactorMessage
 } from '@reactor-team/js-sdk';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { ActiveWorld } from '@/lib/db/types';
-import {
-  fetchSeedImageBlob,
-  getReactorJwt,
-  MODEL_NAMES,
-  type ReactorSdkModel
-} from '@/lib/reactor';
+import { fetchSeedImageBlob, createReactorJwtSource, MODEL_NAMES } from '@/lib/reactor';
 
 import { HeliosControls } from './controls/HeliosControls';
 import { LingbotControls } from './controls/LingbotControls';
 import { useStageVideo } from './stage/use-stage-video';
 import { StageError, StageMessage, StagePrompt, WorldStage } from './stage/WorldStage';
 
-type ReactorWorld = ActiveWorld & { model: ReactorSdkModel };
-
 export function ReactorWorldView({
   world,
   onExit
 }: {
-  world: ReactorWorld;
+  world: ActiveWorld;
   onExit: () => void;
 }) {
   const [attempt, setAttempt] = useState(0);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- a new token per reconnect
+  const getJwt = useMemo(createReactorJwtSource, [attempt]);
   return (
     <ReactorProvider
       key={attempt}
       modelName={MODEL_NAMES[world.model]}
-      jwtToken={getReactorJwt}
+      jwtToken={getJwt}
       connectOptions={{ autoConnect: true }}
     >
       <ReactorStage
@@ -65,7 +60,7 @@ function ReactorStage({
   onExit,
   onReconnect
 }: {
-  world: ReactorWorld;
+  world: ActiveWorld;
   onExit: () => void;
   onReconnect: () => void;
 }) {

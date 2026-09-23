@@ -87,13 +87,6 @@
     "*.s3.il-central-1.amazonaws.com",
     "*.s3.me-south-1.amazonaws.com",
     "*.s3.me-central-1.amazonaws.com",
-    "*.s3.sa-east-1.amazonaws.com",
-    "service.happyoyster.cn",
-    "*.happyoyster.cn",
-    "*.aliyuncs.com",
-    "*.alicdn.com",
-    "*.alivecdn.com",
-    "*.aorizon.cn",
-    "time.akamai.com"
+    "*.s3.sa-east-1.amazonaws.com"
   ]
 }

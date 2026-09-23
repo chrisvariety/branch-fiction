@@ -2,11 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 
 import { getCharacters, getPlaces, type PickableEntity } from '@/iframe/db/entities';
-import type { ActiveWorld, OysterModel, WorldModel } from '@/lib/db/types';
+import type { ActiveWorld, WorldModel } from '@/lib/db/types';
 import type { PrepareWorldPayload, PrepareWorldResult } from '@/worker/prepare-world';
 
-import { ModelStep, type ModelChoice } from './ModelStep';
-import { OysterStartStep } from './OysterStartStep';
+import { ModelStep } from './ModelStep';
 
 const ART_STYLE_IMAGES = import.meta.glob('./art-styles/*.jpg', {
   eager: true,
@@ -78,15 +77,14 @@ function artImage(id: string): string | undefined {
   return ART_STYLE_IMAGES[`./art-styles/${id}.jpg`];
 }
 
-type StepKey = 'model' | 'oysterStart' | 'character' | 'place' | 'artStyle';
+type StepKey = 'model' | 'character' | 'place' | 'artStyle';
+
+const STEP_KEYS: StepKey[] = ['model', 'character', 'place', 'artStyle'];
 
 const STEPS: Record<StepKey, { title: string; description?: string }> = {
   model: {
     title: 'Choose a world model',
     description: 'How you will steer and move through the world.'
-  },
-  oysterStart: {
-    title: 'Pick up or begin'
   },
   character: {
     title: 'Choose a character',
@@ -102,7 +100,7 @@ const STEPS: Record<StepKey, { title: string; description?: string }> = {
   }
 };
 
-const ORDINALS = ['one', 'two', 'three', 'four', 'five'];
+const ORDINALS = ['one', 'two', 'three', 'four'];
 
 interface Choice {
   id: string;
@@ -269,18 +267,12 @@ export function SelectWorld({
   const [placeId, setPlaceId] = useState('');
   const [artStyleId, setArtStyleId] = useState('');
   const [customStyle, setCustomStyle] = useState('');
-  const [modelChoice, setModelChoice] = useState<ModelChoice>('helios');
-  const [oysterModel, setOysterModel] = useState<OysterModel | null>(null);
+  const [model, setModel] = useState<WorldModel>('helios');
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const stepKeys: StepKey[] =
-    modelChoice === 'oyster'
-      ? ['model', 'oysterStart', 'character', 'place', 'artStyle']
-      : ['model', 'character', 'place', 'artStyle'];
-  const stepKey = stepKeys[Math.min(step, stepKeys.length - 1)];
-  const model: WorldModel = modelChoice === 'oyster' ? oysterModel! : modelChoice;
+  const stepKey = STEP_KEYS[step];
 
   useEffect(() => {
     let el: HTMLElement | null = rootRef.current?.parentElement ?? null;
@@ -300,7 +292,6 @@ export function SelectWorld({
 
   const STEP_READY: Record<StepKey, boolean> = {
     model: true,
-    oysterStart: oysterModel !== null,
     character: Boolean(characterId),
     place: Boolean(placeId),
     artStyle: Boolean(artStyle)
@@ -308,7 +299,7 @@ export function SelectWorld({
 
   const canSubmit = Boolean(characterId && placeId && artStyle && !busy);
   const stepReady = STEP_READY[stepKey];
-  const isLastStep = step === stepKeys.length - 1;
+  const isLastStep = step === STEP_KEYS.length - 1;
 
   async function enter() {
     if (!canSubmit) return;
@@ -319,7 +310,7 @@ export function SelectWorld({
       const result = await window.extensionSDK.worker
         .spawn<PrepareWorldResult>('prepareWorld', payload)
         .onLog((args) => setStatus(args.map(String).join(' ')));
-      onEnter({ ...result, encryptedWorldId: null });
+      onEnter(result);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -351,24 +342,7 @@ export function SelectWorld({
         )}
       </div>
 
-      {stepKey === 'model' && (
-        <ModelStep
-          model={modelChoice}
-          onSelect={(choice) => {
-            setModelChoice(choice);
-            if (choice !== 'oyster') setOysterModel(null);
-          }}
-        />
-      )}
-
-      {stepKey === 'oysterStart' && (
-        <OysterStartStep
-          bookId={bookId}
-          selected={oysterModel}
-          onSelectNew={setOysterModel}
-          onReturn={onEnter}
-        />
-      )}
+      {stepKey === 'model' && <ModelStep model={model} onSelect={setModel} />}
 
       {stepKey === 'character' && (
         <ChoiceGrid
