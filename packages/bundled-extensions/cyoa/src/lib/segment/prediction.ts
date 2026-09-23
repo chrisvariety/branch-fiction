@@ -118,7 +118,7 @@ export function deduplicateByLabelCenter(
 
   // Calculate center for each prediction using polylabel
   const predictionsWithCenters = predictions.map((prediction) => {
-    const polygonCoords = prediction.points.map((p) => [p.x, p.y]);
+    const polygonCoords = prediction.points.map((p): [number, number] => [p.x, p.y]);
     const [centerX, centerY] = polylabel([polygonCoords], 1.0);
     const area = calculatePolygonArea(prediction.points);
     return {

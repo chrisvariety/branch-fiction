@@ -11,10 +11,10 @@
   "dependencies": {
     "@earendil-works/pi-agent-core": "catalog:",
     "@earendil-works/pi-ai": "catalog:",
-    "@google/genai": "^2.9.0",
+    "@google/genai": "^2.23.0",
     "@huggingface/jinja": "catalog:",
-    "@reactor-models/happy-oyster": "^0.3.0",
-    "@reactor-team/js-sdk": "^2.12.0",
+    "@reactor-models/happy-oyster": "^1.0.0",
+    "@reactor-team/js-sdk": "^3.0.2",
     "@stablelib/base64": "catalog:",
     "@tabler/icons-react": "catalog:",
     "@tanstack/react-query": "catalog:",
@@ -27,14 +27,14 @@
     "htmlparser2": "catalog:",
     "kysely": "catalog:",
     "kysely-plugin-serialize": "catalog:",
-    "openai": "^6.44.0",
-    "p-retry": "^8.0.0",
+    "openai": "^7.20.0",
+    "p-retry": "^8.0.1",
     "react": "catalog:",
     "react-dom": "catalog:",
     "tailwind-merge": "catalog:",
     "uuid": "catalog:",
     "valibot": "catalog:",
-    "zustand": "^5.0.6"
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@branch-fiction/extension-sdk": "workspace:*",

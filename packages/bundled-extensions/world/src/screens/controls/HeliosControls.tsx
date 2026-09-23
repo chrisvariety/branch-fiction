@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { EvolveHeliosPromptResult } from '@/worker/evolve-helios-prompt';
 
-type SendCommand = (command: string, data: unknown) => Promise<void>;
+type SendCommand = (command: string, data: Record<string, unknown>) => Promise<unknown>;
 
 const ACTIONS_REVEAL_DELAY_MS = 10000;
 

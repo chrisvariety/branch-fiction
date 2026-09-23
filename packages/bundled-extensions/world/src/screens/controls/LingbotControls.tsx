@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { Cross, isTypingTarget } from './KeyPad';
 
-type SendCommand = (command: string, data: unknown) => Promise<void>;
+type SendCommand = (command: string, data: Record<string, unknown>) => Promise<unknown>;
 
 type Longitudinal = 'idle' | 'forward' | 'back';
 type Lateral = 'idle' | 'strafe_left' | 'strafe_right';

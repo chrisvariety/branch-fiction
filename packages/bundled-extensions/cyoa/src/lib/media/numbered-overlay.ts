@@ -150,7 +150,7 @@ export async function createNumberedOverlayImage(
 
     // Find the visual center (pole of inaccessibility) - the point inside the polygon
     // that's farthest from any edge, ensuring the number is always inside the shape
-    const polygonCoords = points.map((p) => [p.x, p.y]);
+    const polygonCoords = points.map((p): [number, number] => [p.x, p.y]);
     const [centerX, centerY] = polylabel([polygonCoords], 1.0);
 
     // Draw numbered circle with matching border color

@@ -5,7 +5,16 @@
   "categories": {},
   "rules": {
     "import/no-cycle": ["error", { "maxDepth": 3 }],
-    "typescript/no-unsafe-assignment": "off"
+    "typescript/no-unsafe-assignment": "off",
+    "eslint/no-unused-vars": [
+      "warn",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "destructuredArrayIgnorePattern": "^_",
+        "ignoreRestSiblings": true
+      }
+    ]
   },
   "settings": {
     "jsx-a11y": {

@@ -33,7 +33,7 @@ export function ReactorWorldView({
     <ReactorProvider
       key={attempt}
       modelName={MODEL_NAMES[world.model]}
-      getJwt={getReactorJwt}
+      jwtToken={getReactorJwt}
       connectOptions={{ autoConnect: true }}
     >
       <ReactorStage
@@ -87,7 +87,8 @@ function ReactorStage({
   const { playing, stalled, tryPlay } = useStageVideo(stageRef, started);
 
   // Events are the source of truth: start only once conditions_ready confirms commit.
-  useReactorMessage((msg: ReactorMsg) => {
+  useReactorMessage((raw) => {
+    const msg = raw as ReactorMsg;
     if (msg.type === 'moderation' && msg.data?.action === 'terminate') {
       setTerminated(
         msg.data?.message ?? 'Your session ended due to a content policy violation.'
